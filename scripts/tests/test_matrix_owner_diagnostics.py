@@ -328,7 +328,7 @@ class LinuxBrowserAttributionTests(unittest.TestCase):
             "synthetic", sampler=Sampler())
         with patch("lib.matrix_idle.urllib.request.build_opener") as opener, \
                 patch("lib.matrix_idle.owned_usage", return_value={"physical_owners": 0}), \
-                patch("lib.matrix_idle.time.monotonic", return_value=100), \
+                patch("lib.matrix_idle.resource_monotonic", return_value=100), \
                 patch("lib.matrix_idle.idle_owner_diagnostics", side_effect=diagnose):
             opener.return_value.open.return_value.__enter__.return_value.read.return_value = \
                 json.dumps({"result": {"Ok": {"kind": "health", "data": {}}}}).encode()

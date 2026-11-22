@@ -878,6 +878,12 @@ class MacLinuxIdle(MatrixIdle):
         super().__init__(directory, server_pid, -1, endpoint, credential,
                          sampler=sampler or MacLinuxSampler(remote, server_pid, resource_cycles=resource_cycles),
                          cycle_mode=cycle_mode, original_baseline=original_baseline, resource_cycles=resource_cycles)
+        self.clock_basis = "macos-mach-absolute-aligned-linux-monotonic"
+
+    def observation_monotonic(self):
+        # remote.host_time retains the original bounded guest-to-host alignment
+        # measured with this host clock. Never mix it with local Node RAW time.
+        return time.monotonic()
 
     def request(self, phase):
         path = self.directory / ("resources-" + phase + ".json")
@@ -886,7 +892,8 @@ class MacLinuxIdle(MatrixIdle):
         if path.is_symlink() or path.stat().st_size > 1024:
             raise ValueError("Bounded original guest resource request required")
         value = json.loads(path.read_text())
-        if set(value) != {"phase", "monotonic_seconds"} or value["phase"] != phase:
+        if (set(value) != {"phase", "monotonic_seconds", "clock_basis"}
+                or value["phase"] != phase or value["clock_basis"] != "linux-clock-monotonic"):
             raise ValueError("Original guest resource phase differs")
         return self.remote.host_time(value["monotonic_seconds"])
 

@@ -1,19 +1,20 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-22T11:23:23.707869+00:00",
-  "revision": 173,
-  "status": "All22 focused controls PASS (15Core/4Store/3Service; zero failed/ignored), with26children and Root naturally closed. Only one existing Store test body changed: it had compared a discarded independent Read A with a later writer; the invariant is the writer\u2019s SAME internal B cutoff. Existing scoped Clock and one-shot scene-derived hook now prove exact B retention, exact-expiry refusal with no durable changes, immutable bounds/IDs and the original foreign-scene rejection. The old comparison fails deterministically in this control; actual G840 A/B clock values were unlogged, so no unique historical clock-edge claim. G840 remains FAILED:4288PASS/1FAIL/0ignored, all43children and Root closed; auditca235 retained. G835 OriginalV8 remainsFAILED and media is held. No production/dependency/criteria/deadline changes. Actual22 source, current five library artifacts/inventories and natural owner closure are independently audited; mobile276 scoped readback preserves420 other paragraphs and all styles. Next tested-fixture checkpoint commit/push and all seven final-source readiness scopes; stopREADY32. Matrix v218 remains1/32 and399/432, no new run. LocalMac/nativeARM only; G6-054 parked.",
+  "updated_at": "2026-11-22T21:22:31.520560+00:00",
+  "revision": 174,
+  "status": "Checkpoint174: all80 focused harness controls PASS (77 Python methods plus3 Node tests; zero failed/skipped), with Root and all4 original child owners naturally joined and absent. A separate expanded affected-script regression also passes1411 tests (1254 Node and157 Python), including the focused80 subset, with11 children and Root naturally closed; these counts are not additive. Mobile281 records the earlier focused80 only. Nine harness/test files correct the local Mac resource clock contract and exceptional cleanup. Local Node/libuv uses the continuous clock while Python monotonic uses the absolute clock; MatrixIdle now selects the matching declared local clock and preserves the existing bounded Linux-guest to Mac-host alignment. Missing/wrong/stale/future clock observations still refuse. The entire exceptional finally independently attempts original browser/capture/server cleanup and reporting within unchanged bounds; forced or unknown closure stays failed. G846 Firefox remains FAILED before operations/authentication/media; its later orphan reconciliation is not original join or qualification. G847 failed constant-clock vectors and omitted original PYTHONPATH remain recorded; corrected vectors and the original runner environment pass G848. Rust, SDK, source-lock/prepared upstream and all acceptance criteria are unchanged. Historical db974 full4289 and OriginalV8 all3 remain evidence for that old source only. Mobile281 scoped readback preserves420 other paragraphs and all styles. Commit/push the tested batch, then all seven original readiness scopes on final source; stop READY32. Matrix v218 remains1/32 and399/432; no new matrix credit, local Mac/native ARM only, G6-054 parked.",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
-    "sync_status": "verified-checkpoint173-mobile276-scoped-readback",
-    "content_revision": 276,
-    "readback_evidence": ".local/gate-6/g842-mobile276-actual22-root/readback.json",
-    "readback_evidence_sha256": "5c96f4af4b8bd677c34b984bae65a3373c7359de3d3304543a5dc7804f3abb5f",
-    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v276-writer-cutoff-units.json",
-    "postrun_readback_sha256": "b695b71ddcb2e5f7ef4d3a1da2d9c354bf7359c35246ef0473e414b326bf3b56"
+    "sync_status": "verified-checkpoint174-mobile281-scoped-readback",
+    "content_revision": 281,
+    "readback_evidence": ".local/gate-6/g848-mobile281-root/readback.json",
+    "readback_evidence_sha256": "8cc0af9f7811128be671471871429435bd009034d8eaae30dfb4025f6b61f7ba",
+    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v281-clock-cleanup-units.json",
+    "postrun_readback_sha256": "52eae454f8f9054a737427022d717f53b35f3fb09633691dbeba4b9107c02b10",
+    "postrun_readback_scope": "Actual mobile281 focused80 only; later expanded1411 is outside its text/readback."
   },
   "baseline": {
     "run": "v215",
@@ -588,7 +589,7 @@
       "status": "combined-workload-verified",
       "implementation_state": "Both current full62 signing profiles pass quality/handoffs/Data/Session ends/67scleanup/10sidle. Ownerjoins65.918857/64.914006s. Complete361 remains360/361 because new snapshot concurrency test fails3vs4.",
       "proposed_fix": "Batch both current Session refreshes, then both original End submissions, then both waits. Preserve the same Client, logical IDs, topology CAS, first failure and original 67-second cutoff.",
-      "required_evidence": "Same-helper regression and actual concurrent workload meet original62\u201367s boundary; current snapshot/receipt, sibling joins and scope checks preserved; old/new authority behavior equivalent.",
+      "required_evidence": "Same-helper regression and actual concurrent workload meet original62–67s boundary; current snapshot/receipt, sibling joins and scope checks preserved; old/new authority behavior equivalent.",
       "coordinator_review": {
         "status": "Scoped combined-workload assertions accepted; matrix verification pending",
         "root_cause_confirmed": false,
@@ -2355,7 +2356,7 @@
         "V219-RTC-FENCE"
       ],
       "status": "component-verified",
-      "implementation_state": "ActualOLD65\u219210/55; fixed65/65 includes4new+61retained; sync pertarget140queue+1current; exact original age/clock/gates/cleanup.",
+      "implementation_state": "ActualOLD65→10/55; fixed65/65 includes4new+61retained; sync pertarget140queue+1current; exact original age/clock/gates/cleanup.",
       "required_evidence": "Fresh combined615/currentARM+normalrelease and full32; no summing overlapping50+65 or treating source counter as actual39-bin cause.",
       "verification_runs": [
         {
@@ -3699,7 +3700,7 @@
       ],
       "coordinator_review": {
         "evidence": "docs/evidence/gate-6/g6-058-v219-g817-warm-recovery-implementation.json",
-        "scope": "Reviewed implementation561 plus actual RED\u2192GREEN and assigned focused units; G811 historical producer remains unproven; no matrix credit"
+        "scope": "Reviewed implementation561 plus actual RED→GREEN and assigned focused units; G811 historical producer remains unproven; no matrix credit"
       },
       "verification_runs": [
         {
@@ -3750,7 +3751,7 @@
       ],
       "coordinator_review": {
         "evidence": "docs/evidence/gate-6/g6-058-v219-g817-warm-recovery-implementation.json",
-        "scope": "Reviewed implementation561 plus actual RED\u2192GREEN and assigned focused units; G811 historical producer remains unproven; no matrix credit"
+        "scope": "Reviewed implementation561 plus actual RED→GREEN and assigned focused units; G811 historical producer remains unproven; no matrix credit"
       },
       "verification_runs": [
         {
@@ -3941,9 +3942,9 @@
       "depends_on": [],
       "status": "component-verified",
       "implementation_state": "One existing StoreTESTbody changed/source+format reviewed. Actualassignedselector PASS within15Core/4Store/3Service22/0/0; independent actualaudit accepted with26children+Rootnaturalclosed. No production/dependency/criteria change; finalfull/media/readiness pending.",
-      "proposed_fix": "Clock pinned before genuine fixtures; fresh A\u2192B between calls allowed; existing scene-derived hook advances B\u2192C only after SAME internal B captured/dropped; returned cutoff EXACT B. Original foreign-scene Forbidden retained. At exact copied internal B expiry, actual writer refuses Forbidden; same reservation/attempt/effect IDs and complete durable snapshots unchanged, interval released and original source still current.",
+      "proposed_fix": "Clock pinned before genuine fixtures; fresh A→B between calls allowed; existing scene-derived hook advances B→C only after SAME internal B captured/dropped; returned cutoff EXACT B. Original foreign-scene Forbidden retained. At exact copied internal B expiry, actual writer refuses Forbidden; same reservation/attempt/effect IDs and complete durable snapshots unchanged, interval released and original source still current.",
       "required_evidence": [
-        "Exact actual same-internalB cutoff across controlled B\u2192C policyedge, no immutable cap/ID renewal",
+        "Exact actual same-internalB cutoff across controlled B→C policyedge, no immutable cap/ID renewal",
         "Exact copied B expiry Forbidden/no durable changes, interval release and original source current",
         "Original foreign-scene Forbidden unchanged",
         "Actual22 natural owner closure and independent audit, finalsourcefull and allseven originalreadiness scopes"
@@ -3971,6 +3972,117 @@
           "root_join_sha256": "e4330e160a11c2544ce41ab626bee1838cf2deb5d4b7155b689b8f5c55c2e629",
           "independent_actual_audit_sha256": "3afa77df10497ede65d4a55ee7b943ce9e3d5e27773770b45e7d5565c85c27a5",
           "scope": "ONLY assigned existingwriterselector component verification; no full/media/matrix promotion."
+        }
+      ]
+    },
+    {
+      "id": "V219-G846-RESOURCE-CLOCK",
+      "plan_id": "G6-058",
+      "title": "Preserve declared local and remote resource-clock domains",
+      "owner_agent": "/root/v198_resources",
+      "independent_reviewer": "/root/independent_batch_review",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-G846-RESOURCE-CLOCK-DOMAIN"
+      ],
+      "depends_on": [],
+      "status": "component-verified",
+      "implementation_state": "Source implemented/reviewed and actualG848 focused controls independently audited. Harness-only; all seven final-source readiness scopes pending. Separate expanded affected-script1411 passes, with focused80 included rather than added.",
+      "proposed_fix": "Local Mac uses CLOCK_MONOTONIC_RAW matching installed Node/libuv continuous time; local Linux keeps time.monotonic. Strict clock_basis is required. All five collector observations use the chosen clock; MacLinuxIdle requires Linux basis and keeps the original bounded guest-to-host alignment coordinate.",
+      "required_evidence": [
+        "Existing selected method vectors cover Mac continuous and Linux monotonic complete terminal/idle windows; wrong/missing/stale/future/nonfinite observations and unavailable RAW refuse; actual MacLinuxFixture.poll plus MacLinuxIdle request/poll/terminal/finish preserve original host alignment; failed round trip cannot renew it.",
+        "Actual focused77Python+3Node source/owner closure and independent audit",
+        "Fresh final-source full/OriginalV8/strictFirefox and all seven original readiness scopes"
+      ],
+      "coordinator_review": {
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g846-clock-cleanup-units.json",
+        "scope": "Causal selected-method/subtest mappings only; focused80 retained separately, no historical/media/matrix promotion."
+      },
+      "verification_runs": [
+        {
+          "run": "G848",
+          "assigned_selectors": [
+            "scripts.tests.test_matrix_idle.MatrixIdleTests.test_missing_reused_or_draining_observation_cannot_prove_idle",
+            "scripts.tests.test_matrix_idle.MatrixIdleTests.test_verifier_requires_original_ten_second_window_and_stable_restoration",
+            "scripts.tests.test_mac_linux_fixture.MacLinuxPlumbing.test_clock_translation_retains_raw_domains_and_rejects_stale",
+            "scripts/tests/matrix_resource_bridge.test.mjs::resource bridge declares its original clock and refuses invalid terminal without publishing it"
+          ],
+          "causal_checks": "Existing selected method vectors cover Mac continuous and Linux monotonic complete terminal/idle windows; wrong/missing/stale/future/nonfinite observations and unavailable RAW refuse; actual MacLinuxFixture.poll plus MacLinuxIdle request/poll/terminal/finish preserve original host alignment; failed round trip cannot renew it.",
+          "whole_focused_passed": 80,
+          "Python": 77,
+          "Node": 3,
+          "failed": 0,
+          "skipped": 0,
+          "result_sha256": "ea1b2c72b0333130711b2698d76d189c44b591af00f2aff42e956ab1a2e16016",
+          "root_join_sha256": "60a93bc89f2b3ba066417d46cbee8483f068259b614283dcbaeb19d34f9c1d85",
+          "independent_actual_audit_sha256": "e50ed6803275d28b214cbeff34c94a4c139b8921f949da922adc175b3ec55e36",
+          "scope": "Focused harness proof only."
+        },
+        {
+          "run": "G849",
+          "scope": "Expanded affected scripts; focused80 subset, not additive. No full/Firefox/matrix credit.",
+          "passed": 1411,
+          "Node": 1254,
+          "Python": 157,
+          "failed": 0,
+          "skipped": 0,
+          "result_sha256": "899125b9e3aa8c2884b68adcc9bc0ed4a7fa59adba4786f9339b278cae3dfb33",
+          "root_join_sha256": "1487e72d987a5bff16b83970480b6813fe3fc16fb8f1b8c6e8d2eec978998ed8",
+          "independent_actual_audit_sha256": "4df5f7fb8631e836abdda178ff90aeb28e7d9fc7ae910e30559a5da47d37a687"
+        }
+      ]
+    },
+    {
+      "id": "V219-G846-EXCEPTIONAL-CLEANUP",
+      "plan_id": "G6-058",
+      "title": "Retain primary failure and complete original exceptional cleanup",
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/independent_batch_review",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-G846-EXCEPTIONAL-FINALLY"
+      ],
+      "depends_on": [],
+      "status": "component-verified",
+      "implementation_state": "Source implemented/reviewed and actualG848 focused controls independently audited. Harness-only; all seven final-source readiness scopes pending. Separate expanded affected-script1411 passes, with focused80 included rather than added.",
+      "proposed_fix": "Guard the entire existing finally so an original browser retirement failure does not skip original capture/server cleanup, network teardown or report construction. Preserve primary failure and observed original PGID, using the same original Popen/group and unchanged cutoff.",
+      "required_evidence": [
+        "Each stage and combined failures still attempt later stages/report; unknown group and exited leader do not manufacture closure; actual original owned-session Popen TERM/wait and all seven server-custody controls execute.",
+        "Actual focused77Python+3Node source/owner closure and independent audit",
+        "Fresh final-source full/OriginalV8/strictFirefox and all seven original readiness scopes"
+      ],
+      "coordinator_review": {
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g846-clock-cleanup-units.json",
+        "scope": "Causal selected-method/subtest mappings only; focused80 retained separately, no historical/media/matrix promotion."
+      },
+      "verification_runs": [
+        {
+          "run": "G848",
+          "assigned_selectors": [
+            "scripts.tests.test_browser_capture_cleanup.CaptureCleanup.test_rejected_capture_keeps_failure_and_still_joins_fixture_owners"
+          ],
+          "causal_checks": "Each stage and combined failures still attempt later stages/report; unknown group and exited leader do not manufacture closure; actual original owned-session Popen TERM/wait and all seven server-custody controls execute.",
+          "whole_focused_passed": 80,
+          "Python": 77,
+          "Node": 3,
+          "failed": 0,
+          "skipped": 0,
+          "result_sha256": "ea1b2c72b0333130711b2698d76d189c44b591af00f2aff42e956ab1a2e16016",
+          "root_join_sha256": "60a93bc89f2b3ba066417d46cbee8483f068259b614283dcbaeb19d34f9c1d85",
+          "independent_actual_audit_sha256": "e50ed6803275d28b214cbeff34c94a4c139b8921f949da922adc175b3ec55e36",
+          "scope": "Focused harness proof only."
+        },
+        {
+          "run": "G849",
+          "scope": "Expanded affected scripts; focused80 subset, not additive. No full/Firefox/matrix credit.",
+          "passed": 1411,
+          "Node": 1254,
+          "Python": 157,
+          "failed": 0,
+          "skipped": 0,
+          "result_sha256": "899125b9e3aa8c2884b68adcc9bc0ed4a7fa59adba4786f9339b278cae3dfb33",
+          "root_join_sha256": "1487e72d987a5bff16b83970480b6813fe3fc16fb8f1b8c6e8d2eec978998ed8",
+          "independent_actual_audit_sha256": "4df5f7fb8631e836abdda178ff90aeb28e7d9fc7ae910e30559a5da47d37a687"
         }
       ]
     }
@@ -6279,7 +6391,7 @@
     },
     {
       "at": "2026-11-12T18:37:09.203299+00:00",
-      "action": "Recorded complete26 actual295/296, exact authority/frame-loss RCA, old DataGate counter, Store66 actual211/213 including all10 new controls and Core65 zero-test compile failure. Added assigned DC1\u2013DC7 correction plan; all145 mappings preserved. No matrix promotion."
+      "action": "Recorded complete26 actual295/296, exact authority/frame-loss RCA, old DataGate counter, Store66 actual211/213 including all10 new controls and Core65 zero-test compile failure. Added assigned DC1–DC7 correction plan; all145 mappings preserved. No matrix promotion."
     },
     {
       "at": "2026-11-12T19:02:22.996051+00:00",
@@ -6781,7 +6893,7 @@
     {
       "at": "2026-11-20T11:23:14.363092+00:00",
       "revision": 149,
-      "event": "G691 all3 compiler metadata checksPASS/zeroerrors/source6550 unchanged/originalowners naturally closed; no runtime credit. Reviewed G69458194 old orphan objects cleaned with actual free17.187\u219262.293GiB. Same9build45 remains UNRUN and all7 readiness scopes open.",
+      "event": "G691 all3 compiler metadata checksPASS/zeroerrors/source6550 unchanged/originalowners naturally closed; no runtime credit. Reviewed G69458194 old orphan objects cleaned with actual free17.187→62.293GiB. Same9build45 remains UNRUN and all7 readiness scopes open.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g691-source532-metadata-pass.json",
       "by": "/root"
     },
@@ -6963,6 +7075,15 @@
       "mobile_revision": 276,
       "mobile_readback": "docs/evidence/gate-6/g6-058-mobile-document-readback-v276-writer-cutoff-units.json",
       "mobile_readback_actual_pending": false
+    },
+    {
+      "at": "2026-11-22T21:22:31.520560+00:00",
+      "revision": 174,
+      "event": "G846FirefoxFAILED before operations/auth/media: Mac clock-domain mismatch and later finally timeout recorded; post-failure orphan reconciliation never qualifies. Reviewed clock/alignment and cleanup fixes pass G84877Python+3Node,4children+Root naturally closed; G847 constant-clock vector/PYTHONPATH failure preserved. Mobile281 verified; all seven final-source scopes pending, no matrix credit. Later separate G8491254Node+157Python=1411 PASS independently audited with11 children+Root naturalclosed; focused80 subset, not1491. Mobile281 remains as-of focused80.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g846-clock-cleanup-units.json",
+      "by": "/root",
+      "mobile_revision": 281,
+      "mobile_readback": "docs/evidence/gate-6/g6-058-mobile-document-readback-v281-clock-cleanup-units.json"
     }
   ],
   "tracking_review": {
@@ -8592,17 +8713,17 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "All22 focused controls PASS (15Core/4Store/3Service; zero failed/ignored), with26children and Root naturally closed. Only one existing Store test body changed: it had compared a discarded independent Read A with a later writer; the invariant is the writer\u2019s SAME internal B cutoff. Existing scoped Clock and one-shot scene-derived hook now prove exact B retention, exact-expiry refusal with no durable changes, immutable bounds/IDs and the original foreign-scene rejection. The old comparison fails deterministically in this control; actual G840 A/B clock values were unlogged, so no unique historical clock-edge claim. G840 remains FAILED:4288PASS/1FAIL/0ignored, all43children and Root closed; auditca235 retained. G835 OriginalV8 remainsFAILED and media is held. No production/dependency/criteria/deadline changes. Actual22 source, current five library artifacts/inventories and natural owner closure are independently audited; mobile276 scoped readback preserves420 other paragraphs and all styles. Next tested-fixture checkpoint commit/push and all seven final-source readiness scopes; stopREADY32. Matrix v218 remains1/32 and399/432, no new run. LocalMac/nativeARM only; G6-054 parked.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g840-writer-cutoff-fixture.json",
-    "sha256": "75944adbdd1d55e962f691d8ac087765be77840f2796dfee32e2759ed3109f17",
+    "status": "Checkpoint174: all80 focused harness controls PASS (77 Python methods plus3 Node tests; zero failed/skipped), with Root and all4 original child owners naturally joined and absent. A separate expanded affected-script regression also passes1411 tests (1254 Node and157 Python), including the focused80 subset, with11 children and Root naturally closed; these counts are not additive. Mobile281 records the earlier focused80 only. Nine harness/test files correct the local Mac resource clock contract and exceptional cleanup. Local Node/libuv uses the continuous clock while Python monotonic uses the absolute clock; MatrixIdle now selects the matching declared local clock and preserves the existing bounded Linux-guest to Mac-host alignment. Missing/wrong/stale/future clock observations still refuse. The entire exceptional finally independently attempts original browser/capture/server cleanup and reporting within unchanged bounds; forced or unknown closure stays failed. G846 Firefox remains FAILED before operations/authentication/media; its later orphan reconciliation is not original join or qualification. G847 failed constant-clock vectors and omitted original PYTHONPATH remain recorded; corrected vectors and the original runner environment pass G848. Rust, SDK, source-lock/prepared upstream and all acceptance criteria are unchanged. Historical db974 full4289 and OriginalV8 all3 remain evidence for that old source only. Mobile281 scoped readback preserves420 other paragraphs and all styles. Commit/push the tested batch, then all seven original readiness scopes on final source; stop READY32. Matrix v218 remains1/32 and399/432; no new matrix credit, local Mac/native ARM only, G6-054 parked.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g846-clock-cleanup-units.json",
+    "sha256": "effcc8a5d109f1855aacf7eeb7b26815b5274bdc54afa6dbe3c9d5afeecf315a",
     "source_generation": 563,
     "ready_for_32": false,
     "final_current_commit": null,
     "final_current_source": null,
     "future_full": null,
     "future_original_V8": null,
-    "live_readiness_status": ".local/gate-6/ready32-source562/status.html",
-    "live_readiness_status_scope": "Existing oldview is historical; allseven freshfinalsource readiness scopes required, no run/qualification credit."
+    "future_strict_Firefox": null,
+    "all7_final_source_scopes_required": true
   },
   "updated": "2026-11-21",
   "v219_g570_exact_clock_component": {
@@ -9201,7 +9322,7 @@
     "status": "PROPOSAL_ONLY_NOT_PUBLISHED",
     "paragraphs": [
       "Checkpoint156: G724 completed all45 component tests after nine builds and nine inventories passed:42PASS/3FAIL, with no ignored, incomplete or unrun cases. All previous39 passes remain. The full Core external-source control and Server Expire/real post-BEGIN fault controls now pass. Source538, binaries and original owners stayed fixed and closed naturally. The overall run remains failed.",
-      "Resume, Revoke and Unwind fail the unchanged measured-quiet cutoff in their first live-duplex window; later tails are unverified. Passing cases show real public/private frames and muted-zero phases in about0.7s; failing cases record4.4\u20134.7s wake gaps without failed-phase counters. A blocking custodian-to-Core role-lookup path is confirmed in source, but sole causal attribution is unproven. A production correction and reviewed diagnostic logging remain unapplied; no oracle or5s bound is relaxed.",
+      "Resume, Revoke and Unwind fail the unchanged measured-quiet cutoff in their first live-duplex window; later tails are unverified. Passing cases show real public/private frames and muted-zero phases in about0.7s; failing cases record4.4–4.7s wake gaps without failed-phase counters. A blocking custodian-to-Core role-lookup path is confirmed in source, but sole causal attribution is unproven. A production correction and reviewed diagnostic logging remain unapplied; no oracle or5s bound is relaxed.",
       "Matrix remains1/32 cells and399/432 checks, with no new credit and not ready for32. Current shared379, complete affected regressions, OriginalV8 and all seven readiness scopes remain open; G6-054 stays parked. Mobile234 remains the last verified readback. This mobile235 text is a proposal only; publication and scoped readback are not claimed."
     ],
     "actual_last_readback_revision": 234,
@@ -9680,5 +9801,47 @@
     "readback_evidence_sha256": "792249f8263e25f41d66913e7e1d88ca4511b8bbb079c5ff2514dd506f6676cc",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v272-actual-muted-plan-units.json",
     "postrun_readback_sha256": "134295155059d3c53a3688ab8e352307d99de8d9d7a8753e1bb3f4c52944a19f"
+  },
+  "v219_g846_clock_cleanup_units": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g846-clock-cleanup-units.json",
+    "sha256": "effcc8a5d109f1855aacf7eeb7b26815b5274bdc54afa6dbe3c9d5afeecf315a",
+    "source_generation": 563,
+    "focused_status": "PASS",
+    "focused_Python_passed": 77,
+    "focused_Node_passed": 3,
+    "focused_total": 80,
+    "focused_failed": 0,
+    "focused_skipped": 0,
+    "focused_actual_audit_sha256": "e50ed6803275d28b214cbeff34c94a4c139b8921f949da922adc175b3ec55e36",
+    "G846_Firefox_status": "FAILED",
+    "G847_initial_units_status": "FAILED",
+    "ready_for_32": false,
+    "expanded_script_passed": 1411,
+    "expanded_Node_tests": 1254,
+    "expanded_Python_methods": 157,
+    "expanded_actual_audit_sha256": "4df5f7fb8631e836abdda178ff90aeb28e7d9fc7ae910e30559a5da47d37a687",
+    "focused80_is_subset_not_additive": true
+  },
+  "historical_mobile_document_checkpoint173": {
+    "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+    "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+    "tab_id": "t.0",
+    "sync_status": "verified-checkpoint173-mobile276-scoped-readback",
+    "content_revision": 276,
+    "readback_evidence": ".local/gate-6/g842-mobile276-actual22-root/readback.json",
+    "readback_evidence_sha256": "5c96f4af4b8bd677c34b984bae65a3373c7359de3d3304543a5dc7804f3abb5f",
+    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v276-writer-cutoff-units.json",
+    "postrun_readback_sha256": "b695b71ddcb2e5f7ef4d3a1da2d9c354bf7359c35246ef0473e414b326bf3b56"
+  },
+  "mobile281_readback": {
+    "status": "ACTUAL_ROOT_VERIFIED",
+    "public_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v281-clock-cleanup-units.json",
+    "sha256": "52eae454f8f9054a737427022d717f53b35f3fb09633691dbeba4b9107c02b10",
+    "changed_paragraphs": [
+      2,
+      9
+    ],
+    "other_paragraphs_and_styles_preserved": 420,
+    "scope": "Focused80 only, not later expanded1411."
   }
 }

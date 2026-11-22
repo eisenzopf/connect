@@ -101,6 +101,84 @@ class MacLinuxPlumbing(unittest.TestCase):
         for when in (501,469,float("nan")):
             with self.assertRaises(ValueError):fixture.host_time(when)
 
+        # Exercise the actual remote request consumer and inherited collector
+        # in the ORIGINAL host alignment coordinate, not local Node RAW time.
+        from lib.mac_linux_fixture import MacLinuxIdle
+        groups = {role: dict(root_state="available", unavailable_processes=0,
+            open_resource_unavailable_processes=0, live_processes=1,
+            sampled_threads=2, sampled_open_descriptors=5, sampled_rss_bytes=4096,
+            observed_cpu_seconds=.1) for role in ("server", "browser")}
+        class Sampler:
+            def sample(self):
+                clock[0] += .001  # The original resource observation takes time.
+                return {"groups": groups}
+            def summary(self): return {}
+        fixture.output = self.root / "clock-requests"; fixture.output.mkdir()
+        fixture.output_relative = "clock-requests"
+        clock = [1000.0]
+        requests = {"resources-baseline.json": dict(phase="baseline",
+            monotonic_seconds=500, clock_basis="linux-clock-monotonic")}
+        responses = []
+        def exchange(command, *, data, timeout):
+            self.assertEqual(command[-2:], ["exchange", fixture.remote_root])
+            self.assertEqual(timeout, 5)
+            responses.append(json.loads(data)["responses"])
+            return json.dumps(dict(monotonic_seconds=clock[0]-500,
+                requests=requests, state=None)).encode()
+        fixture.call = exchange
+        with patch("lib.matrix_idle.sys.platform", "darwin"), \
+             patch("lib.mac_linux_fixture.time.monotonic", side_effect=lambda: clock[0]), \
+             patch("lib.matrix_idle.time.clock_gettime", side_effect=lambda clock_id: clock[0]+10000) as continuous, \
+             patch("lib.matrix_idle.owned_usage", return_value={"physical_owners": 0, "owned_tasks": 0, "pool:quic": 0}), \
+             patch("lib.matrix_idle.urllib.request.build_opener") as opener, \
+             patch("lib.matrix_idle.idle_owner_diagnostics", return_value={"diagnostic": True}):
+            opener.return_value.open.return_value.__enter__.return_value.read.return_value = b'{"result":{"Ok":{"kind":"health","data":{}}}}'
+            idle = MacLinuxIdle(fixture.output, 101, fixture, "http://fixture", "credential", sampler=Sampler())
+            fixture.poll(); self.assertEqual(idle.request("baseline"), 1000); idle.poll()
+            clock[0] = 1001; fixture.poll(); idle.poll()
+            clock[0] = 1019; fixture.poll(); idle.poll()
+            requests.update({"resources-terminal.json": dict(phase="terminal",
+                monotonic_seconds=520, clock_basis="linux-clock-monotonic"),
+                "resources-retired.json": dict(phase="retired",
+                monotonic_seconds=520.1, clock_basis="linux-clock-monotonic")})
+            for at in (1021, 1028, 1029): clock[0] = at; fixture.poll(); idle.poll()
+            self.assertFalse(idle.done)
+            clock[0] = 1030.01; fixture.poll(); idle.poll()
+            observed = idle.finish()
+            self.assertTrue(observed["passed"], observed)
+            self.assertEqual(observed["clock_basis"], "macos-mach-absolute-aligned-linux-monotonic")
+            self.assertEqual(observed["terminal_monotonic_seconds"], 1020)
+            self.assertEqual(observed["baseline"]["monotonic_seconds"], 1001)
+            self.assertEqual(observed["samples"][-1]["monotonic_seconds"], 1030.01+.001)
+            self.assertLess(observed["samples"][-2]["monotonic_seconds"], observed["samples"][-1]["monotonic_seconds"])
+            self.assertEqual(observed["clock_alignment"]["observations"], fixture.alignments)
+            self.assertEqual(observed["clock_alignment"]["maximum_round_trip_seconds"], 1)
+            self.assertFalse(continuous.called, "Translated guest observations must not mix with local Node epoch")
+            self.assertTrue(any("resources-baseline-response.json" in value for value in responses))
+            self.assertTrue(any("resources-terminal-response.json" in value for value in responses))
+
+            path = fixture.output / "resources-terminal.json"
+            original = requests["resources-terminal.json"]
+            missing = dict(original); del missing["clock_basis"]
+            for refused in (missing, dict(original, clock_basis="macos-mach-continuous"),
+                            dict(original, phase="baseline"), dict(original, extra=True)):
+                path.write_text(json.dumps(refused))
+                with patch.object(fixture, "host_time", wraps=fixture.host_time) as translate, self.assertRaises(ValueError):
+                    idle.request("terminal")
+                self.assertFalse(translate.called, "Wrong request domain refuses before alignment")
+            for when in (fixture.alignments[-1]["guest_monotonic_seconds"]+1,
+                         fixture.alignments[-1]["guest_monotonic_seconds"]-30, float("nan")):
+                path.write_text(json.dumps(dict(original, monotonic_seconds=when)))
+                with self.assertRaises(ValueError): idle.request("terminal")
+            path.write_text(json.dumps(original))
+            prior = list(fixture.alignments)
+            def slow_exchange(*args, **kwargs):
+                clock[0] += 1.01
+                return json.dumps(dict(monotonic_seconds=clock[0]-500, requests={}, state=None)).encode()
+            fixture.call = slow_exchange
+            with self.assertRaisesRegex(ValueError, "one second"): fixture.poll()
+            self.assertEqual(fixture.alignments, prior, "A failed round trip does not renew alignment")
+
     def test_native_sources_create_mapped_parent_without_reusing_leaf_or_rewriting_manifest(self):
         fixture=MacLinuxFixture(self.root,self.root/"owner",{})
         fixture.remote_root=self.root/"guest";fixture.remote_root.mkdir(mode=0o700)
@@ -181,7 +259,7 @@ class MacLinuxPlumbing(unittest.TestCase):
                 relative = Path("cycles") / ("cycle-" + str(cycle)) / ("resources-" + phase + ".json")
                 request = output / relative
                 request.parent.mkdir(parents=True, exist_ok=True)
-                original = {"phase": phase, "monotonic_seconds": 10.25 * cycle}
+                original = {"phase": phase, "monotonic_seconds": 10.25 * cycle, "clock_basis": "linux-clock-monotonic"}
                 request.write_text(json.dumps(original))
                 observed = fixture.poll()
                 self.assertEqual(observed["requests"][relative.as_posix()], original)
@@ -255,6 +333,7 @@ console.log(JSON.stringify({handshakes: 9}));
                         continue
                     value = json.loads(request.read_text())
                     self.assertIn(value["phase"], ("baseline", "terminal", "retired"))
+                    self.assertEqual(value["clock_basis"], "macos-mach-continuous" if sys.platform == "darwin" else "linux-clock-monotonic")
                     response = request.with_name(request.stem + "-response.json")
                     response.write_text(json.dumps({"passed": False}))
                     served.add(relative)

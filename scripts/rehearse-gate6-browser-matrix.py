@@ -53,6 +53,80 @@ def record_server_custody(server, receipt):
         receipt["process_group_observation_error"] = type(error).__name__
 
 
+def record_cleanup_failure(report, stage, error):
+    """Retain the first failure while later original owners still retire."""
+    report["passed"] = False
+    report.setdefault("failure", dict(phase="cleanup-" + stage, name=type(error).__name__))
+    report.setdefault("cleanup_failures", []).append(dict(stage=stage, name=type(error).__name__))
+
+
+def close_original_group(owner, *, stop_signal=signal.SIGTERM, timeout=10):
+    """Stop/reap only this original Popen/group within its existing bound."""
+    receipt = dict(original_pid=owner.pid, owned_pgid=owner.pid,
+        group_identity_basis="original-Popen-start-new-session",
+        original_exit_code=None, wait_returned=False, original_process_group_joined=False,
+        original_joined=False, interrupted=False, forced=False, failures=[])
+    if type(owner.pid) is not int or owner.pid <= 1 or owner.pid == os.getpgrp():
+        receipt["failures"].append(dict(stage="identity", name="InvalidOriginalGroup"))
+        return receipt
+    until = time.monotonic() + timeout
+
+    def note(stage, error):
+        if len(receipt["failures"]) < 8:
+            receipt["failures"].append(dict(stage=stage, name=type(error).__name__))
+
+    def absent():
+        try:
+            os.killpg(owner.pid, 0)
+        except ProcessLookupError:
+            return True
+        except OSError as error:
+            note("group-observation", error)
+            return None
+        return False
+
+    def send(requested):
+        try:
+            os.killpg(owner.pid, requested)
+        except ProcessLookupError:
+            pass
+        except OSError as error:
+            note("signal", error)
+
+    try:
+        stopping = owner.poll() is None or absent() is not True
+        if stopping:
+            receipt["interrupted"] = True
+            receipt["forced"] = stop_signal == signal.SIGKILL
+            send(stop_signal)
+        try:
+            # Reserve the second half of the ORIGINAL ten-second browser
+            # boundary for forced retirement, never an extra ten-second wait.
+            remaining = max(0, until - time.monotonic())
+            grace = min(5, remaining) if stopping and stop_signal != signal.SIGKILL else remaining
+            receipt["original_exit_code"] = owner.wait(timeout=grace)
+            receipt["wait_returned"] = True
+        except BaseException as error:
+            note("original-wait", error)
+        if not receipt["wait_returned"] or absent() is not True:
+            receipt["forced"] = True
+            send(signal.SIGKILL)
+            try:
+                receipt["original_exit_code"] = owner.wait(timeout=max(0, until - time.monotonic()))
+                receipt["wait_returned"] = True
+            except BaseException as error:
+                note("original-forced-wait", error)
+        gone = absent()
+        while gone is False and time.monotonic() < until:
+            time.sleep(min(.01, max(0, until - time.monotonic())))
+            gone = absent()
+        receipt["original_process_group_joined"] = gone is True
+        receipt["original_joined"] = receipt["wait_returned"] and gone is True
+    except BaseException as error:
+        note("original-owner", error)
+    return receipt
+
+
 def runtime_spec(args, linux):
     browser = "firefox" if args.transport.startswith("firefox") else "chrome"
     retained = Path.home() / ".codex/worktrees/private-sip-lifetime/Connect/.local/gate-6"
@@ -460,6 +534,14 @@ def main():
                          if remote is not None else subprocess.Popen(command_args, cwd=ROOT, env=env, stdin=subprocess.DEVNULL,
                                          stdout=handle, stderr=subprocess.STDOUT, start_new_session=True))
         report["browser_owner_started"] = True
+        if remote is None:
+            # Original Node/container-client Popen only, not inferred browser IDs.
+            report["browser_owner_identity"] = dict(original_pid=browser_owner.pid,
+                original_pgid=None, wait_returned=False, original_exit_code=None)
+            try:
+                report["browser_owner_identity"]["original_pgid"] = os.getpgid(browser_owner.pid)
+            except OSError as error:
+                report["browser_owner_identity"]["group_observation_error"] = type(error).__name__
         browser_cutoff = time.monotonic() + browser_timeout
         while browser_owner.poll() is None:
             if remote is not None:
@@ -503,6 +585,9 @@ def main():
             time.sleep(.05)
         report["browser_exit_code"] = browser_owner.wait(timeout=1)
         report["browser_owner_joined"] = True
+        if remote is None:
+            report["browser_owner_identity"].update(wait_returned=True,
+                original_exit_code=report["browser_exit_code"])
         if remote is not None:
             report["remote_client_owner"] = remote.close()
             report["browser_owner_joined"] = remote_browser_owner_joined(report["remote_client_owner"])
@@ -524,129 +609,181 @@ def main():
         if not report["passed"] and report["browser_observation"].get("failure"):
             report["failure"] = dict(phase=phase, browser=report["browser_observation"]["failure"])
     except BaseException as error:
-        (private / "failure.log").write_text(traceback.format_exc())
+        report["passed"] = False
         report["failure"] = dict(phase=phase, name=type(error).__name__, line=traceback.extract_tb(error.__traceback__)[-1].lineno)
+        try:
+            (private / "failure.log").write_text(traceback.format_exc())
+        except BaseException as log_error:
+            record_cleanup_failure(report, "primary-failure-log", log_error)
     finally:
         if remote is not None:
             try:
                 report["remote_client_owner"] = remote.close()
                 report["browser_owner_joined"] = remote_browser_owner_joined(report["remote_client_owner"])
                 report["passed"] &= report["remote_client_owner"]["passed"]
-            except Exception:
+            except BaseException as error:
+                record_cleanup_failure(report, "remote-browser", error)
                 report["remote_client_owner"] = dict(passed=False, failure="original-guest-cleanup-unconfirmed")
                 report["browser_owner_joined"] = False
-                report["passed"] = False
+                if browser_owner is not None:
+                    report["remote_supervisor_cleanup"] = close_original_group(browser_owner)
         if remote is None and browser_owner is not None:
-            if browser_owner.poll() is None:
-                if cidfile.exists():
-                    cid = cidfile.read_text().strip()
-                    if re.fullmatch("[0-9a-f]{64}", cid):
-                        subprocess.run(["docker", "stop", "--time", "5", cid], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
+            container_joined = True
+            try:
+                if browser_owner.poll() is None and linux:
+                    container_joined = False
+                    if cidfile.exists():
+                        cid = cidfile.read_text().strip()
+                        if re.fullmatch("[0-9a-f]{64}", cid):
+                            stopped = subprocess.run(["docker", "stop", "--time", "5", cid], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
+                            container_joined = stopped.returncode == 0
+                    report["browser_container_stopped"] = container_joined
+            except BaseException as error:
+                record_cleanup_failure(report, "browser-container", error)
+            # Signal local Node AND its non-detached browser descendants before
+            # waiting. An exited leader alone is not an absent original group.
+            custody = close_original_group(browser_owner, timeout=10)
+            identity = report.setdefault("browser_owner_identity",
+                dict(original_pid=browser_owner.pid, original_pgid=None))
+            # Keep the actual early PGID observation (or its unknown/error).
+            # The helper's source-created group is separately named owned_pgid.
+            identity.update(custody)
+            report["browser_exit_code"] = custody["original_exit_code"]
+            report["browser_owner_joined"] = custody["original_joined"] and container_joined
+            if custody["interrupted"] or custody["forced"]:
                 report["browser_forced_cleanup"] = True
-                report["passed"] = False
-            report["browser_exit_code"] = browser_owner.wait(timeout=10)
-            # A failed programme can still return its original process custody.
-            # Record the real join even when it exited before this cleanup ran.
-            report["browser_owner_joined"] = True
+            if (not report["browser_owner_joined"] or custody["interrupted"]
+                    or custody["forced"] or custody["failures"]):
+                record_cleanup_failure(report, "browser-owner", RuntimeError("Original browser cleanup was not natural"))
         # The traffic owner is joined above. Keep its interface alive until
         # tcpdump flushes and joins; removing the bridge first aborts capture.
         if capture is not None:
-            report["packet_capture"] = capture.finish()
-            report["packet_capture"]["transport"] = args.transport
-            report["passed"] &= report["packet_capture"]["observed"]
-        if network_name is not None:
-            cleanup = subprocess.run(["docker", "network", "rm", network_name], capture_output=True, timeout=15)
-            report["client_network_removed"] = cleanup.returncode == 0
-        if args.stage == "quality" and cycle_count == 3:
-            if idle is not None:
-                idle_results.append(idle.finish())
-            cycles = []
-            report["cycle_observations"] = []
-            archives = report.get("browser_observation", {}).get("resource_cycles", [])
-            for cycle, observed_idle, archive in zip(cycle_workloads, idle_results, archives):
-                folder = browser_output / "cycles" / ("cycle-" + str(cycle["index"]))
+            try:
+                report["packet_capture"] = capture.finish()
+                report["packet_capture"]["transport"] = args.transport
+                report["passed"] &= (report["packet_capture"]["observed"]
+                    and report["packet_capture"].get("original_joined") is True
+                    and report["packet_capture"].get("forced") is not True)
+            except BaseException as error:
+                record_cleanup_failure(report, "packet-capture", error)
+                process = getattr(capture, "process", None)
+                custody = close_original_group(process, stop_signal=signal.SIGKILL, timeout=5) if process is not None else None
+                report["packet_capture"] = dict(observed=False, owner_created=process is not None,
+                    original_joined=custody is not None and custody["original_joined"],
+                    failure=type(error).__name__, exceptional_cleanup=custody)
                 try:
-                    if archive["index"] != cycle["index"] or archive["workload_id"] != cycle["workload_id"]:
-                        raise ValueError("Original cycle archive binding changed")
-                    for name, key in (("cycle-observation.json", "observation_sha256"),
-                                      ("workload.json", "workload_evidence_sha256"),
-                                      ("original-joins.json", "join_evidence_sha256")):
-                        if digest(folder / name) != archive[key]:
-                            raise ValueError("Original cycle evidence digest changed")
-                    observed = json.loads((folder / "cycle-observation.json").read_text())
-                    original_joins = json.loads((folder / "original-joins.json").read_text())
-                    if observed.get("cycle") != cycle or original_joins.get("cycle") != cycle:
-                        raise ValueError("Original logical cycle identity changed")
-                    report["cycle_observations"].append(observed)
-                    retirement = observed.get("retirement", {})
-                    local = observed.get("idle_resources", {})
-                    # Session ownership is distinct from six required functional
-                    # Connection.end receipts. The final verifier retains both.
-                    session_joined = browser_cycle_session_owners_verified(observed)
-                    helper_joined = (local.get("localOwnersJoined") is True
-                        and local.get("renderer", {}).get("joined") is True
-                        and local.get("diagnostic_hooks", {}).get("joined") is True
-                        and local.get("fixture_reference_retirement", {}).get("released") is True
-                        and observed.get("diagnostic_cycle_retirement", {}).get("released") is True)
-                    join_evidence = dict(cycle=cycle, persistent_owners=observed_idle.get("persistent_owners"),
-                                         original_join_receipt=original_joins)
-                    join_path = folder / "cycle-join-evidence.json"
-                    publish(join_path, (json.dumps(join_evidence, sort_keys=True) + "\n").encode())
-                    cycles.append(dict(**cycle, workload_started=observed.get("workload_started") is True,
-                        workload_complete=observed.get("workload_complete") is True
-                            and observed.get("programme", {}).get("source_programme", {}).get("durationMs") == 62000
-                            and 62000 <= observed.get("programme", {}).get("finished_ms", -1) < 67000,
-                        workload_evidence_sha256=archive["workload_evidence_sha256"],
-                        persistent_owners=observed_idle.get("persistent_owners"), idle_resources=observed_idle,
-                        joins=dict(session_owners_joined=session_joined, helper_work_joined=helper_joined,
-                                   functional_connection_retirement_passed=retirement.get("passed") is True,
-                                   forced=False, evidence_sha256=digest(join_path))))
-                except (OSError, ValueError, KeyError, TypeError) as error:
-                    report.setdefault("cycle_evidence_failures", []).append(dict(index=cycle["index"], name=type(error).__name__))
-            original = idle_results[0] if idle_results else {}
-            plateau = dict(format="connect/matrix-plateau-observation/1", policy=PLATEAU_POLICY,
-                baseline=original.get("baseline"), persistent_owners=original.get("persistent_owners"), cycles=cycles,
-                original_cycle_ids=cycle_workloads,
-                server_runtime_capacity=runtime_capacity_configuration((original.get("persistent_owners") or {}).get("server")))
-            plateau["verdict"] = evaluate_plateau(plateau)
-            plateau["passed"] = plateau["verdict"]["passed"]
-            report["idle_resources"] = plateau
-            if "browser_output" in locals():
-                publish(browser_output / "resource-plateau.json", (json.dumps(plateau, indent=2) + "\n").encode())
-            report["passed"] &= plateau["passed"]
-            report["passed"] &= len(report["cycle_observations"]) == 3 and all(c.get("passed") is True or (args.rtc_source_frame_witness and c.get("collection_passed") is True) for c in report["cycle_observations"])
-        elif args.stage == "quality":
-            if idle is not None:
-                idle_results.append(idle.finish())
-            report["idle_resources"] = idle_results[0] if idle_results else dict(passed=False, failure="idle-observer-not-started")
-            report["passed"] &= report["idle_resources"]["passed"]
-        if args.stage == "quality":
-            report["passed"] &= report.get("packet_capture", {}).get("observed") is True
+                    if getattr(capture, "stream", None) is not None:
+                        capture.stream.close()
+                except BaseException as stream_error:
+                    record_cleanup_failure(report, "packet-capture-log", stream_error)
+        if network_name is not None:
+            try:
+                cleanup = subprocess.run(["docker", "network", "rm", network_name], capture_output=True, timeout=15)
+                report["client_network_removed"] = cleanup.returncode == 0
+                if cleanup.returncode != 0:
+                    record_cleanup_failure(report, "client-network", RuntimeError("Original network cleanup refused"))
+            except BaseException as error:
+                report["client_network_removed"] = False
+                record_cleanup_failure(report, "client-network", error)
+        try:
+            if args.stage == "quality" and cycle_count == 3:
+                if idle is not None:
+                    idle_results.append(idle.finish())
+                cycles = []
+                report["cycle_observations"] = []
+                archives = report.get("browser_observation", {}).get("resource_cycles", [])
+                for cycle, observed_idle, archive in zip(cycle_workloads, idle_results, archives):
+                    folder = browser_output / "cycles" / ("cycle-" + str(cycle["index"]))
+                    try:
+                        if archive["index"] != cycle["index"] or archive["workload_id"] != cycle["workload_id"]:
+                            raise ValueError("Original cycle archive binding changed")
+                        for name, key in (("cycle-observation.json", "observation_sha256"),
+                                          ("workload.json", "workload_evidence_sha256"),
+                                          ("original-joins.json", "join_evidence_sha256")):
+                            if digest(folder / name) != archive[key]:
+                                raise ValueError("Original cycle evidence digest changed")
+                        observed = json.loads((folder / "cycle-observation.json").read_text())
+                        original_joins = json.loads((folder / "original-joins.json").read_text())
+                        if observed.get("cycle") != cycle or original_joins.get("cycle") != cycle:
+                            raise ValueError("Original logical cycle identity changed")
+                        report["cycle_observations"].append(observed)
+                        retirement = observed.get("retirement", {})
+                        local = observed.get("idle_resources", {})
+                        # Session ownership is distinct from six required functional
+                        # Connection.end receipts. The final verifier retains both.
+                        session_joined = browser_cycle_session_owners_verified(observed)
+                        helper_joined = (local.get("localOwnersJoined") is True
+                            and local.get("renderer", {}).get("joined") is True
+                            and local.get("diagnostic_hooks", {}).get("joined") is True
+                            and local.get("fixture_reference_retirement", {}).get("released") is True
+                            and observed.get("diagnostic_cycle_retirement", {}).get("released") is True)
+                        join_evidence = dict(cycle=cycle, persistent_owners=observed_idle.get("persistent_owners"),
+                                             original_join_receipt=original_joins)
+                        join_path = folder / "cycle-join-evidence.json"
+                        publish(join_path, (json.dumps(join_evidence, sort_keys=True) + "\n").encode())
+                        cycles.append(dict(**cycle, workload_started=observed.get("workload_started") is True,
+                            workload_complete=observed.get("workload_complete") is True
+                                and observed.get("programme", {}).get("source_programme", {}).get("durationMs") == 62000
+                                and 62000 <= observed.get("programme", {}).get("finished_ms", -1) < 67000,
+                            workload_evidence_sha256=archive["workload_evidence_sha256"],
+                            persistent_owners=observed_idle.get("persistent_owners"), idle_resources=observed_idle,
+                            joins=dict(session_owners_joined=session_joined, helper_work_joined=helper_joined,
+                                       functional_connection_retirement_passed=retirement.get("passed") is True,
+                                       forced=False, evidence_sha256=digest(join_path))))
+                    except (OSError, ValueError, KeyError, TypeError) as error:
+                        report.setdefault("cycle_evidence_failures", []).append(dict(index=cycle["index"], name=type(error).__name__))
+                original = idle_results[0] if idle_results else {}
+                plateau = dict(format="connect/matrix-plateau-observation/1", policy=PLATEAU_POLICY,
+                    baseline=original.get("baseline"), persistent_owners=original.get("persistent_owners"), cycles=cycles,
+                    original_cycle_ids=cycle_workloads,
+                    server_runtime_capacity=runtime_capacity_configuration((original.get("persistent_owners") or {}).get("server")))
+                plateau["verdict"] = evaluate_plateau(plateau)
+                plateau["passed"] = plateau["verdict"]["passed"]
+                report["idle_resources"] = plateau
+                if "browser_output" in locals():
+                    publish(browser_output / "resource-plateau.json", (json.dumps(plateau, indent=2) + "\n").encode())
+                report["passed"] &= plateau["passed"]
+                report["passed"] &= len(report["cycle_observations"]) == 3 and all(c.get("passed") is True or (args.rtc_source_frame_witness and c.get("collection_passed") is True) for c in report["cycle_observations"])
+            elif args.stage == "quality":
+                if idle is not None:
+                    idle_results.append(idle.finish())
+                report["idle_resources"] = idle_results[0] if idle_results else dict(passed=False, failure="idle-observer-not-started")
+                report["passed"] &= report["idle_resources"]["passed"]
+            if args.stage == "quality":
+                report["passed"] &= report.get("packet_capture", {}).get("observed") is True
+        except BaseException as error:
+            record_cleanup_failure(report, "idle-resource-evidence", error)
         try:
             stop_server()
-        except BaseException:
+        except BaseException as error:
+            record_cleanup_failure(report, "server", error)
             report["server_cleanup_failed"] = True
-            report["passed"] = False
             if server is not None:
+                if not report["servers"]:
+                    report["servers"].append(dict(name="unrecorded-original-server", original_joined=False))
                 receipt = report["servers"][-1]
-                if server.poll() is None:
-                    receipt["forced_cleanup"] = True
-                    os.killpg(server.pid, signal.SIGKILL)
-                    server.wait()
-                record_server_custody(server, receipt)
+                custody = close_original_group(server, stop_signal=signal.SIGKILL, timeout=5)
+                receipt.update(original_pid=custody["original_pid"],
+                    original_exit_code=custody["original_exit_code"],
+                    original_process_group_joined=custody["original_process_group_joined"],
+                    forced_cleanup=receipt.get("forced_cleanup") is True or custody["interrupted"] or custody["forced"],
+                    exceptional_cleanup=custody)
         for handle in log_handles:
-            handle.close()
+            try:
+                handle.close()
+            except BaseException as error:
+                record_cleanup_failure(report, "log-handle", error)
         try:
             report["source_inputs_unchanged"] = before is not None and sources() == before
-        except Exception:
+        except BaseException:
             report["source_inputs_unchanged"] = False
         try:
             report["sdk_dist_inputs_unchanged"] = sdk_before is not None and sdk_inputs() == sdk_before
-        except Exception:
+        except BaseException:
             report["sdk_dist_inputs_unchanged"] = False
         try:
             report["executable_unchanged"] = executable is not None and digest(executable) == report["binary_sha256"]
-        except Exception:
+        except BaseException:
             report["executable_unchanged"] = False
         report["passed"] &= report["source_inputs_unchanged"] and report["sdk_dist_inputs_unchanged"] and report["executable_unchanged"]
         if args.rtc_source_frame_witness:
@@ -666,7 +803,7 @@ def main():
                 if args.resource_cycles == 3:
                     report["cycle_observations"] = final_cycles
                 report["passed"] &= final["passed"] is True
-            except Exception as error:
+            except BaseException as error:
                 report["passed"] = False
                 report["source_frame_adjudication"] = dict(profile=RTC_SOURCE_FRAME_PROFILE,
                     complete=False, passed=False, failure=type(error).__name__, reason=str(error)[:256])

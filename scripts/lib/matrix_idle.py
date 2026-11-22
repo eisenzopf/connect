@@ -88,9 +88,22 @@ def idle_verdict(report):
         return False
 
 
+def resource_monotonic():
+    """The original Node hrtime clock: Linux monotonic or macOS continuous.
+
+    libuv on the declared macOS runtime uses mach_continuous_time, exposed by
+    CLOCK_MONOTONIC_RAW. Python monotonic uses mach_absolute_time there and
+    excludes sleep. Never fit an observed offset or fall back between epochs.
+    """
+    if sys.platform == "darwin":
+        return time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
+    return time.monotonic()
+
+
 class MatrixIdle:
     def __init__(self, directory, server_pid, browser_pid, endpoint, credential, *, sampler=None, cycle_mode=False, original_baseline=None, resource_cycles=1, focused_capacity=False):
         self.directory = Path(directory)
+        self.clock_basis = "macos-mach-continuous" if sys.platform == "darwin" else "linux-clock-monotonic"
         if type(resource_cycles) is not int or resource_cycles not in (1, 3):
             raise ValueError("One or three original resource cycles required")
         if focused_capacity and (cycle_mode or resource_cycles != 1 or original_baseline is not None):
@@ -113,6 +126,9 @@ class MatrixIdle:
         self.baseline = None
         self.result = None
 
+    def observation_monotonic(self):
+        return resource_monotonic()
+
     def restore(self, baseline, sample):
         return (cycle_restoration(self.reference_baseline if self.reference_baseline is not None else baseline, sample)
                 if self.policy == CYCLE_POLICY else restoration(baseline, sample))
@@ -125,7 +141,7 @@ class MatrixIdle:
                 for role, identity in self.sampler.roots.items()}
 
     def take(self, stage):
-        started = time.monotonic()
+        started = self.observation_monotonic()
         try:
             request = urllib.request.Request(self.endpoint, data=b'{"op":"health"}',
                 headers={"Content-Type": "application/json", "Connection": "close",
@@ -145,7 +161,7 @@ class MatrixIdle:
         except (OSError, ValueError, KeyError, TypeError) as error:
             sample = dict(stage=stage, monotonic_seconds=started, error=type(error).__name__)
         self.samples.append(sample)
-        self.next_sample = time.monotonic() + POLICY["sample_seconds"]
+        self.next_sample = self.observation_monotonic() + POLICY["sample_seconds"]
         if stage in {"baseline", "idle-final"}:
             # Diagnostic only, after the original quantitative sample. No extra
             # health request, workload owner, deadline, allowance or verdict.
@@ -166,17 +182,18 @@ class MatrixIdle:
         if path.is_symlink() or path.stat().st_size > 1024:
             raise ValueError("Bounded original resource request required")
         value = json.loads(path.read_text())
-        if set(value) != {"phase", "monotonic_seconds"} or value["phase"] != phase:
+        if (set(value) != {"phase", "monotonic_seconds", "clock_basis"}
+                or value["phase"] != phase or value["clock_basis"] != self.clock_basis):
             raise ValueError("Invalid resource phase")
         when = value["monotonic_seconds"]
-        if type(when) not in (int, float) or not math.isfinite(when) or not 0 <= time.monotonic() - when < 30:
-            raise ValueError("Original Linux monotonic observation required")
+        if type(when) not in (int, float) or not math.isfinite(when) or not 0 <= self.observation_monotonic() - when < 30:
+            raise ValueError("Original declared monotonic observation required")
         return when
 
     def poll(self):
         if self.done:
             return
-        now = time.monotonic()
+        now = self.observation_monotonic()
         if self.baseline is None:
             if self.pending_baseline is None:
                 requested = self.request("baseline")
@@ -222,8 +239,9 @@ class MatrixIdle:
             stable = len(observed) >= 2 and all(not errors for _, errors in observed[-2:])
             passed = restored is not None and stable and not failures
             self.result = dict(format="connect/matrix-idle-observation/1", policy=self.policy,
+                clock_basis=self.clock_basis,
                 passed=passed, terminal_monotonic_seconds=self.terminal,
-                observed_seconds=time.monotonic() - self.terminal,
+                observed_seconds=self.observation_monotonic() - self.terminal,
                 restored_within_seconds=restored, final_failures=failures,
                 baseline=self.baseline, baseline_samples=self.baselines, samples=self.samples,
                 process_summary=json.loads(json.dumps(self.sampler.summary())) if self.policy == CYCLE_POLICY else self.sampler.summary(), native_helper="absent",

@@ -1,0 +1,273 @@
+{
+  "format": "connect/g6-058-matrix-clock-cleanup-focused-progress/1",
+  "checkpoint": 174,
+  "recorded_at": "2026-11-22T21:22:31.520560+00:00",
+  "status": "SOURCE_IMPLEMENTED_FOCUSED80_AND_EXPANDED1411_ACTUAL_PASS_FINAL_SOURCE_QUALIFICATION_PENDING",
+  "source_base_commit": "db97408a29756adc719d9a74393e555c354d8d8b",
+  "current_source_scope": "Checkpoint173 plus exactly nine intended harness/test files; pending documentation checkpoint is separate. No Rust/SDK/upstream/acceptance change.",
+  "actual_unit_source": {
+    "path": ".local/gate-6/g848-clock-cleanup-units-root/source-before-units.json",
+    "sha256": "dfe7c962c2fa4cd2e6d4eda1fc9ea29f862fa49902f6ddc6a6ae601383cfbf61"
+  },
+  "source_files": 6638,
+  "workspace_sha256": "67a2b443fa4390d4022dfa6fc6f93cd0fcd69d415b77ae54d7d4a72049bf803f",
+  "source_generation": 563,
+  "source_lock_sha256": "32f4b1eea8d87a4e1564be66eba63ff640ee044791fd9a0b630b082d2b6c4748",
+  "prepared": {
+    "rvoip": "41ace2d27d24d75e7da1de641bb4173f9b65bb986f64b432c220d2570d350aa3",
+    "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+  },
+  "changed_harness_test_paths": {
+    "scripts/lib/matrix_idle.py": "8a05149c37742c4a679b59b3696225fabb7d0de60a61ae680600abd551311dbc",
+    "scripts/lib/matrix_resource_bridge.mjs": "a5fb60859334fa610e2d4062200b88b70b6f1b5c61dfa578ff21dbb3df1a6c57",
+    "scripts/lib/mac_linux_fixture.py": "3b4f573af22792faa36c44e6fb6be1c50c58ee603aecee2e60035f2c93057f11",
+    "scripts/tests/test_matrix_idle.py": "aaed4dc0db08830456155287b1b00b6a159cf439f13605ea1ffa964035aa7d41",
+    "scripts/tests/matrix_resource_bridge.test.mjs": "60b571d24d7d9b3a40ff098cedcca5ad86030f5b2646c710145caf2f1c017226",
+    "scripts/tests/test_mac_linux_fixture.py": "389d3c51c53a8dcfb9e9703b39b2d9735594f7c8b07fa95bb4cfaca46b14b5ce",
+    "scripts/tests/test_matrix_owner_diagnostics.py": "c39cbeed4deee4ea908d748a891721657904840f2dfd9fce68df5a406d8dae46",
+    "scripts/rehearse-gate6-browser-matrix.py": "d32ed6b99da341d227678806a59381437de5d0dd4da1c041c63d0cc17ea49aa0",
+    "scripts/tests/test_browser_capture_cleanup.py": "115d9b2ec9e7365ca5997e5611fce1b7707c3c75ff787e35efe7c07ab840eda8"
+  },
+  "G846_failed_Firefox": {
+    "status": "FAILED_UNCHANGED",
+    "actual_audit": {
+      "path": ".local/gate-6/g846-firefox-normal3-independent-actual-audit/failed-receipt.json",
+      "sha256": "b5723d02c1ffdb2b1b583a115f37391f9e499fd93b00f9952c740a9f4a7aa76f"
+    },
+    "primary": "Baseline resource clock-domain mismatch refused before any operations/authenticated owners/media programme.",
+    "same_owner_clock_corroboration": {
+      "path": ".local/gate-6/g846-firefox-normal3-current-db974-root/root-macos-clock-domain-observation.json",
+      "sha256": "ac13df4c1adbe7ebb744a09e87202fdd1a9b2cc3f192bef1c2c98e664ee6c5fa"
+    },
+    "RAW_brackets_Node_hrtime": true,
+    "historical_refusal_Python_now_negative_vs_stale_subpredicate_unlogged": true,
+    "historical_numeric_offset_not_inferred": true,
+    "secondary": "Original browser wait(timeout=10) TimeoutExpired in finally masked the primary escape and skipped remaining cleanup/report.",
+    "operations": 0,
+    "authenticated_owners": 0,
+    "media_programme_started": false,
+    "cycles2and3": "UNSTARTED",
+    "component_report": "MISSING",
+    "orphan_post_reconciliation": {
+      "path": ".local/gate-6/g846-firefox-normal3-current-db974-root/root-post-failure-orphan-reconciliation.json",
+      "sha256": "651d023b21d2f5692e6c5519155c20af87db8475d69e5ff8d686fcf4e9a2b9a9"
+    },
+    "post_reconciliation_not_original_Popen_join_or_qualification": true
+  },
+  "clock_fix": {
+    "owner": "/root/v198_resources",
+    "reviewer": "/root/independent_batch_review",
+    "candidate": {
+      "path": ".local/gate-6/g846-matrix-resource-clock-domain-v2-source-candidate/manifest.json",
+      "sha256": "932977a54276527b7c290799fb788373af2023eb409d198a59cd4cf896a2105e"
+    },
+    "source_review": {
+      "path": ".local/gate-6/g846-resource-clock-domain-independent-source-review/v2-receipt.json",
+      "sha256": "655eb47e817bf1e2b2a5d1ceae2172da42fff55ffd9f4239aeefada1dad98499"
+    },
+    "change": "Local Mac uses CLOCK_MONOTONIC_RAW matching installed Node/libuv continuous time; local Linux keeps time.monotonic. Strict clock_basis is required. All five collector observations use the chosen clock; MacLinuxIdle requires Linux basis and keeps the original bounded guest-to-host alignment coordinate.",
+    "causal_checks": "Existing selected method vectors cover Mac continuous and Linux monotonic complete terminal/idle windows; wrong/missing/stale/future/nonfinite observations and unavailable RAW refuse; actual MacLinuxFixture.poll plus MacLinuxIdle request/poll/terminal/finish preserve original host alignment; failed round trip cannot renew it.",
+    "selectors": [
+      "scripts.tests.test_matrix_idle.MatrixIdleTests.test_missing_reused_or_draining_observation_cannot_prove_idle",
+      "scripts.tests.test_matrix_idle.MatrixIdleTests.test_verifier_requires_original_ten_second_window_and_stable_restoration",
+      "scripts.tests.test_mac_linux_fixture.MacLinuxPlumbing.test_clock_translation_retains_raw_domains_and_rejects_stale",
+      "scripts/tests/matrix_resource_bridge.test.mjs::resource bridge declares its original clock and refuses invalid terminal without publishing it"
+    ],
+    "Python_method_counts_preserved": {
+      "matrix_idle": 5,
+      "mac_linux_fixture": 33,
+      "matrix_owner_diagnostics": 28
+    },
+    "original900_python168_scripts431_unchanged": true
+  },
+  "cleanup_fix": {
+    "owner": "/root/batch_build_review",
+    "reviewer": "/root/independent_batch_review",
+    "candidate": {
+      "path": ".local/gate-6/g846-browser-exceptional-finally-cleanup-source-candidate-v2/manifest.json",
+      "sha256": "9dd3746ff38a4083375053023641b0df565dc835a281cfeafdb5dd9582ab6ee4"
+    },
+    "source_review": {
+      "path": ".local/gate-6/g846-browser-exceptional-cleanup-independent-source-review/v2-receipt.json",
+      "sha256": "9b6af5d5aa4144207a586a8254c27698f3e89bf7a1605a2277d79d9898f92853"
+    },
+    "change": "Guard the entire existing finally so an original browser retirement failure does not skip original capture/server cleanup, network teardown or report construction. Preserve primary failure and observed original PGID, using the same original Popen/group and unchanged cutoff.",
+    "causal_checks": "Each stage and combined failures still attempt later stages/report; unknown group and exited leader do not manufacture closure; actual original owned-session Popen TERM/wait and all seven server-custody controls execute.",
+    "strengthened_existing_selector": "scripts.tests.test_browser_capture_cleanup.CaptureCleanup.test_rejected_capture_keeps_failure_and_still_joins_fixture_owners",
+    "forced_or_unknown_closure_still_failed": true
+  },
+  "G847_initial_units": {
+    "status": "FAILED_UNCHANGED",
+    "result": {
+      "path": ".local/gate-6/g847-clock-cleanup-units-root/result.json",
+      "sha256": "613e0af974307e9533521af20e864d4c9a473ae901c82b32611b0480c18d898e"
+    },
+    "Python_methods": 77,
+    "failures": 3,
+    "errors": 1,
+    "fixture_error": "Controlled clock was constant between adjacent idle and idle-final samples; unchanged strict-order verifier correctly refused all three reports.",
+    "test_correction": {
+      "path": ".local/gate-6/g847-matrix-clock-advancing-sample-tests-source-candidate/manifest.json",
+      "sha256": "26806054380fe7aef8cb148b10ff3a4085390ca050bc901dd696652d78b5763b"
+    },
+    "test_review": {
+      "path": ".local/gate-6/g847-advancing-clock-fixture-independent-source-review/receipt.json",
+      "sha256": "3fbed3aec6fb6bdcab2d5ebb259a3a48b722d3f7661b4ec2e537f11248df23a9"
+    },
+    "correction": "Only fake sample advances controlled clock by .001; exact final time and strict order asserted inside existing methods.",
+    "runner_error": "Root combined invocation omitted original script65 PYTHONPATH=ROOT/scripts/tests. G848 matches that original environment; no project import workaround."
+  },
+  "focused": {
+    "run": "G848",
+    "passed": 80,
+    "Python_methods": 77,
+    "Node_tests": 3,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "todo": 0,
+    "Python_by_module": {
+      "scripts/tests/test_matrix_idle.py": 5,
+      "scripts/tests/test_mac_linux_fixture.py": 33,
+      "scripts/tests/test_matrix_owner_diagnostics.py": 28,
+      "scripts/tests/test_browser_capture_cleanup.py": 4,
+      "scripts/tests/test_browser_server_custody.py": 7
+    },
+    "result": {
+      "path": ".local/gate-6/g848-clock-cleanup-units-root/result.json",
+      "sha256": "ea1b2c72b0333130711b2698d76d189c44b591af00f2aff42e956ab1a2e16016"
+    },
+    "root_join": {
+      "path": ".local/gate-6/g848-clock-cleanup-units-root/root-original-join.json",
+      "sha256": "60a93bc89f2b3ba066417d46cbee8483f068259b614283dcbaeb19d34f9c1d85"
+    },
+    "independent_actual_audit": {
+      "path": ".local/gate-6/g848-clock-cleanup-independent-actual-audit/receipt.json",
+      "sha256": "e50ed6803275d28b214cbeff34c94a4c139b8921f949da922adc175b3ec55e36"
+    },
+    "prepare_and_official_format_check_passed": true,
+    "source_unchanged": true,
+    "children_natural0_joined_absent": 4,
+    "Root_natural0_joined_absent": true,
+    "scope": "Focused harness verification only; no fresh full/Firefox/media/matrix/READY32."
+  },
+  "unchanged_contract": [
+    "Original Linux kernel clock and finite 0<=age<30 check",
+    "Original remote alignment/one-second round trip/30-second guest age",
+    "Original terminal, 15s bridge response,5s terminal age,10s idle,1s sampling and three cycles",
+    "Original total browser10s cutoff/grace at most5s and existing capture/server5s fallbacks",
+    "All decoded identity/gap/FPS/AVskew/duplicate/quality/resource/capture/productionrelease criteria",
+    "Rust/SDK/source-lock/prepared upstream, stable test IDs and original900168Python/431script count"
+  ],
+  "historical_as_of_db974_only": {
+    "full4289_PASS": {
+      "path": ".local/gate-6/g844-actual-full-independent-audit/receipt.json",
+      "sha256": "98b526b2a84ef341afd0d3ba2fc5412a8777cef96ac2d4745cc2c685e92651ac"
+    },
+    "OriginalV8_all3_PASS": {
+      "path": ".local/gate-6/g845-original-three-independent-actual-audit/receipt.json",
+      "sha256": "0aa004bb21413563449921a8da62d987af53eb871cefcc7a9de36a46e3df6208"
+    },
+    "no_final_source_transfer": true,
+    "G840_and_G835_failed_history_not_regraded": true
+  },
+  "origin_main": {
+    "missing_commits": 0,
+    "merge_performed": false,
+    "actual_Root_fetch_readback": {
+      "path": ".local/gate-6/g848-origin-main-root/receipt.json",
+      "sha256": "8a10c7aed8d4b23177c64af0ec43a75f60d3eade4c133ee7453a6b00ee8a47b4"
+    }
+  },
+  "mobile281": {
+    "public_readback": "docs/evidence/gate-6/g6-058-mobile-document-readback-v281-clock-cleanup-units.json",
+    "readback": {
+      "path": ".local/gate-6/g848-mobile281-root/readback.json",
+      "sha256": "8cc0af9f7811128be671471871429435bd009034d8eaae30dfb4025f6b61f7ba"
+    },
+    "verification": {
+      "path": ".local/gate-6/g848-mobile281-root/verification.json",
+      "sha256": "e3eb033aad1fc7e7c78c99c8c0a0da45d359345df193864e732d6b367f8d2659"
+    },
+    "paragraphs": 422,
+    "changed": [
+      2,
+      9
+    ],
+    "unchanged_and_styles": 420,
+    "scope": "Actual readback covers focused80 only; expanded1411 occurred later and is not claimed in mobile281."
+  },
+  "product_runtime_Rust_SDK_changed": false,
+  "harness_changed": true,
+  "source_lock_or_dependencies_changed": false,
+  "acceptance_changed": false,
+  "runtime_verifier_changed": false,
+  "matrix": {
+    "last_run": "v218",
+    "passed": 1,
+    "total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "new_matrix_run": false,
+  "ready_for_32": false,
+  "all7_required_after_commit": [
+    "Generators/contracts and default shared379",
+    "Complete affected nine-build/thirteen-artifact full regressions, then all three original V8 cases",
+    "Strict Firefox NORMAL3 quality/resource/capture cycles",
+    "Original900 including both signed full62 programmes adjacent last",
+    "Local native ARM SourcePrep with same guardian/lease, then ARM11",
+    "Matching ordinary Mac12 then ARM6 release artifacts",
+    "Fresh original launch preflight; stop at READY32 without starting matrix"
+  ],
+  "G6_054": "parked",
+  "execution": "Local Mac/native ARM only; publication separate.",
+  "future_commit": null,
+  "future_final_source": null,
+  "future_Scope1": null,
+  "future_full": null,
+  "future_OriginalV8": null,
+  "future_Firefox_NORMAL3": null,
+  "future900": null,
+  "future_ARM11": null,
+  "future_releases": null,
+  "future_preflight": null,
+  "expanded_affected_script_regression": {
+    "run": "G849",
+    "passed": 1411,
+    "Node_modules": 73,
+    "Node_tests": 1254,
+    "Python_modules": 10,
+    "Python_methods": 157,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "todo": 0,
+    "result": {
+      "path": ".local/gate-6/g849-harness-expanded-units-root/result.json",
+      "sha256": "899125b9e3aa8c2884b68adcc9bc0ed4a7fa59adba4786f9339b278cae3dfb33"
+    },
+    "root_join": {
+      "path": ".local/gate-6/g849-harness-expanded-units-root/root-counts-and-original-join.json",
+      "sha256": "1487e72d987a5bff16b83970480b6813fe3fc16fb8f1b8c6e8d2eec978998ed8"
+    },
+    "independent_actual_audit": {
+      "path": ".local/gate-6/g849-expanded-harness-independent-actual-audit/receipt.json",
+      "sha256": "4df5f7fb8631e836abdda178ff90aeb28e7d9fc7ae910e30559a5da47d37a687"
+    },
+    "source": {
+      "path": ".local/gate-6/g849-harness-expanded-units-root/source-before.json",
+      "sha256": "dfe7c962c2fa4cd2e6d4eda1fc9ea29f862fa49902f6ddc6a6ae601383cfbf61"
+    },
+    "module_selection": {
+      "path": ".local/gate-6/g849-harness-expanded-units-root/module-selection.json",
+      "sha256": "b0c6db327082e4a3eba218abc31682fc2e608dc73cf38143e28dcddb84a57d35"
+    },
+    "old_ordered_Node72_Python6_prefixes_and_required_appends_exact": true,
+    "source_same_as_focused80_dfe7": true,
+    "original_children_natural0_joined_absent": 11,
+    "Root_natural0_joined_absent": true,
+    "relationship_to_focused80": "Focused80 is a subset of this1411 expanded affected-script regression; do not add counts or report1491 unique tests.",
+    "limitations": "No Rust/build/artifact/complete-full/actual900/Firefox/matrix/READY32 qualification. Python raw logs are module summaries, not per-method verbose names."
+  }
+}

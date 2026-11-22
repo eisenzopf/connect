@@ -46,6 +46,48 @@ class MatrixIdleTests(unittest.TestCase):
         health["operational"]["resource_pools"][0]["usage"]["draining"] = True
         with self.assertRaises(ValueError): owned_usage(health)
 
+        # Additional clock-domain vectors retain this original selected case.
+        from lib.matrix_idle import MatrixIdle
+        from unittest.mock import patch
+        import json
+        import tempfile
+        for platform, basis in (("darwin", "macos-mach-continuous"), ("linux", "linux-clock-monotonic")):
+            with self.subTest(platform=platform), tempfile.TemporaryDirectory() as folder, \
+                 patch("lib.matrix_idle.sys.platform", platform), \
+                 patch("lib.matrix_idle.time.monotonic", return_value=100), \
+                 patch("lib.matrix_idle.time.clock_gettime", return_value=100), \
+                 patch("lib.matrix_idle.urllib.request.build_opener") as health:
+                idle = MatrixIdle(folder, 101, 202, "http://fixture", "credential", sampler=object())
+                path = Path(folder, "resources-baseline.json")
+                self.assertIsNone(idle.request("baseline"), "Not yet published remains pending")
+                original = dict(phase="baseline", monotonic_seconds=99, clock_basis=basis)
+                path.write_text(json.dumps(original)); self.assertEqual(idle.request("baseline"), 99)
+                missing = dict(original); del missing["clock_basis"]
+                changes = [missing, dict(original, clock_basis="unknown"),
+                    dict(original, clock_basis="linux-clock-monotonic" if platform == "darwin" else "macos-mach-continuous"),
+                    dict(original, phase="terminal"), dict(original, extra=True)]
+                changes.extend(dict(original, monotonic_seconds=value) for value in (70, 69, 101, True, None, float("nan"), float("inf")))
+                for refused in changes:
+                    path.write_text(json.dumps(refused))
+                    with self.subTest(refused=refused), self.assertRaises(ValueError): idle.request("baseline")
+                self.assertEqual(idle.samples, [])
+                self.assertIsNone(idle.baseline); self.assertIsNone(idle.terminal)
+                self.assertFalse(health.called, "Refusal does not mint a resource observation")
+
+        from lib.matrix_idle import MatrixIdle
+        from unittest.mock import patch
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder, patch("lib.matrix_idle.sys.platform", "darwin"), \
+             patch("lib.matrix_idle.time.clock_gettime", side_effect=OSError("unavailable")), \
+             patch("lib.matrix_idle.time.monotonic", return_value=100) as fallback:
+            idle = MatrixIdle(folder, 101, 202, "http://fixture", "credential", sampler=object())
+            Path(folder, "resources-baseline.json").write_text(json.dumps(
+                dict(phase="baseline", monotonic_seconds=99, clock_basis="macos-mach-continuous")))
+            with self.assertRaises(OSError): idle.request("baseline")
+            self.assertFalse(fallback.called)
+            self.assertEqual(idle.samples, [])
+
     def test_verifier_requires_original_ten_second_window_and_stable_restoration(self):
         self.assertTrue(idle_verdict(result()))
         for index, change in ((-1, 29.9), (-1, 33), (2, 31), (3, 28)):
@@ -117,6 +159,54 @@ class MatrixIdleTests(unittest.TestCase):
             groups={"server": {"sampled_rss_bytes": 1024**3+1}}))
         self.assertFalse(evaluate(bad)["passed"])
 
+        # Additional clock-domain vectors retain this original selected case.
+        from lib.matrix_idle import MatrixIdle
+        from unittest.mock import patch
+        import json
+        import tempfile
+        class Sampler:
+            roots = {"server": (101, 1001), "browser": (202, 2002)}
+            def sample(self):
+                groups = sample(0, "ignored")["groups"]
+                clock[0] += .001  # The original resource observation takes time.
+                return {"groups": groups}
+            def summary(self): return {}
+        for platform, basis in (("darwin", "macos-mach-continuous"), ("linux", "linux-clock-monotonic")):
+            with self.subTest(platform=platform), tempfile.TemporaryDirectory() as folder:
+                clock = [1000.0]
+                # Deliberately distinct macOS epochs: the old direct Python
+                # monotonic comparison cannot accept this original Node time.
+                with patch("lib.matrix_idle.sys.platform", platform), \
+                     patch("lib.matrix_idle.time.monotonic", side_effect=lambda: clock[0] - (10000 if platform == "darwin" else 0)) as monotonic, \
+                     patch("lib.matrix_idle.time.clock_gettime", side_effect=lambda clock_id: clock[0]) as continuous, \
+                     patch("lib.matrix_idle.owned_usage", return_value=sample(0, "ignored")["usage"]), \
+                     patch("lib.matrix_idle.urllib.request.build_opener") as opener, \
+                     patch("lib.matrix_idle.idle_owner_diagnostics", return_value={"diagnostic": True}):
+                    opener.return_value.open.return_value.__enter__.return_value.read.return_value = b'{"result":{"Ok":{"kind":"health","data":{}}}}'
+                    idle = MatrixIdle(folder, 101, 202, "http://fixture", "credential", sampler=Sampler())
+                    def request(phase, at):
+                        Path(folder, "resources-" + phase + ".json").write_text(json.dumps(
+                            dict(phase=phase, monotonic_seconds=at, clock_basis=basis)))
+                    request("baseline", 1000); idle.poll(); clock[0] = 1001; idle.poll()
+                    clock[0] = 1019; idle.poll()
+                    request("terminal", 1020); request("retired", 1020.1)
+                    for at in (1021, 1028, 1029): clock[0] = at; idle.poll()
+                    self.assertFalse(idle.done)
+                    clock[0] = 1030.01; idle.poll()
+                    observed = idle.finish()
+                    self.assertTrue(observed["passed"], observed)
+                    self.assertEqual(observed["clock_basis"], basis)
+                    self.assertEqual(observed["terminal_monotonic_seconds"], 1020)
+                    self.assertEqual(observed["baseline"]["monotonic_seconds"], 1001)
+                    self.assertEqual(observed["samples"][-1]["monotonic_seconds"], 1030.01+.001)
+                    self.assertLess(observed["samples"][-2]["monotonic_seconds"], observed["samples"][-1]["monotonic_seconds"])
+                    if platform == "darwin":
+                        self.assertFalse(monotonic.called, "No uptime-epoch fallback or fit")
+                        continuous.assert_called_with(__import__("time").CLOCK_MONOTONIC_RAW)
+                    else:
+                        self.assertTrue(monotonic.called)
+                        self.assertFalse(continuous.called, "Linux retains its original kernel clock")
+
     def test_idle_check_is_independent_of_failed_media_but_requires_all_original_joins(self):
         from lib.transport_matrix import inventory
         from lib.transport_matrix_execution import configure_execution, record_browser_result
@@ -167,8 +257,8 @@ class MatrixCycleIdleTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as folder:
                 clock = [100.0]
                 def request(phase, at):
-                    Path(folder, "resources-" + phase + ".json").write_text(json.dumps(dict(phase=phase, monotonic_seconds=at)))
-                with patch("lib.matrix_idle.time.monotonic", side_effect=lambda: clock[0]), \
+                    Path(folder, "resources-" + phase + ".json").write_text(json.dumps(dict(phase=phase, monotonic_seconds=at, clock_basis=idle.clock_basis)))
+                with patch("lib.matrix_idle.resource_monotonic", side_effect=lambda: clock[0]), \
                      patch("lib.matrix_idle.owned_usage", return_value=original["usage"]), \
                      patch("lib.matrix_idle.urllib.request.build_opener") as opener, \
                      patch("lib.matrix_idle.idle_owner_diagnostics", return_value={"diagnostic": True}):
@@ -196,7 +286,6 @@ class MatrixCycleIdleTests(unittest.TestCase):
                     self.assertFalse(observed["focused_capacity"]["separate_soak"]["qualified"])
                 current = sample(131, "idle"); current["usage"]["owned_tasks"] = 1
                 self.assertIn("owned_tasks", idle.restore(original, current))
-
 
 
 if __name__ == "__main__": unittest.main()
