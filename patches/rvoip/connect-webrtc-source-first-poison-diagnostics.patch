@@ -1,0 +1,141 @@
+--- a/crates/webrtc/rvoip-webrtc/src/media/video_normalize.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/video_normalize.rs
+@@ -40,14 +40,59 @@
+     realm_bound: bool,
+     processed: bool,
+ }
++// Fixed diagnostics only. No payload, authorization, reset or new source ID.
++#[derive(Clone, Copy, Debug)]
++enum ChronologyUnavailable {
++    MissingOriginalSource,
++    OriginalSourceChanged,
++    MissingSourceObservation,
++    PacketSsrcChanged,
++    ClosedTimestampReused,
++    TimestampHalfspace,
++    TimestampReverse,
++    TimestampExtensionOverflow,
++    RememberedMappingConflict,
++    UnknownLateOrExpiredSequence,
++}
+ impl SourceChronology {
++    // Called ONLY at an existing invalid branch, BEFORE its unchanged sticky
++    // assignment. This source-owned state needs no lock/atomic/counter; later
++    // failures observe the existing true bit and produce no further event.
++    fn diagnostic_first_unavailable(
++        &self,
++        reason: ChronologyUnavailable,
++        ssrc: u32,
++        packet: Option<&rtp::Packet>,
++        observed_source: Option<u128>,
++        sequence_delta: Option<i16>,
++    ) {
++        if self.unavailable { return; }
++        tracing::debug!(target:"connect_service::original_replacement_terminal",
++            boundary="source-chronology-first-unavailable",?reason,
++            source_binding=?self.identity.map(|identity|identity.0),
++            bound_ssrc=?self.identity.map(|identity|identity.1),incoming_ssrc=ssrc,
++            incoming_source_binding=?observed_source,
++            sequence=?packet.map(|packet|packet.header.sequence_number),
++            timestamp=?packet.map(|packet|packet.header.timestamp),?sequence_delta,
++            prior_timestamp=?self.last.as_ref().map(|frame|frame.timestamp()),
++            prior_extended_timestamp=?self.last.as_ref().map(|frame|frame.extended_timestamp()),
++            prior_realm=?self.last.as_ref().and_then(|frame|frame.frame_realm()).map(|point|point.incarnation()),
++            prior_ordinal=?self.last.as_ref().and_then(|frame|frame.frame_realm()).map(|point|point.ordinal()),
++            realm_bound=self.realm_bound,processed=self.processed,
++            "Original replacement source chronology unavailable");
++    }
++
+     fn observe(&mut self, source: Option<u128>, ssrc: u32) {
+         let identity = source.map(|id| (id, ssrc));
+         if !self.observed {
+             self.observed = true;
+             self.identity = identity;
++            if identity.is_none() {
++                self.diagnostic_first_unavailable(ChronologyUnavailable::MissingOriginalSource, ssrc, None, source, None);
++            }
+             self.unavailable = identity.is_none();
+         } else if self.identity != identity {
++            self.diagnostic_first_unavailable(ChronologyUnavailable::OriginalSourceChanged, ssrc, None, source, None);
+             self.unavailable = true;
+         }
+     }
+@@ -55,6 +100,7 @@
+         self.processed=true;
+         if !self.observed {
+             self.observed = true;
++            self.diagnostic_first_unavailable(ChronologyUnavailable::MissingSourceObservation, packet.header.ssrc, Some(packet), None, None);
+             self.unavailable = true;
+         }
+         if self.unavailable {
+@@ -62,6 +108,7 @@
+         }
+         let (id, ssrc) = self.identity?;
+         if ssrc != packet.header.ssrc {
++            self.diagnostic_first_unavailable(ChronologyUnavailable::PacketSsrcChanged, packet.header.ssrc, Some(packet), None, None);
+             self.unavailable = true;
+             return None;
+         }
+@@ -73,12 +120,17 @@
+                 return Some(last.clone());
+             }
+             if delta == 0 || delta >= (1u32 << 31) {
++                let reason = if delta == 0 { ChronologyUnavailable::ClosedTimestampReused }
++                    else if delta == (1u32 << 31) { ChronologyUnavailable::TimestampHalfspace }
++                    else { ChronologyUnavailable::TimestampReverse };
++                self.diagnostic_first_unavailable(reason, packet.header.ssrc, Some(packet), None, None);
+                 self.unavailable = true;
+                 return None;
+             }
+             match last.extended_timestamp().checked_add(u64::from(delta)) {
+                 Some(value) => value,
+                 None => {
++                    self.diagnostic_first_unavailable(ChronologyUnavailable::TimestampExtensionOverflow, packet.header.ssrc, Some(packet), None, None);
+                     self.unavailable = true;
+                     return None;
+                 }
+@@ -117,6 +169,7 @@
+                 .identity
+                 .is_some_and(|(_, ssrc)| ssrc != packet.header.ssrc)
+             {
++                self.chronology.diagnostic_first_unavailable(ChronologyUnavailable::PacketSsrcChanged, packet.header.ssrc, Some(packet), None, None);
+                 self.chronology.unavailable = true;
+             }
+         }
+@@ -138,6 +191,7 @@
+                 && entry.payload_type == packet.header.payload_type;
+             self.original = if exact { entry.original.clone() } else { None };
+             if !exact {
++                self.chronology.diagnostic_first_unavailable(ChronologyUnavailable::RememberedMappingConflict, packet.header.ssrc, Some(packet), None, None);
+                 self.chronology.unavailable = true;
+             }
+             return exact.then_some(entry.output);
+@@ -145,6 +199,7 @@
+         let base = if let Some(last) = self.last {
+             let delta = packet.header.sequence_number.wrapping_sub(last) as i16;
+             if delta <= 0 {
++                self.chronology.diagnostic_first_unavailable(ChronologyUnavailable::UnknownLateOrExpiredSequence, packet.header.ssrc, Some(packet), None, Some(delta));
+                 self.chronology.unavailable = true;
+                 self.original = None;
+                 return None;
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -124,7 +124,17 @@
+ // binding lookup, clock generation recapture or recipient-owned allocation.
+ fn original_video_mapper(source: &Source,frame_realm:Option<SourceFrameRealm>) -> crate::media::video_normalize::SequenceMapper {
+     let mut mapper = crate::media::video_normalize::SequenceMapper::default();
+-    mapper.observe_original_source(source.lease.source_binding_id(source.ssrc), source.ssrc);
++    let source_binding = source.lease.source_binding_id(source.ssrc);
++    // Cold immutable linkage only; use the SAME binding value already obtained
++    // for the mapper, and inspect the captured weak realm before processing.
++    tracing::debug!(target:"connect_service::original_replacement_terminal",
++        boundary="source-chronology-init",source_binding_present=source_binding.is_some(),
++        source_binding=?source_binding,ssrc=source.ssrc,
++        captured_realm_present=frame_realm.is_some(),
++        captured_realm=?frame_realm.as_ref().and_then(|realm|realm.incarnation()),
++        source_identity=?(source as *const Source),
++        "Original replacement source chronology initialized");
++    mapper.observe_original_source(source_binding, source.ssrc);
+     mapper.observe_frame_realm(frame_realm);
+     mapper
+ }

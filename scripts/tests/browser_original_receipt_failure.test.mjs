@@ -118,3 +118,81 @@ test('actual helper covers both original low-level dispatch sites with bounded h
  assert.equal((source.match(/return observeOriginalContinuation\(work,type,/g)||[]).length,2,'ordinary original dispatch and checkpoint-preserving public-ready dispatch both observed');
  assert.ok(source.includes('void work.then(observeReply,reason=>'));assert.ok(source.includes('   return work;'));
 });
+
+
+// OriginalV8-only passive diagnostics: execute extracted helpers, never a browser.
+function settlementFixture(report=()=>{}){
+ let now=10;const context={originalReceiptFailure:report,performance:{now:()=>now}};vm.createContext(context);
+ const f=vm.runInContext(helper+'\n({observeOriginalReplacement,observeOriginalSettlement,originalSettlementScope,disposeOriginalSettlementObservers});',context);
+ return {...f,clock:value=>{now=value;},plain:value=>JSON.parse(JSON.stringify(value))};
+}
+function settlementOwner(){
+ const callbacks=new Set();let closes=0,disposals=0;
+ return {owner:{close(){closes++;},onClose(fn){callbacks.add(fn);return()=>{disposals++;callbacks.delete(fn);};}},
+  notify:reason=>{for(const fn of callbacks)fn(reason);},count:()=>callbacks.size,disposals:()=>disposals,closes:()=>closes};
+}
+const settlementInput={operationId:'move-1-0',conversationId:'room',sessionId:'session',connectionId:'candidate'};
+const settlementRoot={...settlementInput,recordId:'opr_original',targetConnectionId:'candidate'};
+test('passive lower target observer preserves original object promises values and rejection identities',async()=>{
+ const rows=[],f=settlementFixture(value=>rows.push(value)),owner=settlementOwner();let no;
+ const reason=Object.freeze({code:'media-decoder-stopped',name:'ConnectError',message:'PRIVATE-CANARY'}),value=Object.freeze({ready:true});
+ const prepared=Promise.resolve(value),completed=new Promise((yes,reject)=>{no=reject;});
+ const begun=Object.freeze({...owner,prepared,completed});
+ assert.equal(f.observeOriginalReplacement(begun,settlementInput,settlementRoot),begun);
+ assert.equal(begun.prepared,prepared);assert.equal(begun.completed,completed);assert.equal(await prepared,value);
+ const failed=assert.rejects(completed,error=>error===reason);owner.notify(reason);no(reason);await failed;await Promise.resolve();
+ assert.deepEqual(rows.map(row=>row.stage),['target-original-prepared','target-owner-close','target-original-completed']);
+ assert.equal(rows[1].code,'media-decoder-stopped');assert.equal(rows[1].name,'ConnectError');
+ assert.equal(rows[1].scope.record_id,'opr_original');assert.ok(!JSON.stringify(rows).includes('PRIVATE-CANARY'));
+ f.disposeOriginalSettlementObservers();assert.equal(owner.count(),0);assert.equal(owner.disposals(),1);assert.equal(owner.closes(),0);
+});
+test('passive receipt chronology follows actual settlements while allSettled retains original input ordering',async()=>{
+ const rows=[],f=settlementFixture(value=>rows.push(value));let sourceNo,targetNo;
+ const sourceWork=new Promise((yes,no)=>{sourceNo=no;}),targetWork=new Promise((yes,no)=>{targetNo=no;});
+ const scope=f.originalSettlementScope(settlementInput,settlementRoot),sourceReason=Object.freeze({code:'refused'}),targetReason=Object.freeze({code:'media-stopped'});
+ assert.equal(f.observeOriginalSettlement(sourceWork,'source-operation-wait',scope),sourceWork);
+ assert.equal(f.observeOriginalSettlement(targetWork,'target-prepared-completion',scope),targetWork);
+ const receipts=Promise.allSettled([sourceWork,targetWork]);f.clock(20);targetNo(targetReason);await Promise.resolve();
+ f.clock(30);sourceNo(sourceReason);const actual=await receipts;
+ assert.equal(actual[0].reason,sourceReason);assert.equal(actual[1].reason,targetReason);
+ assert.deepEqual(rows.map(row=>[row.stage,row.sequence,row.time_ms]),[['target-prepared-completion',1,20],['source-operation-wait',2,30]]);
+});
+test('passive target observer refuses foreign root and sink failures cannot change original work',async()=>{
+ for(const report of [()=>{throw Error('sink');},()=>Promise.reject(Error('sink'))]){
+  const f=settlementFixture(report),owner=settlementOwner(),value=Object.freeze({done:true}),work=Promise.resolve(value),begun={...owner,prepared:work,completed:work};
+  assert.equal(f.observeOriginalReplacement(begun,settlementInput,{...settlementRoot,targetConnectionId:'foreign'}),begun);
+  assert.equal(owner.count(),0);assert.equal(await work,value);
+  assert.equal(f.observeOriginalReplacement(begun,settlementInput,settlementRoot),begun);assert.equal(await work,value);
+  f.disposeOriginalSettlementObservers();assert.equal(owner.count(),0);await Promise.resolve();
+ }
+});
+test('passive lower errors are bounded and redact hostile getters and freeform fields',async()=>{
+ const rows=[],f=settlementFixture(value=>rows.push(value)),owner=settlementOwner(),reason={name:'bad name',code:'raw private text',stack:'SECRET',problem:{code:503,category:'storage',reason:'storage_unavailable'}};
+ Object.defineProperty(reason,'kind',{get(){throw Error('SECRET');}});
+ const begun={...owner,prepared:Promise.resolve(1),completed:Promise.resolve(2)};
+ f.observeOriginalReplacement(begun,settlementInput,settlementRoot);owner.notify(reason);await Promise.resolve();
+ const row=rows.find(row=>row.stage==='target-owner-close');assert.equal(row.name,null);assert.equal(row.code,null);assert.equal(row.kind,null);
+ assert.deepEqual(f.plain(row.problem),{code:503,category:'storage',reason:'storage_unavailable'});
+ assert.ok(!JSON.stringify(rows).includes('SECRET'));assert.ok(rows.every(row=>JSON.stringify(row).length<=4096));
+ f.disposeOriginalSettlementObservers();
+ assert.match(source,/try\{const begun=original\.apply\(this,args\);return name==='beginReplacement'\?observeOriginalReplacement\(begun,args\[1\],args\[4\]\):begun;\}finally\{arming=null;\}/);
+});
+
+test('actual constructor wrapper delegates once with same receiver arguments and synchronous failure',async()=>{
+ const rows=[],owner=settlementOwner(),prepared=Promise.resolve(1),completed=Promise.resolve(2),begun={...owner,prepared,completed};
+ const invocations=[];let thrown;
+ function original(...args){invocations.push({self:this,args});if(thrown)throw thrown;return begun;}
+ const BrowserRtcConnection={},context={BrowserRtcConnection,begin:original,beginReplacement:original,arming:null,
+  check:(ok,message)=>assert.ok(ok,message),originalReceiptFailure:value=>rows.push(value),performance:{now:()=>10}};
+ vm.createContext(context);vm.runInContext(helper,context);
+ const start=source.indexOf("  for(const [name,original]of [['begin',begin],['beginReplacement',beginReplacement]])");
+ const end=source.indexOf('  HTMLVideoElement.prototype.requestVideoFrameCallback=',start);assert.ok(start>=0&&end>start);
+ vm.runInContext(source.slice(start,end),context);
+ const receiver={},args=[{},settlementInput,'participant',{},settlementRoot,{timeoutMs:80}];
+ assert.equal(BrowserRtcConnection.beginReplacement.apply(receiver,args),begun);assert.equal(invocations.length,1);
+ assert.equal(invocations[0].self,receiver);args.forEach((arg,index)=>assert.equal(invocations[0].args[index],arg));
+ assert.equal(begun.prepared,prepared);assert.equal(begun.completed,completed);assert.equal(context.arming,null);
+ thrown=Object.freeze({code:'media-stopped'});assert.throws(()=>BrowserRtcConnection.beginReplacement.apply(receiver,args),error=>error===thrown);
+ assert.equal(invocations.length,2);assert.equal(context.arming,null);assert.equal(owner.count(),1);
+ vm.runInContext('disposeOriginalSettlementObservers()',context);assert.equal(owner.count(),0);await Promise.all([prepared,completed]);
+});

@@ -2946,6 +2946,21 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-test-first-camera-and-recipient-rebind-fixtures.patch",
       "sha256": "f95e32344919f431f4439bf016e8ca61be79646696d8baa929d11184feb10bcb"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-freeze-unsupported-terminal-leaf-diagnostics.patch",
+      "sha256": "2cb7b5ad1b6f26bcc15afaafe04402103cafff775dad251f19b29b37f530e826"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-webrtc-source-first-poison-diagnostics.patch",
+      "sha256": "ae505cd64b88abc1dcd3a66e9f39404ea182545cb013a9e78e2c166db4d441ea"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-webrtc-rejected-late-packets-preserve-provenance.patch",
+      "sha256": "98d5edbd287ab156261c225f4688e50f23de9b1b756f0fb3e0729989cb2000c2"
     }
   ]
 }

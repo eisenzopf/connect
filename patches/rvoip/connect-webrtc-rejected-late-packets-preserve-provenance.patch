@@ -1,0 +1,181 @@
+--- a/crates/webrtc/rvoip-webrtc/src/media/video_normalize.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/video_normalize.rs
+@@ -52,7 +52,7 @@
+     TimestampReverse,
+     TimestampExtensionOverflow,
+     RememberedMappingConflict,
+-    UnknownLateOrExpiredSequence,
++    SequenceHalfspace,
+ }
+ impl SourceChronology {
+     // Called ONLY at an existing invalid branch, BEFORE its unchanged sticky
+@@ -199,8 +199,12 @@
+         let base = if let Some(last) = self.last {
+             let delta = packet.header.sequence_number.wrapping_sub(last) as i16;
+             if delta <= 0 {
+-                self.chronology.diagnostic_first_unavailable(ChronologyUnavailable::UnknownLateOrExpiredSequence, packet.header.ssrc, Some(packet), None, Some(delta));
+-                self.chronology.unavailable = true;
++                // This rejection issues no output/capsule and must not poison
++                // future accepted groups. Exact halfspace is truly ambiguous.
++                if delta == i16::MIN {
++                    self.chronology.diagnostic_first_unavailable(ChronologyUnavailable::SequenceHalfspace, packet.header.ssrc, Some(packet), None, Some(delta));
++                    self.chronology.unavailable = true;
++                }
+                 self.original = None;
+                 return None;
+             }
+@@ -644,9 +648,8 @@
+                     assert!(normalize(conflict, &mut mapping).is_err());
+                 }
+                 2 => {
+-                    mapping.recent.front_mut().unwrap().inserted =
+-                        std::time::Instant::now() - Duration::from_millis(201);
+-                    assert!(normalize(packet(10, 90000, true, false), &mut mapping).is_err());
++                    // Exact sequence halfspace is not an ordinary late packet.
++                    assert!(normalize(packet(10u16.wrapping_add(1 << 15), 93000, true, false), &mut mapping).is_err());
+                 }
+                 3 => {
+                     mapping.observe_original_source(Some(456), 77);
+@@ -655,7 +658,10 @@
+                     normalize(packet(11, 90000, true, false), &mut mapping).unwrap();
+                 }
+                 _ => {
+-                    assert!(normalize(packet(9, 87000, true, false), &mut mapping).is_err());
++                    // A changed actual RTP source cannot inherit provenance.
++                    let mut changed = packet(11, 93000, true, false);
++                    changed.header.ssrc = 78;
++                    normalize(changed, &mut mapping).unwrap();
+                 }
+             }
+             let forward = packet(12, 100000, true, false);
+@@ -664,6 +670,24 @@
+             let actual = normalize(forward, &mut mapping).unwrap();
+             assert_eq!(actual[0].payload, expected[0].payload);
+             assert_eq!(actual[0].header.timestamp, expected[0].header.timestamp);
++            assert!(mapping.original_frame().is_none());
++        }
++        // Every remembered conflicting tuple remains sticky, even though the
++        // conflicting packet itself is rejected before output.
++        for field in 0..4 {
++            let mut mapping = mapper(123);
++            let original = packet(10, 90000, true, false);
++            normalize(original.clone(), &mut mapping).unwrap();
++            let mut conflict = original;
++            match field {
++                0 => conflict.header.timestamp += 1,
++                1 => conflict.header.marker = false,
++                2 => conflict.header.payload_type = 97,
++                _ => conflict.payload = vec![0x10, 9].into(),
++            }
++            assert!(matches!(normalize(conflict, &mut mapping), Err(WebRtcVideoReject::LateOrConflictingMapping)));
++            assert!(mapping.original_frame().is_none());
++            normalize(packet(11, 93000, true, false), &mut mapping).unwrap();
+             assert!(mapping.original_frame().is_none());
+         }
+         let mut missing = SequenceMapper::default();
+@@ -752,6 +776,105 @@
+         assert_eq!(b.original_frame().unwrap().frame_realm().unwrap().ordinal(),3);
+         assert_ne!(b.original_frame().unwrap().source_incarnation(),first.source_incarnation());
+         assert_eq!(b.original_frame().unwrap().frame_realm().unwrap().incarnation(),first.frame_realm().unwrap().incarnation());
++
++        // Actual reorder gap expiry forwards unknown late packets to the mapper.
++        // They must remain dropped, without consuming a source-realm ordinal or
++        // poisoning the next accepted original frame (including natural wrap).
++        use crate::media::video_reorder::{PacketReorder, ReceivedPacket, REORDER_DELAY};
++        use rvoip_core::staged_streams::physical_video_exposure::{PhysicalVideoExposure, PhysicalVideoExposureCoverage};
++        for base in [10u16, u16::MAX - 1] {
++            let realm = owner();
++            let mut mapping = mapper(Some(realm.handle()), 123);
++            let mut reorder = PacketReorder::default();
++            let now = std::time::Instant::now();
++            let exposure = Arc::new(PhysicalVideoExposure::default());
++            exposure.configure_expected_realm(realm.handle().incarnation());
++            exposure.bind_coverage(Arc::new(PhysicalVideoExposureCoverage::new(false)));
++            // Another actual metadata family has made NO potential IO while
++            // this mapper accepts its first good groups, just as an original
++            // publisher can precede this receiver's initial subscription.
++            let first_exposure = Arc::new(PhysicalVideoExposure::default());
++            first_exposure.configure_expected_realm(realm.handle().incarnation());
++            first_exposure.bind_coverage(Arc::new(PhysicalVideoExposureCoverage::new(false)));
++            assert_ne!(first_exposure.observer().snapshot().unwrap().physical_family,
++                exposure.observer().snapshot().unwrap().physical_family);
++            let initial = packet(base, u32::MAX - 2999, true);
++            let released = reorder.push(ReceivedPacket::new(initial.clone(), now), now);
++            assert_eq!(released.packets.len(), 1);
++            assert_eq!(normalize(released.packets.into_iter().next().unwrap().packet, &mut mapping).unwrap()[0].header.sequence_number, base);
++            let first = mapping.original_frame().unwrap().clone();
++            assert_eq!(first.frame_realm().unwrap().ordinal(), 1);
++            exposure.record_potential(first.frame_realm());
++
++            let next_packet = packet(base.wrapping_add(2), 0, true);
++            assert!(reorder.push(ReceivedPacket::new(next_packet.clone(), now), now).packets.is_empty());
++            let released = reorder.expire(now + REORDER_DELAY);
++            assert_eq!(released.expired, 1);
++            assert_eq!(released.packets.len(), 1);
++            let normalized = normalize(released.packets.into_iter().next().unwrap().packet, &mut mapping).unwrap();
++            assert_eq!(normalized[0].header.sequence_number, base.wrapping_add(3), "real missing source slot remains a gap after two output fragments");
++            let prior = mapping.original_frame().unwrap().clone();
++            assert_eq!(prior.frame_realm().unwrap().ordinal(), 2);
++            exposure.record_potential(prior.frame_realm());
++            let accepted_last = mapping.last;
++            let accepted_next = mapping.next;
++
++            let late = reorder.push(ReceivedPacket::new(packet(base.wrapping_add(1), 100000, true), now), now + REORDER_DELAY);
++            assert_eq!(late.packets.len(), 1);
++            assert!(matches!(normalize(late.packets.into_iter().next().unwrap().packet, &mut mapping), Err(WebRtcVideoReject::LateOrConflictingMapping)));
++            assert!(mapping.original_frame().is_none(), "rejected unknown late packet gets no output capsule");
++            assert_eq!((mapping.last, mapping.next), (accepted_last, accepted_next));
++            assert!(Arc::ptr_eq(mapping.chronology.last.as_ref().unwrap(), &prior));
++            assert!(!mapping.chronology.unavailable);
++
++            // An exact remembered duplicate reuses its original capsule/fragment
++            // mapping; it does not advance accepted chronology or allocate a point.
++            let duplicate = reorder.push(ReceivedPacket::new(initial, now), now + REORDER_DELAY);
++            assert_eq!(duplicate.packets.len(), 1);
++            assert_eq!(normalize(duplicate.packets.into_iter().next().unwrap().packet, &mut mapping).unwrap()[0].header.sequence_number, base);
++            assert!(Arc::ptr_eq(mapping.original_frame().unwrap(), &first));
++            assert!(Arc::ptr_eq(mapping.chronology.last.as_ref().unwrap(), &prior));
++
++            // Drive the real history-expiry condition without sleeping or
++            // renewing packet/authority deadlines. The expired duplicate cannot
++            // be remapped and, just like unknown late input, produces no frame.
++            for entry in &mut mapping.recent {
++                entry.inserted = std::time::Instant::now() - Duration::from_millis(201);
++            }
++            let expired = reorder.push(ReceivedPacket::new(next_packet, now), now + REORDER_DELAY);
++            assert_eq!(expired.packets.len(), 1);
++            assert!(matches!(normalize(expired.packets.into_iter().next().unwrap().packet, &mut mapping), Err(WebRtcVideoReject::LateOrConflictingMapping)));
++            assert!(mapping.original_frame().is_none());
++            assert_eq!((mapping.last, mapping.next), (accepted_last, accepted_next));
++            assert!(Arc::ptr_eq(mapping.chronology.last.as_ref().unwrap(), &prior));
++            assert!(!mapping.chronology.unavailable);
++            assert_eq!(exposure.observer().snapshot().unwrap().maximum_potential_ordinal, 2);
++            assert!(exposure.observer().snapshot().unwrap().coverage_complete);
++            let untouched = first_exposure.observer().snapshot().unwrap();
++            assert_eq!(untouched.maximum_potential_ordinal, 0,
++                "good groups before this family's first IO cannot fabricate its potential maximum");
++            assert!(untouched.coverage_complete);
++
++            let forward = reorder.push(ReceivedPacket::new(packet(base.wrapping_add(3), 3000, true), now), now + REORDER_DELAY);
++            assert_eq!(forward.packets.len(), 1);
++            assert_eq!(normalize(forward.packets.into_iter().next().unwrap().packet, &mut mapping).unwrap()[0].header.sequence_number, base.wrapping_add(5));
++            // This family's FIRST potential IO uses the actual next capsule.
++            // The old poisoning behavior makes that point None, producing the
++            // observed sticky-untracked/max0 phenotype instead of ordinal3.
++            first_exposure.record_potential(mapping.original_frame().and_then(|frame|frame.frame_realm()));
++            let first_possible = first_exposure.observer().snapshot().unwrap();
++            assert!(first_possible.coverage_complete, "rejected work before first IO must not make the first accepted exposure untracked");
++            assert_eq!(first_possible.maximum_potential_ordinal, 3);
++            let after = mapping.original_frame().unwrap().clone();
++            assert_eq!(after.frame_realm().unwrap().ordinal(), 3, "only the next accepted source frame allocates the next point");
++            assert_eq!(after.frame_realm().unwrap().incarnation(), prior.frame_realm().unwrap().incarnation());
++            assert!(after.extended_timestamp() > prior.extended_timestamp());
++            assert_eq!((prior.timestamp(), after.timestamp()), (0, 3000));
++            exposure.record_potential(after.frame_realm());
++            let observed = exposure.observer().snapshot().unwrap();
++            assert!(observed.coverage_complete, "accepted future frame must not introduce an untracked physical exposure");
++            assert_eq!(observed.maximum_potential_ordinal, 3);
++        }
+     }
+     #[test]
+     fn source_realm_missing_dead_late_or_exhausted_keeps_group_and_ordinary_packets() {

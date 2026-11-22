@@ -117,6 +117,54 @@ try{
    });
    return work;
   }
+  // Passive original settlement observations; never replace a caller-owned promise.
+  let originalSettlementSequence=0,originalSettlementTime=0;
+  const originalSettlementDisposers=[],originalReplacementScopes=new Map();
+  function originalSettlementScope(input,root){
+   const token=value=>typeof value==='string'&&/^[a-zA-Z0-9_.:-]{1,256}$/.test(value)?value:null;
+   if(!input||!root)return null;
+   const pairs=[['operationId','operationId'],['conversationId','conversationId'],['sessionId','sessionId'],['connectionId','targetConnectionId']];
+   if(!pairs.every(([a,b])=>token(input[a])!==null&&input[a]===root[b])||token(root.recordId)===null)return null;
+   return Object.freeze({operation_id:root.operationId,record_id:root.recordId,conversation_id:root.conversationId,
+    session_id:root.sessionId,target_connection_id:root.targetConnectionId});
+  }
+  function emitOriginalSettlement(stage,status,reason,scope){
+   // Four original targets and their receipt/close edges fit this fixed diagnostic cap.
+   if(originalSettlementSequence>=64)return;
+   try{
+    const read=(object,key)=>{try{return object?.[key];}catch{return undefined;}};
+    const machine=value=>typeof value==='string'&&/^[a-z][a-z0-9_-]{0,95}$/.test(value)?value:null;
+    const name=read(reason,'name'),problem=originalReceiptFailureDiagnostic(stage,reason,null,null).problem;
+    const now=performance.now();originalSettlementTime=Math.max(originalSettlementTime,Number.isFinite(now)?now:originalSettlementTime);
+    const value={profile:'connect/original-target-settlement/1',sequence:++originalSettlementSequence,time_ms:originalSettlementTime,
+     stage,status,scope,code:machine(read(reason,'code')),name:typeof name==='string'&&/^[A-Za-z][A-Za-z0-9_]{0,95}$/.test(name)?name:null,
+     kind:machine(read(reason,'kind')),certainty:machine(read(reason,'certainty')),problem};
+    void Promise.resolve(globalThis.originalReceiptFailure(value)).catch(()=>{});
+   }catch{}
+  }
+  function observeOriginalSettlement(work,stage,scope){
+   try{void work.then(()=>{emitOriginalSettlement(stage,'fulfilled',null,scope);},reason=>{
+    emitOriginalSettlement(stage,'rejected',reason,scope);
+   }).catch(()=>{});}catch{}
+   return work;
+  }
+  function observeOriginalReplacement(begun,input,root){
+   try{
+    const scope=originalSettlementScope(input,root);
+    if(!scope){emitOriginalSettlement('target-observer','attribution-refused',null,null);return begun;}
+    originalReplacementScopes.set(scope.operation_id,scope);
+    try{const dispose=begun.owner.onClose(reason=>{emitOriginalSettlement('target-owner-close','closed',reason,scope);});
+     originalSettlementDisposers.push(dispose);
+    }catch(reason){emitOriginalSettlement('target-observer','enrollment-refused',reason,scope);}
+    observeOriginalSettlement(begun.prepared,'target-original-prepared',scope);
+    observeOriginalSettlement(begun.completed,'target-original-completed',scope);
+   }catch{}
+   return begun;
+  }
+  function disposeOriginalSettlementObservers(){
+   for(const dispose of originalSettlementDisposers.splice(0)){try{dispose();}catch{}}
+   originalReplacementScopes.clear();
+  }
   // End original receipt failure diagnostics.
   const check=(value,message)=>{if(!value)throw Error(message);};
   const opts=()=>({timeoutMs:8000}),mutation=operationId=>({...opts(),operationId});
@@ -139,7 +187,7 @@ try{
   };
   for(const [name,original]of [['begin',begin],['beginReplacement',beginReplacement]])BrowserRtcConnection[name]=function(...args){
    check(arming===null,'original synchronous SDK constructor');arming=args[1].connectionId;
-   try{return original.apply(this,args);}finally{arming=null;}
+   try{const begun=original.apply(this,args);return name==='beginReplacement'?observeOriginalReplacement(begun,args[1],args[4]):begun;}finally{arming=null;}
   };
   HTMLVideoElement.prototype.requestVideoFrameCallback=function(callback){
    const element=this;return nativeFrame.call(element,function(now,metadata){
@@ -310,7 +358,9 @@ try{
      const prepared=await targetSession.connections.prepareReplacement({operation:operation.reference,audio:streams.audio,
       video:{send:streams.send,receive:streams.receive}},options());
      const capture=await startCapture(i,prepared.connection,options());
-     const receipts=await Promise.allSettled([operation.wait(options()),prepared.completion]);
+     const receiptScope=originalReplacementScopes.get(operationId)??null;
+     const receipts=await Promise.allSettled([observeOriginalSettlement(operation.wait(options()),'source-operation-wait',receiptScope),
+      observeOriginalSettlement(prepared.completion,'target-prepared-completion',receiptScope)]);
      if(receipts.some(receipt=>receipt.status==='rejected'))await reportOriginalReceiptFailures(receipts,reference,phases.get(operationId));
      for(const receipt of receipts)if(receipt.status==='rejected')throw receipt.reason;
      const a=receipts[0].value.value,b=receipts[1].value.value;
@@ -403,6 +453,7 @@ try{
    }
    for(const client of clients){try{await client.close(opts());}catch{cleanupFailures.push('sdk-close');}}
    if(![...peers.values()].every(peer=>peer.connectionState==='closed'))cleanupFailures.push('original-native-peer-not-closed');
+   disposeOriginalSettlementObservers();
    BrowserClient.prototype.requestReplacementContinuation=continuation;
    BrowserRtcConnection.begin=begin;BrowserRtcConnection.beginReplacement=beginReplacement;globalThis.RTCPeerConnection=NativePeer;
    HTMLVideoElement.prototype.requestVideoFrameCallback=nativeFrame;CanvasRenderingContext2D.prototype.drawImage=nativeDraw;

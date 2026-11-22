@@ -646,6 +646,7 @@ impl Runtime {
         Ok(())
     }
     async fn watch_replacement(self: &Arc<Self>, record: String, saved: Arc<PreparedReplacement>) {
+        let diagnostic_started = tokio::time::Instant::now();
         loop {
             // A failed original allocation owns one immutable historical receipt.
             // Reobserve it even when its first settlement lost a SQL/cancel race;
@@ -718,6 +719,8 @@ impl Runtime {
                 })
                 .await;
             }
+            let mut diagnostic_stage = "target-current";
+            let mut diagnostic_code = None;
             let target_lost = if let Some(telephone) = &telephone {
                 let absent = self
                     .telephone_route(&telephone.route.policy.route_reference)
@@ -746,19 +749,40 @@ impl Runtime {
                     .ok()
                     .and_then(|s| s.clone())
                     .is_some_and(|s| {
-                        s.controller.active_bindings().is_empty()
-                            || s.policy
+                        if s.controller.active_bindings().is_empty() {
+                            diagnostic_stage = "target-active-bindings-empty";
+                            true
+                        } else {
+                            let lost = s
+                                .policy
                                 .activation
                                 .get()
                                 .and_then(|a| a.confirmed_generation())
-                                != Some(saved.handle.prepared_binding().generation())
+                                != Some(saved.handle.prepared_binding().generation());
+                            if lost {
+                                diagnostic_stage = "target-activation-generation";
+                            }
+                            lost
+                        }
                     });
                 let physical_lost = resources_lost
-                    || allocated
-                        .physical
-                        .upgrade()
-                        .is_none_or(|p| p.lifetime.is_cancelled())
-                    || !self.native_connection_live(&saved.handle.intent().replacement);
+                    || allocated.physical.upgrade().is_none_or(|p| {
+                        let lost = p.lifetime.is_cancelled();
+                        if lost {
+                            diagnostic_stage = "target-physical-cancelled";
+                        }
+                        lost
+                    })
+                    || {
+                        let lost = !self.native_connection_live(&saved.handle.intent().replacement);
+                        if lost {
+                            diagnostic_stage = "target-adapter-not-live";
+                        }
+                        lost
+                    };
+                if !resources_lost && physical_lost && diagnostic_stage == "target-current" {
+                    diagnostic_stage = "target-physical-owner-absent";
+                }
                 let store = self.media.store.clone();
                 let receipt = allocated.receipt.clone();
                 let current =
@@ -766,22 +790,40 @@ impl Runtime {
                         .await;
                 physical_lost
                     || current.is_err_and(|e| {
-                        !matches!(e.code.as_str(), "storage-unavailable" | "authority-busy")
+                        let lost =
+                            !matches!(e.code.as_str(), "storage-unavailable" | "authority-busy");
+                        if lost {
+                            diagnostic_stage = "target-store-current";
+                            diagnostic_code = Some(e.code);
+                        }
+                        lost
                     })
             } else {
                 false
             };
-            let valid = if target_lost
-                || saved.handle.cancellation().is_cancelled()
-                || self.stop.is_cancelled()
-            {
+            let valid = if target_lost {
+                false
+            } else if saved.handle.cancellation().is_cancelled() {
+                diagnostic_stage = "root-cancelled";
+                false
+            } else if self.stop.is_cancelled() {
+                diagnostic_stage = "runtime-cancelled";
                 false
             } else {
                 match self.replacement_read(&saved.origin) {
                     Ok(read) => {
-                        read.current()
-                            && read.context().role
-                                == saved.plan["source_role"].as_str().unwrap_or("")
+                        let current = read.current();
+                        if !current {
+                            diagnostic_stage = "source-read-not-current";
+                        }
+                        current && {
+                            let same_role = read.context().role
+                                == saved.plan["source_role"].as_str().unwrap_or("");
+                            if !same_role {
+                                diagnostic_stage = "source-role-changed";
+                            }
+                            same_role
+                        }
                     }
                     Err(error)
                         if matches!(
@@ -792,12 +834,18 @@ impl Runtime {
                         true
                     }
                     Err(error) => {
+                        diagnostic_stage = "source-read-refused";
+                        diagnostic_code = Some(error.code.clone());
                         tracing::debug!(target:"connect_service::canonical_replacement",record=%record,code=%error.code,"Replacement preparation watcher lost source");
                         false
                     }
                 }
             };
             if !valid {
+                tracing::debug!(target:"connect_service::original_replacement_terminal",boundary="service-watcher-before-cancel",
+                    stage=diagnostic_stage,result_code=?diagnostic_code,record=%record,
+                    operation=%saved.origin.request().operation_id,connection=%saved.handle.intent().replacement,
+                    elapsed_us=diagnostic_started.elapsed().as_micros() as u64,"Original replacement terminal boundary");
                 let newly_cancelled = saved.handle.cancel();
                 if let Some(telephone) = &telephone {
                     let _ = self.abandon_telephone_submission(telephone).await;

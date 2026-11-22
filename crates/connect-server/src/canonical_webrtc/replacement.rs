@@ -105,32 +105,41 @@ async fn run(
     stop: CancellationToken,
     state: watch::Sender<State>,
 ) -> Result<()> {
+    let diagnostic_started = Instant::now();
+    let mut diagnostic_stage = "initial-offer";
+    let mut diagnostic_record = None;
     let result:Result<()>=async {
         let offer=bounded_read(&stop,p.deadline,||p.source.offer()).await?;
         let reserved=p.source.reserved_public_video();
+        diagnostic_record = reserved.as_ref().map(|original| original.operation_record_id().to_owned());
+        diagnostic_stage = "validate-offer";
         if p.binding.reserved_video_profile()!=reserved.as_deref().map(|original|original.profile()) {return Err(Error::forbidden());}
         super::signaling::validate_offer_with_reserved(&offer.offer,config.require_vp8_audio_video_profile,reserved.as_deref())?;
         let sdp=offer.offer["substrate_setup"]["sdp"].as_str().ok_or_else(Error::forbidden)?;
+        diagnostic_stage = "start-peer";
         p.binding.start_peer(config,PeerRole::Answerer).map_err(|_|engine_error())?;
+        diagnostic_stage = "signaling-control";
         let mut peer=p.binding.signaling_control(p.deadline).await.map_err(|_|engine_error())?;
+        diagnostic_stage = "accept-offer";
         let answer=tokio::select! {biased;
             _=stop.cancelled()=>return Err(Error::new("cancelled","RTC replacement preparation cancelled")),
             _=tokio::time::sleep_until(p.deadline)=>return Err(Error::new("timeout","RTC replacement preparation deadline")),
             answer=peer.accept_offer_and_gather(sdp)=>answer.map_err(|_|engine_error())?,
         };
         if !answer.starts_with("v=0\r\n") || answer.len()>512*1024 || answer.contains('\0') {return Err(engine_error());}
+        diagnostic_stage = "source-current-before-answer";
         bounded_read(&stop,p.deadline,||p.source.current()).await?;
         state.send_replace(State::Answered(answer.clone()));
         let mut interval=tokio::time::interval(Duration::from_millis(50));interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
         loop {
             tokio::select! {biased;
-                _=stop.cancelled()=>return Ok(()),
-                _=peer.wait_failed()=>return Err(engine_error()),
+                _=stop.cancelled()=>{diagnostic_stage="worker-cancelled";return Ok(());},
+                _=peer.wait_failed()=>{diagnostic_stage="peer-failed";return Err(engine_error());},
                 _=interval.tick()=>{
                     match p.source.current() {
                         Ok(())=>{},
                         Err(error) if matches!(error.code.as_str(),"authority-busy"|"storage-unavailable"|"handoff-pending")=>continue,
-                        Err(error)=>return Err(error),
+                        Err(error)=>{diagnostic_stage="source-current-lifetime";return Err(error);},
                     }
                     if peer.is_connected(){state.send_if_modified(|s|if matches!(s,State::Connected(_)){false}else{*s=State::Connected(answer.clone());true});}
                 }
@@ -138,6 +147,15 @@ async fn run(
         }
     }.await;
     p.source.release_invocation();
+    // Preserve the original result after releasing invocation custody and before
+    // native shutdown can replace its visible cause.
+    tracing::debug!(target:"connect_service::original_replacement_terminal", boundary="rtc-worker-before-shutdown",
+        stage=diagnostic_stage, record=?diagnostic_record,
+        physical_binding=?Arc::as_ptr(&p.binding),
+        source_identity=?(Arc::as_ptr(&p.source) as *const ()),
+        elapsed_us=diagnostic_started.elapsed().as_micros() as u64,
+        result_code=?result.as_ref().err().map(|error|error.code.as_str()),
+        "Original replacement terminal boundary");
     let cleanup = p.binding.shutdown().await.map_err(|_| {
         Error::new(
             "cleanup-unconfirmed",

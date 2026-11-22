@@ -1,0 +1,211 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/old_video_freeze.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/old_video_freeze.rs
+@@ -10,6 +10,26 @@
+ use super::published_video_protection::FrozenProtection;
+ use rvoip_core_traits::peer_switch::PeerQuiescenceGuard;
+ 
++// Terminal cold-control diagnostic only. Additional scalar samples describe
++// observations AFTER the original refusal, not the historical failure instant.
++pub(super) fn unsupported_leaf(
++    operation:Option<&str>,leaf:&'static str,effect:&'static str,realm:Option<u128>,
++    observer:Option<&super::physical_video_exposure::PhysicalVideoExposureObserver>,
++)->StreamControlError {
++    if tracing::enabled!(target:"connect_service::original_replacement_terminal",tracing::Level::DEBUG) {
++        let exposure=observer.and_then(|observer|observer.freeze_diagnostic());
++        tracing::debug!(target:"connect_service::original_replacement_terminal",
++            boundary="core-freeze-unsupported",operation=operation.unwrap_or(""),operation_present=operation.is_some(),
++            leaf,effect,expected_realm=?realm,exposure_after_refusal=?exposure,diagnostic_after_refusal=true,
++            "Original freeze Unsupported leaf");
++    }
++    StreamControlError::Unsupported
++}
++fn observe_unsupported(error:&StreamControlError,operation:Option<&str>,leaf:&'static str,effect:&'static str,realm:Option<u128>) {
++    if matches!(error,StreamControlError::Unsupported) {let _=unsupported_leaf(operation,leaf,effect,realm,None);}
++}
++
++
+ /// Opaque SAME-realm conservative potential-exposure ceiling. No public ctor,
+ /// Deserialize or Clone. Scalars alone are not a current freeze/IO grant.
+ pub struct FrozenOldVideoFrontier {
+@@ -136,7 +156,7 @@
+         for old in &held.ports {
+             validate_port(&old.port,&old.ticket)?;
+             let snapshot=AdapterMediaPort(old.port.clone()).physical_video_exposure_sealed(seal.as_seal())
+-                .ok_or(StreamControlError::Unsupported)?;
++                .ok_or_else(||unsupported_leaf(Some(&self.frontier.operation),"frozen-old-validation-snapshot","existing-frozen-owner",Some(self.frontier.realm),old.port.video_exposure.get()))?;
+             if !snapshot.coverage_complete || snapshot.physical_family!=old.family ||
+                 snapshot.realm_incarnation!=Some(self.frontier.realm) ||
+                 snapshot.maximum_potential_ordinal>self.frontier.ordinal ||
+@@ -223,7 +243,7 @@
+                 || !tickets.is_current(&old.ticket) || !old.port.ticket(TicketSide::Egress).same_generation(&old.ticket) {return Err(StreamControlError::NotReady);}
+             // This is the original Core-owned atomic family observer, not an
+             // adapter callback or a new coverage/readiness assertion.
+-            let snapshot=AdapterMediaPort(old.port.clone()).physical_video_exposure_sealed(seal.as_seal()).ok_or(StreamControlError::Unsupported)?;
++            let snapshot=AdapterMediaPort(old.port.clone()).physical_video_exposure_sealed(seal.as_seal()).ok_or_else(||unsupported_leaf(Some(&owner.frontier.operation),"frozen-target-validation-snapshot","existing-frozen-owner",Some(owner.frontier.realm),old.port.video_exposure.get()))?;
+             if !snapshot.coverage_complete || snapshot.physical_family!=old.family
+                 || snapshot.realm_incarnation!=Some(owner.frontier.realm)
+                 || snapshot.maximum_potential_ordinal>owner.frontier.ordinal
+@@ -355,15 +375,17 @@
+         if state.closed || audience.expected.get(&old.connection)!=Some(&state.model.revision()) {
+             return Err(MediaTransitionError::Conflict.into());
+         }
+-        let request=intent.request.video.as_ref().ok_or(StreamControlError::Unsupported)?;
++        let request=intent.request.video.as_ref().ok_or_else(||unsupported_leaf(Some(&intent.request.operation_id),"preflight-missing-video-request","pre-attempt",None,None))?;
+         let receivers=request.receivers.iter().map(|mapping|mapping.previous.clone()).collect::<BTreeSet<_>>();
+-        if receivers.is_empty() {return Err(StreamControlError::Unsupported);}
++        if receivers.is_empty() {return Err(unsupported_leaf(Some(&intent.request.operation_id),"preflight-empty-receivers","pre-attempt",None,None));}
+         if receivers.len()!=request.receivers.len() {return Err(StreamControlError::Authority);}
+         let ports=visual_sinks(&state)?.into_iter()
+             .filter(|port|receivers.contains(&port.binding.negotiated.requested.logical_id)).collect::<Vec<_>>();
+         if ports.len()!=receivers.len() {return Err(StreamControlError::NotReady);}
+-        let selected=old.capture_video_restore_sources(&state,&ports)?;
++        let selected=old.capture_video_restore_sources(&state,&ports)
++            .inspect_err(|error|observe_unsupported(error,Some(&intent.request.operation_id),"preflight-selected-source-capture","pre-attempt",None))?;
+         selected.preflight_initial_pictures()
++            .inspect_err(|error|observe_unsupported(error,Some(&intent.request.operation_id),"preflight-selected-source-capability","pre-attempt",None))
+     }
+     pub(super) fn validate_freeze_plan(&self,plan:&device_replacement::AudioDeviceReplacementPlan,intent:&device_replacement::ReplacementIntent)->ControlResult<Arc<StreamController>> {
+         let plan=plan.audience();
+@@ -389,7 +411,7 @@
+         original_control()?;
+         let intent=plan.audience().replacement.as_ref().ok_or(StreamControlError::Authority)?.clone();
+         if realm==0 || intent.private_consultation_parent().is_some() || !plan.audience().group.origins.is_empty() || intent.video.is_none() {
+-            return Err(StreamControlError::Unsupported);
++            return Err(unsupported_leaf(Some(&intent.request.operation_id),"unsupported-freeze-plan-shape","pre-attempt",Some(realm),None));
+         }
+         let old=self.validate_freeze_plan(plan,&intent)?;
+         let credential=old.credential_snapshot();
+@@ -407,15 +429,17 @@
+             state.model.authorize_binding(&authority.current())?;
+             if !authority.may_control {return Err(StreamControlError::Authority);}
+             let ports=visual_sinks(&state)?;
+-            if ports.is_empty() {return Err(StreamControlError::Unsupported);}
++            if ports.is_empty() {return Err(unsupported_leaf(Some(&intent.request.operation_id),"freeze-empty-old-sinks","pre-attempt",Some(realm),None));}
+             (state.model.revision(),ports)
+         };
+-        let observer=ports[0].video_exposure.get().ok_or(StreamControlError::Unsupported)?;
+-        let seal=old.preflight_old_video_protection(observer)?;
++        let observer=ports[0].video_exposure.get().ok_or_else(||unsupported_leaf(Some(&intent.request.operation_id),"freeze-missing-old-observer","pre-attempt",Some(realm),None))?;
++        let seal=old.preflight_old_video_protection(observer)
++            .inspect_err(|error|{if matches!(error,StreamControlError::Unsupported){let _=unsupported_leaf(Some(&intent.request.operation_id),"freeze-old-protection","pre-attempt",Some(realm),Some(observer));}})?;
+         // Full Native coverage has an additional whole-physical writer set.
+         // Unjoined retired/quarantined/foreign families refuse effect-free;
+         // their original cleanup must complete outside FreezeVideo custody.
+-        let native_pin=native_activation::pin_native_domain(&ports,seal.as_seal(),realm)?;
++        let native_pin=native_activation::pin_native_domain(&ports,seal.as_seal(),realm)
++            .inspect_err(|error|observe_unsupported(error,Some(&intent.request.operation_id),"freeze-native-domain-pin","pre-attempt",Some(realm)))?;
+         let native_pre=native_pin.as_ref().map(native_activation::NativeInventoryPin::before);
+         // Known capability failures are effect-free: provisional raw seal and
+         // setup flight drop without ever pausing OLD. Racing unknown metadata
+@@ -424,8 +448,9 @@
+         for port in ports {
+             let ticket=port.ticket(TicketSide::Egress);validate_port(&port,&ticket)?;
+             let snapshot=AdapterMediaPort(port.clone()).physical_video_exposure_sealed(seal.as_seal())
+-                .ok_or(StreamControlError::Unsupported)?;
+-            if !snapshot.coverage_complete || snapshot.realm_incarnation!=Some(realm) {return Err(StreamControlError::Unsupported);}
++                .ok_or_else(||unsupported_leaf(Some(&intent.request.operation_id),"freeze-pre-snapshot-unavailable","pre-attempt",Some(realm),port.video_exposure.get()))?;
++            if !snapshot.coverage_complete {return Err(unsupported_leaf(Some(&intent.request.operation_id),"freeze-pre-coverage-incomplete","pre-attempt",Some(realm),port.video_exposure.get()));}
++            if snapshot.realm_incarnation!=Some(realm) {return Err(unsupported_leaf(Some(&intent.request.operation_id),"freeze-pre-realm-mismatch","pre-attempt",Some(realm),port.video_exposure.get()));}
+             checked_ports.push(FrozenPort {port,ticket,family:snapshot.physical_family});
+         }
+         original_control()?;control.valid()?;old.check_credential_snapshot(&credential)?;
+@@ -456,7 +481,8 @@
+             return Err(StreamControlError::Cancelled);
+         }
+         let native_ports=owned.ports.iter().map(|entry|entry.port.clone()).collect::<Vec<_>>();
+-        let native_post=owned.native_pin.as_ref().map(|pin|pin.capture(&native_ports,owned.seal.as_ref().ok_or(StreamControlError::Authority)?.as_seal(),realm)).transpose()?;
++        let native_post=owned.native_pin.as_ref().map(|pin|pin.capture(&native_ports,owned.seal.as_ref().ok_or(StreamControlError::Authority)?.as_seal(),realm)).transpose()
++            .inspect_err(|error|observe_unsupported(error,Some(&intent.request.operation_id),"freeze-native-post-drain-capture","post-attempt",Some(realm)))?;
+         let native=match (native_pre,native_post) {
+             (None,None)=>None,
+             (Some(before),Some(after)) if before.same_inventory(&after)=>Some(after),
+@@ -467,8 +493,9 @@
+             validate_port(&old_port.port,&old_port.ticket)?;
+             let snapshot:PhysicalVideoExposureSnapshot=AdapterMediaPort(old_port.port.clone())
+                 .physical_video_exposure_sealed(owned.seal.as_ref().ok_or(StreamControlError::Authority)?.as_seal())
+-                .ok_or(StreamControlError::Unsupported)?;
+-            if !snapshot.coverage_complete || snapshot.realm_incarnation!=Some(realm) {return Err(StreamControlError::Unsupported);}
++                .ok_or_else(||unsupported_leaf(Some(&intent.request.operation_id),"freeze-post-snapshot-unavailable","post-attempt",Some(realm),old_port.port.video_exposure.get()))?;
++            if !snapshot.coverage_complete {return Err(unsupported_leaf(Some(&intent.request.operation_id),"freeze-post-coverage-incomplete","post-attempt",Some(realm),old_port.port.video_exposure.get()));}
++            if snapshot.realm_incarnation!=Some(realm) {return Err(unsupported_leaf(Some(&intent.request.operation_id),"freeze-post-realm-mismatch","post-attempt",Some(realm),old_port.port.video_exposure.get()));}
+             if old_port.family!=snapshot.physical_family {return Err(StreamControlError::Authority);}
+             maximum=maximum.max(snapshot.maximum_potential_ordinal).max(snapshot.inherited_potential_ordinal);
+         }
+--- a/crates/foundation/rvoip-core/src/staged_streams/published_video_protection.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/published_video_protection.rs
+@@ -263,9 +263,14 @@
+         if self.shutdown.is_cancelled(){return Err(StreamControlError::Cancelled);}
+         if let Some(slot)=self.published_video_protection.get(){
+             if !slot.same_owner(self){return Err(StreamControlError::Authority);}
+-            return slot.loan(observer); // never drop/reseal or downgrade a protected peer
+-        }
+-        let seal=observer.try_seal_coverage().ok_or(StreamControlError::Unsupported)?;
++            let result=slot.loan(observer); // never drop/reseal or downgrade a protected peer
++            // loan's state guard is already dropped before diagnostic sampling.
++            if matches!(&result,Err(StreamControlError::Unsupported)) {
++                let _=super::old_video_freeze::unsupported_leaf(None,"protection-published-loan-refused","pre-attempt",None,Some(observer));
++            }
++            return result;
++        }
++        let seal=observer.try_seal_coverage().ok_or_else(||super::old_video_freeze::unsupported_leaf(None,"protection-raw-seal-unavailable","pre-attempt",None,Some(observer)))?;
+         Ok(PreflightProtection{seal:Some(seal),loan:None})
+     }
+ }
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/restore_sources.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/restore_sources.rs
+@@ -14,13 +14,14 @@
+ impl RestoreSources {
+     pub(in crate::staged_streams) fn descriptors(&self)->&[OldVideoRestoreSource] {&self.descriptors}
+     pub(in crate::staged_streams) fn preflight_initial_pictures(&self)->ControlResult<()> {
+-        if self.original.is_empty() {return Err(StreamControlError::Unsupported);}
++        if self.original.is_empty() {return Err(super::super::old_video_freeze::unsupported_leaf(None,"selected-source-empty","pre-attempt",None,None));}
+         self.validate()?;
+         for original in &self.original {
+             let port=original.port.upgrade().ok_or(StreamControlError::NotReady)?;
+             let source=port.owner.upgrade().ok_or(StreamControlError::Cancelled)?;
+             port.require_ticket(TicketSide::Ingress,&original.ticket)?;
+-            source.adapter.preflight_initial_video_picture(&AdapterMediaPort(port))?;
++            source.adapter.preflight_initial_video_picture(&AdapterMediaPort(port))
++                .inspect_err(|error|{if matches!(error,StreamControlError::Unsupported){let _=super::super::old_video_freeze::unsupported_leaf(None,"selected-source-adapter-preflight","pre-attempt",None,None);}})?;
+         }
+         self.validate()
+     }
+@@ -83,7 +84,7 @@
+             let binding=&source.binding;let medium=binding.negotiated.requested.medium;
+             if !matches!(medium,Medium::Video|Medium::Screen) || medium!=port.binding.negotiated.requested.medium
+                 || !binding.source_ready || binding.negotiated.format!=port.binding.negotiated.format {
+-                return Err(StreamControlError::Unsupported);
++                return Err(super::super::old_video_freeze::unsupported_leaf(None,"selected-source-format-shape","pre-attempt",None,None));
+             }
+             let descriptor=MediaSource {conversation:publisher.conversation.clone(),session:publisher.session.clone(),connection:publisher.connection.clone(),
+                 participant:publisher.origin_member.participant().clone(),membership_epoch:publisher.origin_member.epoch(),
+--- a/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs
+@@ -12,6 +12,8 @@
+ /// 4 retired-sealed; >=5 is one peer fence token. RTC owns it exclusively;
+ /// Native qualified Session scopes share it through distinct nonclone leases.
+ pub struct PhysicalVideoExposureCoverage { state: AtomicU64, next_token: AtomicU64, native_sessions:OnceLock<std::sync::Mutex<native_session_seals::NativeSessionSeals>> }
++#[derive(Clone, Copy, Debug)]
++pub(super) enum FreezeCoverageDiagnostic { Missing, Unexposed, Escaped, RetiredUnexposed, RetiredEscaped, RetiredSealed, Sealed }
+ #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+ pub enum PhysicalVideoSealUnavailable { Escaped, Retired, AlreadySealed, Exhausted }
+ /// Nonclone owned no-escape lease. This is NOT an IO drain, source cut, F,
+@@ -176,6 +178,18 @@
+ pub struct PhysicalVideoExposureObserver(Weak<PhysicalVideoExposure>);
+ impl PhysicalVideoExposureObserver {
+     pub fn same_family(&self, other: &Self) -> bool { Weak::ptr_eq(&self.0, &other.0) }
++    // Called only after a terminal cold-control refusal. No seal attempt,
++    // synchronization acquisition, mutation, or IO capability is introduced.
++    pub(super) fn freeze_diagnostic(&self)->Option<(PhysicalVideoExposureSnapshot,bool,bool,FreezeCoverageDiagnostic)> {
++        let family=self.0.upgrade()?;
++        let state=match family.coverage.get().map(|coverage|coverage.state.load(Ordering::Acquire)) {
++            None=>FreezeCoverageDiagnostic::Missing,Some(0)=>FreezeCoverageDiagnostic::Unexposed,
++            Some(1)=>FreezeCoverageDiagnostic::Escaped,Some(2)=>FreezeCoverageDiagnostic::RetiredUnexposed,
++            Some(3)=>FreezeCoverageDiagnostic::RetiredEscaped,Some(4)=>FreezeCoverageDiagnostic::RetiredSealed,
++            Some(_)=>FreezeCoverageDiagnostic::Sealed,
++        };
++        Some((family.snapshot(),family.attempted.load(Ordering::Acquire),family.untracked.load(Ordering::Acquire),state))
++    }
+     pub fn mark_untracked(&self) { if let Some(family)=self.0.upgrade() { family.mark_untracked(); } }
+     pub fn snapshot(&self) -> Option<PhysicalVideoExposureSnapshot> { Some(self.0.upgrade()?.snapshot()) }
+     /// Trusted setup-bound original family; callers supply no peer/root/ID.

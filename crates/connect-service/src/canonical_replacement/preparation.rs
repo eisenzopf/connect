@@ -185,9 +185,18 @@ impl Runtime {
                 probe.store(1, Ordering::Release);
                 panic!("scoped original native preparation owner panic");
             }
+            let diagnostic_started = tokio::time::Instant::now();
+            let mut diagnostic_stage = "attach";
             let result = runtime
-                .prepare_replacement_media(&root, &started, &peer)
+                .prepare_replacement_media(&root, &started, &peer, &mut diagnostic_stage)
                 .await;
+            // The preparation future returned; this event owns no invocation guards.
+            tracing::debug!(target:"connect_service::original_replacement_terminal", boundary="service-preparation-return",
+                operation=%root.origin.request().operation_id, record=%root.origin.record_id(),
+                connection=%root.handle.intent().replacement,stage=diagnostic_stage,
+                elapsed_us=diagnostic_started.elapsed().as_micros() as u64,
+                result_code=?result.as_ref().err().map(|error|error.code.as_str()),
+                "Original replacement terminal boundary");
             // The original preparation future and all its guards are gone.
             // A successful snapshot may include writes after public movement.
             started
@@ -366,6 +375,7 @@ impl Runtime {
         root: &Arc<PreparedReplacement>,
         started: &Arc<StartedReplacement>,
         peer: &Arc<PeerAdmission>,
+        diagnostic_stage: &mut &'static str,
     ) -> Result<()> {
         {
             tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="attach-fence","Replacement continuation");
@@ -434,6 +444,8 @@ impl Runtime {
             .await?;
             result.map_err(|e|{tracing::debug!(target:"connect_service::canonical_replacement",?e,"Replacement attach refused");Error::forbidden()})?;
         }
+        *diagnostic_stage = "muted-activation";
+
         let (context, source_phone) = {
             let (roles, i) = super::projection::read(
                 &self.role_projection,
@@ -531,6 +543,8 @@ impl Runtime {
             let context=result.map_err(|e|{tracing::debug!(target:"connect_service::canonical_replacement",?e,"Replacement private activation refused");Error::forbidden()})?;
             (context, source_phone)
         };
+        *diagnostic_stage = "audience-observation";
+
         for id in context.commit().connections() {
             if let Some(phone) = source_phone
                 .as_ref()
@@ -544,12 +558,16 @@ impl Runtime {
                     .map_err(|_| Error::forbidden())?;
             }
         }
+        *diagnostic_stage = "public-video-reservation";
+
         self.prepare_public_video_reservation(root, started, peer)
             .await?;
         if let Some(gate) = &started.policy.readiness {
             if let Some(request) = super::movement::replacement_video(&root.plan)? {
                 let request = root.public_video.private_preview_request(request)?;
                 if !request.receivers.is_empty() {
+                    *diagnostic_stage = "private-video";
+
                     let preparation = self.prepare_private_video(root, started, &request).await?;
                     gate.preroll
                         .set(Arc::new(preparation))
@@ -558,6 +576,8 @@ impl Runtime {
             }
         }
         if let Some(gate) = &started.policy.readiness {
+            *diagnostic_stage = "private-audio";
+
             let prepared = self.prepare_private_audio(root, started).await?;
             gate.audio_preroll
                 .set(Arc::new(prepared))
@@ -568,9 +588,13 @@ impl Runtime {
             .preparation_operation
             .set(context.operation_id().to_owned())
             .map_err(|_| Error::forbidden())?;
+        *diagnostic_stage = "start-private-lifecycle";
+
         started.lifecycle.start_private(&started.policy)?;
         tracing::debug!(target: "connect_service::replacement_phase_trace",
             operation = %root.origin.request().operation_id, "Replacement decoder preparation requested");
+        *diagnostic_stage = "endpoint-decoder-preparation";
+
         let preparation = retry_metadata(&self.stop, || async {
             self.core
                 .prepare_staged_audio_endpoint(
@@ -591,6 +615,8 @@ impl Runtime {
             .preparation
             .set(preparation.clone())
             .map_err(|_| Error::forbidden())?;
+        *diagnostic_stage = "endpoint-audio-binding";
+
         let binding = started
             .controller
             .active_bindings()
@@ -605,14 +631,17 @@ impl Runtime {
         let rate = *clock_rate_hz;
         let mut audio_clock = PreparationAudioClock::new(rate, tokio::time::Instant::now())?;
 
+        *diagnostic_stage = "wait-private-duplex";
+
         let cancellation = root.handle.cancellation();
         let mut waiting_reported = false;
         let mut duplex_reported = false;
         loop {
             tokio::select! { biased;
-                _ = self.stop.cancelled() => return Ok(()),
-                _ = cancellation.cancelled() => return Ok(()),
+                _ = self.stop.cancelled() => { *diagnostic_stage = "runtime-cancelled"; return Ok(()); },
+                _ = cancellation.cancelled() => { *diagnostic_stage = "root-cancelled"; return Ok(()); },
                 _ = tokio::time::sleep_until(root.deadline) => {
+                    *diagnostic_stage = "private-duplex-deadline";
                     return Err(Error::new("expired", "Original replacement preparation deadline elapsed"));
                 },
                 _ = tokio::time::sleep_until(audio_clock.next_due()) => {},
@@ -663,6 +692,8 @@ impl Runtime {
                 tracing::debug!(target: "connect_service::replacement_phase_trace",
                     operation = %root.origin.request().operation_id, "Replacement endpoint duplex activity observed");
             }
+            *diagnostic_stage = "duplex-signal-current-read";
+
             let i = self
                 .continuation_read(
                     root,
@@ -678,6 +709,8 @@ impl Runtime {
                 probe.pause(&self.stop, &cancellation, root.deadline.min(i.deadline),
                     preparation_custody_observation(&i, crate::canonical_media::preparation_custody_fixture::PreparationCustodyPhase::Signal)).await;
             }
+            *diagnostic_stage = "duplex-signal-observe";
+
             let observed = self
                 .core
                 .capture_device_replacement_event(
@@ -715,6 +748,8 @@ impl Runtime {
             // custody; the observation itself is not an authorization grant.
             let until = root.deadline.min(i.deadline);
             drop(i);
+            *diagnostic_stage = "duplex-signal-record";
+
             let (roles, mut recording) =
                 super::projection::read(&self.role_projection, &self.stop, until, || {
                     self.continuation_read_once(
@@ -737,7 +772,11 @@ impl Runtime {
             )
             .await?;
             tracing::debug!(target:"connect_service::canonical_replacement",?observed,"Replacement actual private duplex readiness captured");
+            *diagnostic_stage = "public-video-cut";
+
             self.prepare_public_video_cut(root, started).await?;
+            *diagnostic_stage = "managed-movement";
+
             return self.move_native_replacement(root, started).await;
         }
     }

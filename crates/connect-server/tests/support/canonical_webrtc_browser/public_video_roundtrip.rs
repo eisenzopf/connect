@@ -19,6 +19,20 @@ async fn canonical_chromium_public_b_two_session_moves_and_returns_adopt_same_wa
         .join("../..")
         .canonicalize()
         .unwrap();
+    // This original ignored lane owns a separate process. Capture only terminal
+    // control events, never packet/interval observations or freeform error text.
+    let terminal_trace_installed = tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::new(
+            "off,connect_service::original_replacement_terminal=debug",
+        ))
+        .with_ansi(false)
+        .with_timer(tracing_subscriber::fmt::time::uptime())
+        .with_writer(std::io::stderr)
+        .try_init()
+        .is_ok();
+    eprintln!(
+        "original-replacement-terminal-diagnostic subscriber_installed={terminal_trace_installed}"
+    );
     let mut f =
         Fixture::with_extra_scopes("EdDSA", 12, true, true, true, &["connection.replace"]).await;
     let mut retained_artifacts = public_video_artifacts::Capture::new(
@@ -223,12 +237,29 @@ async fn canonical_chromium_public_b_two_session_moves_and_returns_adopt_same_wa
                         assert_eq!(probe.observed(),(1,0,0,0));
                         let until=coordination.min(probe.original_deadline().unwrap());
                         let store=f.server.store.clone();let(entered_tx,entered_rx)=tokio::sync::oneshot::channel::<()>();let(release_tx,release_rx)=tokio::sync::oneshot::channel::<()>();
+                        let sql_operation=format!("{ORIGINAL}-{phase}-{sid}");let sql_record=record.clone();let sql_candidate=candidate.clone();
                         sql_release=Some(release_tx);
-                        sql_owner=Some(tokio::task::spawn_blocking(move ||store.with_primary_sql_held_for_test(|| {let _=entered_tx.send(());let _=release_rx.blocking_recv();})));
+                        sql_owner=Some(tokio::task::spawn_blocking(move || {
+                            tracing::debug!(target:"connect_service::original_replacement_terminal",
+                                boundary="fixture-sql-holder",stage="request-before-lock",operation=%sql_operation,
+                                record=%sql_record,connection=%sql_candidate,"Original replacement terminal boundary");
+                            store.with_primary_sql_held_for_test(|| {
+                                tracing::debug!(target:"connect_service::original_replacement_terminal",
+                                    boundary="fixture-sql-holder",stage="acquired-in-worker",operation=%sql_operation,
+                                    record=%sql_record,connection=%sql_candidate,"Original replacement terminal boundary");
+                                let _=entered_tx.send(());let _=release_rx.blocking_recv();
+                            })
+                        }));
                         tokio::time::timeout_at(until,entered_rx).await.unwrap().unwrap();
+                        tracing::debug!(target:"connect_service::original_replacement_terminal",
+                            boundary="fixture-sql-holder",stage="entered-acknowledged",operation=%format!("{ORIGINAL}-{phase}-{sid}"),
+                            record=%record,connection=%candidate,"Original replacement terminal boundary");
                         probe.release();tokio::time::timeout_at(until,probe.left()).await.unwrap();
                         tokio::time::timeout_at(until,async {loop {let counts=probe.observed();assert_eq!(counts.0,1);assert_eq!(counts.3,0);assert!(probe.captured_ready().as_ref()==Some(&original));if counts.2>0 {assert!(counts.1>=counts.2);break;}tokio::time::sleep(Duration::from_millis(1)).await;}}).await.expect("actual producer authority-busy while SAME Ready remains captured under real SQL mutex");
                         sql_release.take().unwrap().send(()).unwrap();sql_owner.take().unwrap().await.unwrap().unwrap();
+                        tracing::debug!(target:"connect_service::original_replacement_terminal",
+                            boundary="fixture-sql-holder",stage="released-after-join",operation=%format!("{ORIGINAL}-{phase}-{sid}"),
+                            record=%record,connection=%candidate,"Original replacement terminal boundary");
                         assert!(probe.captured_ready().as_ref()==Some(&original));
                     }
                     checked.insert(stage);

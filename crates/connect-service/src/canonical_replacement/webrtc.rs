@@ -191,6 +191,7 @@ impl Runtime {
         credential: String,
         tx: tokio::sync::oneshot::Sender<Result<Reply>>,
     ) -> Result<()> {
+        let diagnostic_started = Instant::now();
         let mut owned = Owned::default();
         // The original child already owns one Box. Erase its concrete coroutine
         // shape at this Send-checked boundary without changing poll/drop custody.
@@ -248,8 +249,30 @@ impl Runtime {
             let mut reconciled_role = None;
             loop {
                 tokio::select! {biased;
-                    _=self.stop.cancelled()=>break,_=physical.lifetime.cancelled()=>break,
-                    _=driver.closed()=>break,_=tokio::time::sleep(Duration::from_millis(100))=>{},
+                    _=self.stop.cancelled()=>{
+                        tracing::debug!(target:"connect_service::original_replacement_terminal",boundary="service-rtc-lifetime-exit",stage="runtime-cancelled",
+                            operation=?owned.root.as_ref().map(|root|root.origin.request().operation_id.as_str()),
+                            connection=%source.policy.pending.binding().connection(),source_identity=?Arc::as_ptr(source),
+                            record=?owned.root.as_ref().map(|root|root.origin.record_id()),
+                            elapsed_us=diagnostic_started.elapsed().as_micros() as u64,"Original replacement terminal boundary");
+                        break;
+                    },
+                    _=physical.lifetime.cancelled()=>{
+                        tracing::debug!(target:"connect_service::original_replacement_terminal",boundary="service-rtc-lifetime-exit",stage="physical-cancelled",
+                            connection=%source.policy.pending.binding().connection(),source_identity=?Arc::as_ptr(source),
+                            record=?owned.root.as_ref().map(|root|root.origin.record_id()),
+                            elapsed_us=diagnostic_started.elapsed().as_micros() as u64,"Original replacement terminal boundary");
+                        break;
+                    },
+                    result=driver.closed()=>{
+                        tracing::debug!(target:"connect_service::original_replacement_terminal",boundary="service-rtc-lifetime-exit",stage="driver-closed",
+                            connection=%source.policy.pending.binding().connection(),source_identity=?Arc::as_ptr(source),
+                            record=?owned.root.as_ref().map(|root|root.origin.record_id()),
+                            result_code=?result.as_ref().err().map(|error|error.code.as_str()),
+                            elapsed_us=diagnostic_started.elapsed().as_micros() as u64,"Original replacement terminal boundary");
+                        break;
+                    },
+                    _=tokio::time::sleep(Duration::from_millis(100))=>{},
                 }
                 match source.current() {
                     Ok(()) => {}
@@ -261,7 +284,13 @@ impl Runtime {
                     {
                         continue;
                     }
-                    Err(_) => break,
+                    Err(error) => {
+                        tracing::debug!(target:"connect_service::original_replacement_terminal",boundary="service-rtc-lifetime-exit",stage="source-current-lifetime",
+                            connection=%source.policy.pending.binding().connection(),source_identity=?Arc::as_ptr(source),
+                            record=?owned.root.as_ref().map(|root|root.origin.record_id()),result_code=%error.code,
+                            elapsed_us=diagnostic_started.elapsed().as_micros() as u64,"Original replacement terminal boundary");
+                        break;
+                    }
                 }
                 if source.adopted.get().is_some() {
                     self.reconcile_connection_role_generation(

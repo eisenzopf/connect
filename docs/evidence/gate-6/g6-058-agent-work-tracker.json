@@ -1,8 +1,8 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-21T03:16:29.474599+00:00",
-  "revision": 166,
-  "status": "in-progress",
+  "updated_at": "2026-11-22T00:51:57.346460+00:00",
+  "revision": 167,
+  "status": "Source 555 provenance repair passes all 18 targeted checks (11 normalization, four reorder, two physical exposure and one actual capsule fanout/repair), zero failures or ignored tests. Independent audit verified current source, all three actual library-test artifacts, unchanged selected identities and natural closure of Root plus eight child owners. G804 identified pre-attempt physical coverage incomplete with sticky untracked tracking and maximum ordinal zero; the unique historical producer remains unproven. Late/expired packets stay rejected while later valid provenance survives; genuine source, timestamp and mapping ambiguity stays strict. Original browser integration and all seven final-source readiness scopes remain pending. Matrix remains v218: 1/32 cells and 399/432 checks; G6-054 stays parked; local Mac/native ARM only.",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
@@ -28,7 +28,7 @@
     {
       "id": "/root",
       "role": "Coordinator, integration and final evidence adjudication",
-      "current_work": "Coordinator: integrate reviewed batches, run actual local Core controls, maintain failure mappings/mobile tracker and readiness evidence"
+      "current_work": "Coordinate batch commit/push and all seven original final-source readiness scopes; stop at READY32."
     },
     {
       "id": "/root/v198_resources",
@@ -48,12 +48,12 @@
     {
       "id": "/root/batch_build_review",
       "role": "Compile-first runner author",
-      "current_work": "Store/Service grant-free preparation and same-attempt final authority admission, plus actual currentness/uncertainty tests"
+      "current_work": "Provenance repair and first-poison diagnostics implemented; 18 targeted checks pass; integration follow-through pending."
     },
     {
       "id": "/root/independent_batch_review",
       "role": "Independent runner and binding reviewer",
-      "current_work": "Core control metadata foundations and full grant-free preparation/nonwaiting final publication, with actual causal tests"
+      "current_work": "Composed source and all 18 actual unit results independently verified; final-source full/runtime audit next."
     },
     {
       "id": "/root/epoch_cause",
@@ -588,7 +588,7 @@
       "status": "combined-workload-verified",
       "implementation_state": "Both current full62 signing profiles pass quality/handoffs/Data/Session ends/67scleanup/10sidle. Ownerjoins65.918857/64.914006s. Complete361 remains360/361 because new snapshot concurrency test fails3vs4.",
       "proposed_fix": "Batch both current Session refreshes, then both original End submissions, then both waits. Preserve the same Client, logical IDs, topology CAS, first failure and original 67-second cutoff.",
-      "required_evidence": "Same-helper regression and actual concurrent workload meet original62–67s boundary; current snapshot/receipt, sibling joins and scope checks preserved; old/new authority behavior equivalent.",
+      "required_evidence": "Same-helper regression and actual concurrent workload meet original62\u201367s boundary; current snapshot/receipt, sibling joins and scope checks preserved; old/new authority behavior equivalent.",
       "coordinator_review": {
         "status": "Scoped combined-workload assertions accepted; matrix verification pending",
         "root_cause_confirmed": false,
@@ -2355,7 +2355,7 @@
         "V219-RTC-FENCE"
       ],
       "status": "component-verified",
-      "implementation_state": "ActualOLD65→10/55; fixed65/65 includes4new+61retained; sync pertarget140queue+1current; exact original age/clock/gates/cleanup.",
+      "implementation_state": "ActualOLD65\u219210/55; fixed65/65 includes4new+61retained; sync pertarget140queue+1current; exact original age/clock/gates/cleanup.",
       "required_evidence": "Fresh combined615/currentARM+normalrelease and full32; no summing overlapping50+65 or treating source counter as actual39-bin cause.",
       "verification_runs": [
         {
@@ -3623,6 +3623,51 @@
       "updated_at": "2026-11-19T20:14:21.520095+00:00",
       "matrix_verified": false,
       "mapping_scope": "Component/data accounting only; all original matrix/failure mappings and grades preserved."
+    },
+    {
+      "id": "V219-G806-PROVENANCE",
+      "plan_id": "G6-058",
+      "title": "Preserve later source provenance after effect-free late-packet rejection",
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/independent_batch_review",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-G804-VIDEO-PROVENANCE"
+      ],
+      "depends_on": [],
+      "status": "component-verified",
+      "implementation_state": "Implemented and all 18 targeted checks verified; original browser/full readiness still pending.",
+      "proposed_fix": "Reject unknown late/expired packets without poisoning accepted chronology; preserve genuine ambiguity and existing untracked state; log cold source linkage and first real provenance loss.",
+      "required_evidence": [
+        "Actual current18 unit passes",
+        "Full affected final-source suite and three original browser cases",
+        "All seven original READY32 scopes"
+      ],
+      "coordinator_review": {
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g806-provenance-repair-units.json",
+        "scope": "Targeted units; no matrix or unique historical cause credit"
+      },
+      "verification_runs": [
+        {
+          "run": "G806",
+          "passed": 18,
+          "failed": 0,
+          "ignored": 0,
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g806-provenance-repair-units.json"
+        }
+      ],
+      "commit_ids": [],
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-22T00:51:57.346460+00:00",
+      "mapped_check_count": 0,
+      "mapping_scope": "Mechanism and current failure predicate; individual matrix-cell causal mappings remain unproven.",
+      "architecture_invariants": [
+        "No rejected packet output, mapping or frame ordinal",
+        "Preserve exact sequence halfspace and remembered/source/timestamp ambiguity",
+        "Never clear already-untracked physical coverage",
+        "No new authorization reader, retry or packet-path lock",
+        "Original handoff, decoded media, quality, deadlines and cleanup requirements retained"
+      ]
     }
   ],
   "failure_mapping": [
@@ -5929,7 +5974,7 @@
     },
     {
       "at": "2026-11-12T18:37:09.203299+00:00",
-      "action": "Recorded complete26 actual295/296, exact authority/frame-loss RCA, old DataGate counter, Store66 actual211/213 including all10 new controls and Core65 zero-test compile failure. Added assigned DC1–DC7 correction plan; all145 mappings preserved. No matrix promotion."
+      "action": "Recorded complete26 actual295/296, exact authority/frame-loss RCA, old DataGate counter, Store66 actual211/213 including all10 new controls and Core65 zero-test compile failure. Added assigned DC1\u2013DC7 correction plan; all145 mappings preserved. No matrix promotion."
     },
     {
       "at": "2026-11-12T19:02:22.996051+00:00",
@@ -6431,7 +6476,7 @@
     {
       "at": "2026-11-20T11:23:14.363092+00:00",
       "revision": 149,
-      "event": "G691 all3 compiler metadata checksPASS/zeroerrors/source6550 unchanged/originalowners naturally closed; no runtime credit. Reviewed G69458194 old orphan objects cleaned with actual free17.187→62.293GiB. Same9build45 remains UNRUN and all7 readiness scopes open.",
+      "event": "G691 all3 compiler metadata checksPASS/zeroerrors/source6550 unchanged/originalowners naturally closed; no runtime credit. Reviewed G69458194 old orphan objects cleaned with actual free17.187\u219262.293GiB. Same9build45 remains UNRUN and all7 readiness scopes open.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g691-source532-metadata-pass.json",
       "by": "/root"
     },
@@ -6552,6 +6597,13 @@
       "revision": 166,
       "event": "G765complete9build9inventory49PASS/0fail/ignored/incomplete/unrun; source6598+9binsfixed, Root+68childrennatural0joinedabsent. ComponentprereqPASSonly; all7readinessopen, nextgenerators/contracts/shared379. PriorG759failed48/49retained/no matrixcredit.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g765-all49-component-pass.json",
+      "by": "/root"
+    },
+    {
+      "at": "2026-11-22T00:51:57.346460+00:00",
+      "revision": 167,
+      "event": "G804 exact pre-attempt physical-coverage refusal isolated; source555 late-packet repair and first-poison diagnostics applied, G806all18PASS independently audited. Browser/finalsource7scopes pending; matrix1/32 unchanged. SQL acquisition timing claim corrected.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g806-provenance-repair-units.json",
       "by": "/root"
     }
   ],
@@ -8182,11 +8234,13 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "G765 passed the complete current component batch: all nine builds, nine inventories and all 49 selected checks passed, with zero ignored, incomplete or unrun cases. This includes all five Service controls, the corrected Store cutoff cases and the full typed SQL-failure/no-retry control. The same committed 6598-file source and all nine test binary hashes stayed fixed; Root and all 68 original child owners ended naturally with exit zero, were joined and were freshly absent. G759 remains failed at 48/49 and earlier failed results are not regraded. This component pass completes the prerequisite for the next readiness checks; it does not qualify the matrix. All seven readiness scopes remain open. Next are generators/contracts and default shared379, then the complete affected regressions including whole default Core-traits/SIP, SDK232, Node72/Python6 and Original V8, followed by Firefox NORMAL3, original900, local ARM11, normal Mac12/ARM6 releases and fresh launch preflight. The reviewed runner cleanup changes already passed 18 helper and 31 corrected driver fake-process controls; these do not replace their real workloads. The source fix batch is committed and pushed as 32293981. The bounded cache cleanup recovered 6.55 GiB while preserving source, evidence, databases and current artifacts; the completed batch verified the retained outputs afterward. BPF capture access is still pending the requested Terminal step for later host captures. Matrix remains v218: 1/32 cells and 399/432 checks, with no new matrix run or credit. G6-054 remains parked. Mobile245 is the verified scoped readback: only three coordinator paragraphs changed, with 419 unrelated paragraphs preserved.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g765-all49-component-pass.json",
-    "sha256": "00e790582be77f3955d2f2833f162598dc6e1b3083bc4a528e358c74542956cb"
+    "status": "Source 555 provenance repair passes all 18 targeted checks (11 normalization, four reorder, two physical exposure and one actual capsule fanout/repair), zero failures or ignored tests. Independent audit verified current source, all three actual library-test artifacts, unchanged selected identities and natural closure of Root plus eight child owners. G804 identified pre-attempt physical coverage incomplete with sticky untracked tracking and maximum ordinal zero; the unique historical producer remains unproven. Late/expired packets stay rejected while later valid provenance survives; genuine source, timestamp and mapping ambiguity stays strict. Original browser integration and all seven final-source readiness scopes remain pending. Matrix remains v218: 1/32 cells and 399/432 checks; G6-054 stays parked; local Mac/native ARM only.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g806-provenance-repair-units.json",
+    "sha256": "97f0994533cc48b11233a31310848ae66a659b3b2a8559d0ab947de1df9e8151",
+    "source_generation": 555,
+    "ready_for_32": false
   },
-  "updated": "2026-11-21T03:16:29.474599+00:00",
+  "updated": "2026-11-21",
   "v219_g570_exact_clock_component": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g570-exact-clock-component-progress.json",
     "sha256": "3d910638366c09869326694d91964eba1e8da2537b08c870f70ac2e5e1f818ef",
@@ -8783,7 +8837,7 @@
     "status": "PROPOSAL_ONLY_NOT_PUBLISHED",
     "paragraphs": [
       "Checkpoint156: G724 completed all45 component tests after nine builds and nine inventories passed:42PASS/3FAIL, with no ignored, incomplete or unrun cases. All previous39 passes remain. The full Core external-source control and Server Expire/real post-BEGIN fault controls now pass. Source538, binaries and original owners stayed fixed and closed naturally. The overall run remains failed.",
-      "Resume, Revoke and Unwind fail the unchanged measured-quiet cutoff in their first live-duplex window; later tails are unverified. Passing cases show real public/private frames and muted-zero phases in about0.7s; failing cases record4.4–4.7s wake gaps without failed-phase counters. A blocking custodian-to-Core role-lookup path is confirmed in source, but sole causal attribution is unproven. A production correction and reviewed diagnostic logging remain unapplied; no oracle or5s bound is relaxed.",
+      "Resume, Revoke and Unwind fail the unchanged measured-quiet cutoff in their first live-duplex window; later tails are unverified. Passing cases show real public/private frames and muted-zero phases in about0.7s; failing cases record4.4\u20134.7s wake gaps without failed-phase counters. A blocking custodian-to-Core role-lookup path is confirmed in source, but sole causal attribution is unproven. A production correction and reviewed diagnostic logging remain unapplied; no oracle or5s bound is relaxed.",
       "Matrix remains1/32 cells and399/432 checks, with no new credit and not ready for32. Current shared379, complete affected regressions, OriginalV8 and all seven readiness scopes remain open; G6-054 stays parked. Mobile234 remains the last verified readback. This mobile235 text is a proposal only; publication and scoped readback are not claimed."
     ],
     "actual_last_readback_revision": 234,
@@ -9002,5 +9056,169 @@
     "next": "generators/contracts/shared379",
     "evidence": "docs/evidence/gate-6/g6-058-v219-g765-all49-component-pass.json",
     "sha256": "00e790582be77f3955d2f2833f162598dc6e1b3083bc4a528e358c74542956cb"
+  },
+  "v219_g806_provenance_repair_units": {
+    "format": "connect/g6-058-provenance-repair-targeted-units/1",
+    "updated": "2026-11-22T00:51:57.346460+00:00",
+    "run_status": "Source 555 provenance repair passes all 18 targeted checks (11 normalization, four reorder, two physical exposure and one actual capsule fanout/repair), zero failures or ignored tests. Independent audit verified current source, all three actual library-test artifacts, unchanged selected identities and natural closure of Root plus eight child owners. G804 identified pre-attempt physical coverage incomplete with sticky untracked tracking and maximum ordinal zero; the unique historical producer remains unproven. Late/expired packets stay rejected while later valid provenance survives; genuine source, timestamp and mapping ambiguity stays strict. Original browser integration and all seven final-source readiness scopes remain pending. Matrix remains v218: 1/32 cells and 399/432 checks; G6-054 stays parked; local Mac/native ARM only.",
+    "generation": 555,
+    "source_lock_sha256": "fdad458be0ad0d09d7b99f800bd3c7871607f89b4ed5e8e07656518e9cc6f165",
+    "prepared": {
+      "rvoip": "b2e75d53d99fdac94950b2106728122b83743bd894c91931c32e68d95dc7659d",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    },
+    "actual_units": {
+      "passed": 18,
+      "failed": 0,
+      "ignored": 0,
+      "groups": [
+        {
+          "label": "normalize",
+          "passed": 11,
+          "cases": [
+            "media::video_normalize::fragment_tests::splits_extended_vp8_without_losing_bytes_markers_or_sequence_gaps",
+            "media::video_normalize::original_chronology_tests::original_frame_ambiguity_is_sticky_metadata_only_and_padding_has_no_frame",
+            "media::video_normalize::original_chronology_tests::original_frame_groups_packets_fragments_and_exact_duplicate_mapping",
+            "media::video_normalize::original_chronology_tests::original_frame_natural_wrap_and_cumulative_halfspace_have_no_call_quota",
+            "media::video_normalize::original_chronology_tests::original_frame_real_reorder_release_preserves_one_source_group",
+            "media::video_normalize::recovery_tests::conflicting_duplicate_and_ssrc_change_cannot_reuse_an_old_fragment_range",
+            "media::video_normalize::recovery_tests::expired_reorder_preserves_missing_media_gap_and_denies_unknown_late_fill",
+            "media::video_normalize::recovery_tests::parsed_padding_between_fragments_consumes_no_media_sequence_slot",
+            "media::video_normalize::recovery_tests::reordered_variable_width_input_has_contiguous_output_and_exact_duplicates",
+            "media::video_normalize::source_realm_tests::source_realm_group_allocates_once_before_fragments_duplicates_and_source_changes",
+            "media::video_normalize::source_realm_tests::source_realm_missing_dead_late_or_exhausted_keeps_group_and_ordinary_packets"
+          ]
+        },
+        {
+          "label": "reorder",
+          "passed": 4,
+          "cases": [
+            "media::video_reorder::pressure_regressions::video_reorder_pressure_preserves_nearer_input_and_real_gap_across_wrap",
+            "media::video_reorder::tests::bounded_pressure_duplicate_and_new_source_never_invent_payloads",
+            "media::video_reorder::tests::expiry_preserves_real_sequence_gap_and_wrap",
+            "media::video_reorder::tests::in_order_is_immediate_and_gap_closes_without_fabrication"
+          ]
+        },
+        {
+          "label": "physical-exposure",
+          "passed": 2,
+          "cases": [
+            "media::core_video::picture_tests::exposure_tests::physical_video_actual_primary_and_repair_track_before_success_error_or_cancelled_io",
+            "media::core_video::picture_tests::exposure_tests::physical_video_family_survives_actual_track_clone_and_rejects_wrong_ssrc"
+          ]
+        },
+        {
+          "label": "actual-capsule-fanout",
+          "passed": 1,
+          "cases": [
+            "canonical::media::original_ingress_tests::rtc_original_frame_capsule_survives_fanout_metadata_retry_and_real_repair"
+          ]
+        }
+      ],
+      "build_elapsed_seconds": 456.84348029099056,
+      "build_groups_passed": 1,
+      "current_library_test_artifacts": 3,
+      "source_files": 6618,
+      "source_unchanged_during_units": true,
+      "original_children_closed_naturally": 8,
+      "result_sha256": "57a9bc22b0a881065b1f8ca52671dead2f26618bd2787354515ca5fe81f06a2b",
+      "root_join_sha256": "ad8fec868b6ffec0fd0407ee62e98ad50a8bc0f9958d72de8cd5ec708438c855",
+      "independent_audit_sha256": "7c83097aad501fe27f78a25a51ee5da8201184370c57acf84aa246ce792f8389",
+      "source_snapshot_sha256": "bfe54f463915ea848b2beafa91d531c489f6e44e12fb4a39244cba2b6056c850"
+    },
+    "observed_failure": {
+      "run": "G804",
+      "first_leaf": "freeze-pre-coverage-incomplete",
+      "effect_boundary": "pre-attempt",
+      "sampled_after_refusal": {
+        "configured_realm_matched": true,
+        "coverage": "Sealed",
+        "attempted": true,
+        "untracked": true,
+        "maximum_ordinal": 0
+      },
+      "exact_source_producer_unproven": true,
+      "sql_timing": {
+        "old_entered_event": "coordinator acknowledgement receipt",
+        "actual_acquisition_interval_unknown": true,
+        "earlier_overlap_exclusion_withdrawn": true,
+        "new_events": [
+          "request-before-lock",
+          "acquired-in-worker",
+          "entered-acknowledged",
+          "released-after-join"
+        ]
+      },
+      "failed_run_retained": true
+    },
+    "repair": {
+      "owner": "/root/batch_build_review",
+      "reviewer": "/root/independent_batch_review",
+      "coordinator": "/root",
+      "status": "implemented-unit-verified-integration-pending",
+      "patches": [
+        {
+          "target": "rvoip",
+          "path": "patches/rvoip/connect-freeze-unsupported-terminal-leaf-diagnostics.patch",
+          "sha256": "2cb7b5ad1b6f26bcc15afaafe04402103cafff775dad251f19b29b37f530e826"
+        },
+        {
+          "target": "rvoip",
+          "path": "patches/rvoip/connect-webrtc-source-first-poison-diagnostics.patch",
+          "sha256": "ae505cd64b88abc1dcd3a66e9f39404ea182545cb013a9e78e2c166db4d441ea"
+        },
+        {
+          "target": "rvoip",
+          "path": "patches/rvoip/connect-webrtc-rejected-late-packets-preserve-provenance.patch",
+          "sha256": "98d5edbd287ab156261c225f4688e50f23de9b1b756f0fb3e0729989cb2000c2"
+        }
+      ],
+      "invariants": [
+        "No rejected packet output, mapping or frame ordinal",
+        "Preserve exact sequence halfspace and remembered/source/timestamp ambiguity",
+        "Never clear already-untracked physical coverage",
+        "No new authorization reader, retry or packet-path lock",
+        "Original handoff, decoded media, quality, deadlines and cleanup requirements retained"
+      ],
+      "controls": "Two existing selectors strengthened, including a receiver whose first physical exposure occurs after early source groups and rejected late work",
+      "source_review_sha256": "082957e6ac6a5bd6e42ac6900acad8d72107391f7134c963f68c7145bd3d7c44"
+    },
+    "passive_observer_controls": {
+      "passed": 15,
+      "scope": "Earlier unchanged JavaScript afterimages; not a new full suite pass"
+    },
+    "private_future_wrapper": {
+      "body_unchanged_before_format": true,
+      "compile_speedup_unproven": true,
+      "actual_diagnostic_build_seconds": 1623.4226054999745
+    },
+    "mobile": {
+      "revision": 258,
+      "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+      "proof_sha256": "70ad91db110f045fd308fe7057f6913def4d1f8d6d0dea950815100ab198bdef",
+      "unrelated_paragraphs_preserved": 419
+    },
+    "readiness": {
+      "ready_for_32": false,
+      "all_seven_required_on_final_source": [
+        "Generators/contracts and default shared379",
+        "Complete affected full9build/13artifact regressions, then all three OriginalV8 browser cases",
+        "Strict Firefox NORMAL3 quality/resource/capture cycles",
+        "Original900 including both signed full62 programmes adjacent last",
+        "Native local ARM SourcePrep with same guardian/lease, then ARM11",
+        "Matching ordinary Mac12 then ARM6 release artifacts",
+        "Fresh original launch preflight, stopping at READY32 without starting matrix"
+      ]
+    },
+    "matrix": {
+      "run": "v218",
+      "passed_cells": 1,
+      "total_cells": 32,
+      "passed_checks": 399,
+      "total_checks": 432,
+      "new_matrix_credit": false
+    },
+    "G6_054": "parked",
+    "execution": "Local Mac/native ARM only; no GitHub VM/provider/model-host workload"
   }
 }

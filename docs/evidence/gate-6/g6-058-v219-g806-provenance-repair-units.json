@@ -1,0 +1,164 @@
+{
+  "format": "connect/g6-058-provenance-repair-targeted-units/1",
+  "updated": "2026-11-22T00:51:57.346460+00:00",
+  "run_status": "Source 555 provenance repair passes all 18 targeted checks (11 normalization, four reorder, two physical exposure and one actual capsule fanout/repair), zero failures or ignored tests. Independent audit verified current source, all three actual library-test artifacts, unchanged selected identities and natural closure of Root plus eight child owners. G804 identified pre-attempt physical coverage incomplete with sticky untracked tracking and maximum ordinal zero; the unique historical producer remains unproven. Late/expired packets stay rejected while later valid provenance survives; genuine source, timestamp and mapping ambiguity stays strict. Original browser integration and all seven final-source readiness scopes remain pending. Matrix remains v218: 1/32 cells and 399/432 checks; G6-054 stays parked; local Mac/native ARM only.",
+  "generation": 555,
+  "source_lock_sha256": "fdad458be0ad0d09d7b99f800bd3c7871607f89b4ed5e8e07656518e9cc6f165",
+  "prepared": {
+    "rvoip": "b2e75d53d99fdac94950b2106728122b83743bd894c91931c32e68d95dc7659d",
+    "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+  },
+  "actual_units": {
+    "passed": 18,
+    "failed": 0,
+    "ignored": 0,
+    "groups": [
+      {
+        "label": "normalize",
+        "passed": 11,
+        "cases": [
+          "media::video_normalize::fragment_tests::splits_extended_vp8_without_losing_bytes_markers_or_sequence_gaps",
+          "media::video_normalize::original_chronology_tests::original_frame_ambiguity_is_sticky_metadata_only_and_padding_has_no_frame",
+          "media::video_normalize::original_chronology_tests::original_frame_groups_packets_fragments_and_exact_duplicate_mapping",
+          "media::video_normalize::original_chronology_tests::original_frame_natural_wrap_and_cumulative_halfspace_have_no_call_quota",
+          "media::video_normalize::original_chronology_tests::original_frame_real_reorder_release_preserves_one_source_group",
+          "media::video_normalize::recovery_tests::conflicting_duplicate_and_ssrc_change_cannot_reuse_an_old_fragment_range",
+          "media::video_normalize::recovery_tests::expired_reorder_preserves_missing_media_gap_and_denies_unknown_late_fill",
+          "media::video_normalize::recovery_tests::parsed_padding_between_fragments_consumes_no_media_sequence_slot",
+          "media::video_normalize::recovery_tests::reordered_variable_width_input_has_contiguous_output_and_exact_duplicates",
+          "media::video_normalize::source_realm_tests::source_realm_group_allocates_once_before_fragments_duplicates_and_source_changes",
+          "media::video_normalize::source_realm_tests::source_realm_missing_dead_late_or_exhausted_keeps_group_and_ordinary_packets"
+        ]
+      },
+      {
+        "label": "reorder",
+        "passed": 4,
+        "cases": [
+          "media::video_reorder::pressure_regressions::video_reorder_pressure_preserves_nearer_input_and_real_gap_across_wrap",
+          "media::video_reorder::tests::bounded_pressure_duplicate_and_new_source_never_invent_payloads",
+          "media::video_reorder::tests::expiry_preserves_real_sequence_gap_and_wrap",
+          "media::video_reorder::tests::in_order_is_immediate_and_gap_closes_without_fabrication"
+        ]
+      },
+      {
+        "label": "physical-exposure",
+        "passed": 2,
+        "cases": [
+          "media::core_video::picture_tests::exposure_tests::physical_video_actual_primary_and_repair_track_before_success_error_or_cancelled_io",
+          "media::core_video::picture_tests::exposure_tests::physical_video_family_survives_actual_track_clone_and_rejects_wrong_ssrc"
+        ]
+      },
+      {
+        "label": "actual-capsule-fanout",
+        "passed": 1,
+        "cases": [
+          "canonical::media::original_ingress_tests::rtc_original_frame_capsule_survives_fanout_metadata_retry_and_real_repair"
+        ]
+      }
+    ],
+    "build_elapsed_seconds": 456.84348029099056,
+    "build_groups_passed": 1,
+    "current_library_test_artifacts": 3,
+    "source_files": 6618,
+    "source_unchanged_during_units": true,
+    "original_children_closed_naturally": 8,
+    "result_sha256": "57a9bc22b0a881065b1f8ca52671dead2f26618bd2787354515ca5fe81f06a2b",
+    "root_join_sha256": "ad8fec868b6ffec0fd0407ee62e98ad50a8bc0f9958d72de8cd5ec708438c855",
+    "independent_audit_sha256": "7c83097aad501fe27f78a25a51ee5da8201184370c57acf84aa246ce792f8389",
+    "source_snapshot_sha256": "bfe54f463915ea848b2beafa91d531c489f6e44e12fb4a39244cba2b6056c850"
+  },
+  "observed_failure": {
+    "run": "G804",
+    "first_leaf": "freeze-pre-coverage-incomplete",
+    "effect_boundary": "pre-attempt",
+    "sampled_after_refusal": {
+      "configured_realm_matched": true,
+      "coverage": "Sealed",
+      "attempted": true,
+      "untracked": true,
+      "maximum_ordinal": 0
+    },
+    "exact_source_producer_unproven": true,
+    "sql_timing": {
+      "old_entered_event": "coordinator acknowledgement receipt",
+      "actual_acquisition_interval_unknown": true,
+      "earlier_overlap_exclusion_withdrawn": true,
+      "new_events": [
+        "request-before-lock",
+        "acquired-in-worker",
+        "entered-acknowledged",
+        "released-after-join"
+      ]
+    },
+    "failed_run_retained": true
+  },
+  "repair": {
+    "owner": "/root/batch_build_review",
+    "reviewer": "/root/independent_batch_review",
+    "coordinator": "/root",
+    "status": "implemented-unit-verified-integration-pending",
+    "patches": [
+      {
+        "target": "rvoip",
+        "path": "patches/rvoip/connect-freeze-unsupported-terminal-leaf-diagnostics.patch",
+        "sha256": "2cb7b5ad1b6f26bcc15afaafe04402103cafff775dad251f19b29b37f530e826"
+      },
+      {
+        "target": "rvoip",
+        "path": "patches/rvoip/connect-webrtc-source-first-poison-diagnostics.patch",
+        "sha256": "ae505cd64b88abc1dcd3a66e9f39404ea182545cb013a9e78e2c166db4d441ea"
+      },
+      {
+        "target": "rvoip",
+        "path": "patches/rvoip/connect-webrtc-rejected-late-packets-preserve-provenance.patch",
+        "sha256": "98d5edbd287ab156261c225f4688e50f23de9b1b756f0fb3e0729989cb2000c2"
+      }
+    ],
+    "invariants": [
+      "No rejected packet output, mapping or frame ordinal",
+      "Preserve exact sequence halfspace and remembered/source/timestamp ambiguity",
+      "Never clear already-untracked physical coverage",
+      "No new authorization reader, retry or packet-path lock",
+      "Original handoff, decoded media, quality, deadlines and cleanup requirements retained"
+    ],
+    "controls": "Two existing selectors strengthened, including a receiver whose first physical exposure occurs after early source groups and rejected late work",
+    "source_review_sha256": "082957e6ac6a5bd6e42ac6900acad8d72107391f7134c963f68c7145bd3d7c44"
+  },
+  "passive_observer_controls": {
+    "passed": 15,
+    "scope": "Earlier unchanged JavaScript afterimages; not a new full suite pass"
+  },
+  "private_future_wrapper": {
+    "body_unchanged_before_format": true,
+    "compile_speedup_unproven": true,
+    "actual_diagnostic_build_seconds": 1623.4226054999745
+  },
+  "mobile": {
+    "revision": 258,
+    "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+    "proof_sha256": "70ad91db110f045fd308fe7057f6913def4d1f8d6d0dea950815100ab198bdef",
+    "unrelated_paragraphs_preserved": 419
+  },
+  "readiness": {
+    "ready_for_32": false,
+    "all_seven_required_on_final_source": [
+      "Generators/contracts and default shared379",
+      "Complete affected full9build/13artifact regressions, then all three OriginalV8 browser cases",
+      "Strict Firefox NORMAL3 quality/resource/capture cycles",
+      "Original900 including both signed full62 programmes adjacent last",
+      "Native local ARM SourcePrep with same guardian/lease, then ARM11",
+      "Matching ordinary Mac12 then ARM6 release artifacts",
+      "Fresh original launch preflight, stopping at READY32 without starting matrix"
+    ]
+  },
+  "matrix": {
+    "run": "v218",
+    "passed_cells": 1,
+    "total_cells": 32,
+    "passed_checks": 399,
+    "total_checks": 432,
+    "new_matrix_credit": false
+  },
+  "G6_054": "parked",
+  "execution": "Local Mac/native ARM only; no GitHub VM/provider/model-host workload"
+}
