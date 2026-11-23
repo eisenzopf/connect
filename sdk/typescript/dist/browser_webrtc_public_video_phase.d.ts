@@ -1,3 +1,4 @@
+import { type WebRtcBridgeOptIn, type WebRtcBridgeSnapshot, type WebRtcBridgeFeeding, type WebRtcBridgeReadyMarker } from "./browser_webrtc_public_video_bridge.js";
 import { type BrowserReplacementRoot } from "./browser_replacement.js";
 import type { OriginalWebRtcReceiveReservation, WebRtcReceiveReservationScope } from "./browser_webrtc_receive_reservation.js";
 export interface WebRtcPublicVideoBinding {
@@ -43,16 +44,28 @@ export declare class WebRtcPublicVideoPhaseOwner {
     private readonly reservation;
     private readonly targetGeneration;
     private readonly privateReadinessNonce;
+    private readonly bridgeOptIn?;
     readonly root: Readonly<BrowserReplacementRoot>;
     readonly scope: Readonly<WebRtcReceiveReservationScope>;
     private selected?;
+    private bridgeSnapshot?;
+    private bridgeMarker?;
     private binding?;
     private cut?;
     private discardedCut?;
     private stopped;
     private readonly retired;
-    constructor(root: BrowserReplacementRoot, scope: WebRtcReceiveReservationScope, reservation: OriginalWebRtcReceiveReservation, targetGeneration: number, privateReadinessNonce: string);
+    constructor(root: BrowserReplacementRoot, scope: WebRtcReceiveReservationScope, reservation: OriginalWebRtcReceiveReservation, targetGeneration: number, privateReadinessNonce: string, bridgeOptIn?: Readonly<WebRtcBridgeOptIn> | undefined);
     observe(value: unknown, original: OriginalPublicVideoObservation): Readonly<WebRtcPublicVideoPhase>;
+    bridgeEnabled(): boolean;
+    negotiated(): Readonly<WebRtcPublicVideoPhase>;
+    /** Prearmed hidden output remains bound to the original physical B while
+     * cut/ready progress. This never permits take or public presentation. */
+    acceptsPreCutBinding(value: Readonly<WebRtcPublicVideoPhase>): boolean;
+    observeBridge(value: unknown): Readonly<WebRtcBridgeSnapshot>;
+    bridgeFeeding(): Readonly<WebRtcBridgeFeeding>;
+    acceptsBridgeFeeding(value: Readonly<WebRtcBridgeFeeding>): boolean;
+    expectBridgeMarker(marker: Readonly<WebRtcBridgeReadyMarker>): void;
     check(): void;
     exactLocalPeer(peer: RTCPeerConnection): boolean;
     accepts(value: Readonly<WebRtcPublicVideoPhase>): boolean;

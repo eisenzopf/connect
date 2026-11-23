@@ -63,13 +63,15 @@ pub use candidate::{NativeReplacementCandidate, NativeReplacementCandidateRetire
 mod allocation;
 mod public_video;
 pub use public_video::{
-    NativeReplacementPublicVideoClosedExpected, NativeReplacementPublicVideoClosedGuard,
-    NativeReplacementPublicVideoClosedObservation, NativeReplacementPublicVideoExpected,
-    NativeReplacementPublicVideoNativeBinding, NativeReplacementPublicVideoPublication,
-    NativeReplacementPublicVideoReservation, NativeReplacementPublicVideoRuntimeGuard,
-    NativeReplacementPublicVideoRuntimeMetadata, NativeReplacementPublicVideoRuntimeObservation,
-    NativeReplacementPublicVideoStage, NativeReplacementUnpublishedRead,
-    PublicVideoOperationSnapshot,
+    NativeReplacementPublicVideoBridgeExpected, NativeReplacementPublicVideoBridgeGuard,
+    NativeReplacementPublicVideoBridgeMetadata, NativeReplacementPublicVideoBridgeObservation,
+    NativeReplacementPublicVideoBridgeStage, NativeReplacementPublicVideoClosedExpected,
+    NativeReplacementPublicVideoClosedGuard, NativeReplacementPublicVideoClosedObservation,
+    NativeReplacementPublicVideoExpected, NativeReplacementPublicVideoNativeBinding,
+    NativeReplacementPublicVideoPublication, NativeReplacementPublicVideoReservation,
+    NativeReplacementPublicVideoRuntimeGuard, NativeReplacementPublicVideoRuntimeMetadata,
+    NativeReplacementPublicVideoRuntimeObservation, NativeReplacementPublicVideoStage,
+    NativeReplacementUnpublishedRead, PublicVideoOperationSnapshot,
 };
 mod presence;
 pub(crate) use presence::preserves_joined_presence;

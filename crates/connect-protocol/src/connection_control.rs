@@ -57,8 +57,10 @@ impl OfferIntent {
         }
         let transport = self.endpoint_transport()?;
         let webrtc = transport == crate::provisioning::EndpointTransport::Webrtc;
-        if self.offer["replacement_preparation"]["profile"]
+        if (self.offer["replacement_preparation"]["profile"]
             == crate::webrtc_public_video_phase::READY_PROFILE
+            || self.offer["replacement_preparation"]["profile"]
+                == crate::webrtc_public_video_bridge::READY_PROFILE)
             && !webrtc
         {
             return Err(invalid());

@@ -109,6 +109,11 @@ pub fn validate_marker(value: &Value) -> Result<()> {
                 .map_err(|_| invalid())?
                 .validate()
         }
+        crate::webrtc_public_video_bridge::READY_PROFILE if m.len() == 3 => {
+            serde_json::from_value::<crate::webrtc_public_video_bridge::ReadyMarker>(value.clone())
+                .map_err(|_| invalid())?
+                .validate_shape()
+        }
         crate::webrtc_public_video_phase::READY_PROFILE if m.len() == 3 => {
             serde_json::from_value::<crate::webrtc_public_video_phase::ReadyMarker>(value.clone())
                 .map_err(|_| invalid())?

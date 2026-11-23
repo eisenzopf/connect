@@ -34,6 +34,8 @@ export type BrowserMoveTarget = {
 };
 export interface BrowserMoveInput {
     readonly video?: ReplacementVideo;
+    /** Explicit original signed private-decode overlap; never a later media option. */
+    readonly receiverVideoBridge?: "webrtc-precut-private-decode";
     readonly retain: ConnectionId;
     readonly target: BrowserMoveTarget;
     readonly expectedTopologyRevision: SdkRevision<"topology">;

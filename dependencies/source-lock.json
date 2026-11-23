@@ -3066,6 +3066,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-replacement-audio-selection-continuity.patch",
       "sha256": "b873c33efceedd785c262720b90ce7ea4858ec9612332d5c120874266778d4b7"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-replacement-webrtc-receiver-bridge.patch",
+      "sha256": "9fe0246933b4dd5a84eea4ce1664d6d320900e10a669c64ef7fd30bb20734deb"
     }
   ]
 }

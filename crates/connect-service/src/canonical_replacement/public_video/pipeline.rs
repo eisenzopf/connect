@@ -82,7 +82,7 @@ async fn finish_warm_invocation<'a>(
     loop {
         match attempt? {
             PublicVideoWarmInvocation::Complete | PublicVideoWarmInvocation::AlreadySubmitted => {
-                return Ok(())
+                return Ok(());
             }
             PublicVideoWarmInvocation::DefinitelyUnstarted(retry) => {
                 let deadline = until.min(retry.deadline());
@@ -203,98 +203,139 @@ impl Runtime {
                 return Ok(());
             }
             let p = &root.public_video;
+            p.require_bridge_decoded_before_cut(root)?;
             let until = root
                 .deadline
                 .min(tokio::time::Instant::now() + Duration::from_secs(5));
             let cancel = root.handle.cancellation();
             // A definitely-unstarted retry must retain the SAME plan/freeze slot.
             // Planning may itself retry only before it returns an owned plan.
-            let (roles, plan) = super::super::projection::read(
-                &self.role_projection,
-                &self.stop,
-                until,
-                || async {
-                    let plan = self
-                        .core
-                        .plan_staged_device_replacement(
-                            &root.handle,
-                            super::super::movement::replacement_video(&root.plan)?,
-                        )
-                        .map_err(|error| {
-                            // MetadataBusy is retried by projection; it is not terminal.
-                            if !super::super::projection::is_core_metadata_busy(&error) {
-                                terminal(root, "plan-core", participant_kind(&error));
-                            }
-                            super::super::projection::core_plan_error(error)
-                        })?;
-                    if plan.media().private_predecessor().is_some() {
-                        terminal(root, "plan-private-predecessor", "refused");
-                        return Err(Error::forbidden());
-                    }
-                    Ok(plan)
-                },
-            )
-            .await
-            .map_err(|error| {
-                terminal(root, "plan-projection", &error.code);
-                error
-            })?;
-            drop(roles);
+            let bridge_scope = p.bridge_scope.get();
+            let plan = if let Some(scope) = bridge_scope {
+                if !p.bridge_decoded_recorded() || !scope.is_current() {
+                    return Err(Error::forbidden());
+                }
+                p.pre_cut_bridge_plan()?.clone()
+            } else {
+                let (roles, plan) = super::super::projection::read(
+                    &self.role_projection,
+                    &self.stop,
+                    until,
+                    || async {
+                        let plan = self
+                            .core
+                            .plan_staged_device_replacement(
+                                &root.handle,
+                                super::super::movement::replacement_video(&root.plan)?,
+                            )
+                            .map_err(|error| {
+                                // MetadataBusy is retried by projection; it is not terminal.
+                                if !super::super::projection::is_core_metadata_busy(&error) {
+                                    terminal(root, "plan-core", participant_kind(&error));
+                                }
+                                super::super::projection::core_plan_error(error)
+                            })?;
+                        if plan.media().private_predecessor().is_some() {
+                            terminal(root, "plan-private-predecessor", "refused");
+                            return Err(Error::forbidden());
+                        }
+                        Ok(plan)
+                    },
+                )
+                .await
+                .map_err(|error| {
+                    terminal(root, "plan-projection", &error.code);
+                    error
+                })?;
+                drop(roles);
+                plan
+            };
             // Cleanup must retain the SAME slot even if Core freezes OLD and
             // then refuses the fallible current target/reservation binding.
             // Retention is metadata only: public Cut success is still below.
             p.own_original_freeze_plan(root, &plan)?;
-            let frontier = loop {
-                if cancel.is_cancelled() {
-                    terminal(root, "freeze-root-cancelled", "cancelled");
-                    return Err(Error::forbidden());
-                }
+            let (frontier, withdrawal) = if let Some(scope) = bridge_scope {
                 let (roles, i) = super::super::projection::read(
                     &self.role_projection,
                     &self.stop,
-                    until,
+                    until.min(scope.deadline()),
                     || async {
                         self.continuation_read_once(root, started, Phase::FreezeVideo(plan.clone()))
                             .await
                     },
                 )
-                .await
-                .map_err(|error| {
-                    terminal(root, "freeze-projection", &error.code);
-                    error
-                })?;
-                // Only complete current source Readers cover bounded original drain;
-                // the global role coordinator does not cover physical IO.
+                .await?;
                 drop(roles);
-                let reserved = match p.reserved() {
-                    Ok(reserved) => reserved,
-                    Err(error) => {
-                        drop(i);
-                        terminal(root, "freeze-reservation", &error.code);
-                        return Err(error);
+                // Pre-cut readiness retains media through a fresh authorize
+                // step. Only this exact original withdrawal can establish F.
+                let withdrawal = self
+                    .core
+                    .withdraw_staged_pre_cut_public_video_bridge_with_held(&plan, scope, &i)
+                    .await
+                    .map_err(|error| {
+                        terminal(root, "bridge-withdrawal", participant_kind(&error));
+                        Error::forbidden()
+                    })?;
+                drop(i);
+                (withdrawal.frontier_owner().clone(), Some(withdrawal))
+            } else {
+                let frontier = loop {
+                    if cancel.is_cancelled() {
+                        terminal(root, "freeze-root-cancelled", "cancelled");
+                        return Err(Error::forbidden());
+                    }
+                    let (roles, i) = super::super::projection::read(
+                        &self.role_projection,
+                        &self.stop,
+                        until,
+                        || async {
+                            self.continuation_read_once(
+                                root,
+                                started,
+                                Phase::FreezeVideo(plan.clone()),
+                            )
+                            .await
+                        },
+                    )
+                    .await
+                    .map_err(|error| {
+                        terminal(root, "freeze-projection", &error.code);
+                        error
+                    })?;
+                    // Only complete current source Readers cover bounded original drain;
+                    // the global role coordinator does not cover physical IO.
+                    drop(roles);
+                    let reserved = match p.reserved() {
+                        Ok(reserved) => reserved,
+                        Err(error) => {
+                            drop(i);
+                            terminal(root, "freeze-reservation", &error.code);
+                            return Err(error);
+                        }
+                    };
+                    let attempt = self
+                        .core
+                        .try_freeze_staged_public_video_with_reservation(&plan, reserved, &i)
+                        .await;
+                    drop(i);
+                    match attempt {
+                        Ok(Some(frontier)) => break frontier,
+                        Ok(None) => {} // Core proved SAME Unstarted slot; no pause/IO.
+                        Err(error) => {
+                            terminal(root, "freeze-core", participant_kind(&error));
+                            tracing::debug!(target:"connect_service::canonical_replacement",?error,
+                            "Original public freeze refused or already attempted");
+                            return Err(Error::forbidden()); // NEVER remap late MetadataBusy
+                        }
+                    }
+                    tokio::select! {biased;
+                        _=self.stop.cancelled()=>return Err(Error::forbidden()),
+                        _=cancel.cancelled()=>return Err(Error::forbidden()),
+                        _=tokio::time::sleep_until(until)=>return Err(Error::new("authority-busy","Original freeze admission cutoff elapsed")),
+                        _=tokio::time::sleep(Duration::from_millis(20))=>{},
                     }
                 };
-                let attempt = self
-                    .core
-                    .try_freeze_staged_public_video_with_reservation(&plan, reserved, &i)
-                    .await;
-                drop(i);
-                match attempt {
-                    Ok(Some(frontier)) => break frontier,
-                    Ok(None) => {} // Core proved SAME Unstarted slot; no pause/IO.
-                    Err(error) => {
-                        terminal(root, "freeze-core", participant_kind(&error));
-                        tracing::debug!(target:"connect_service::canonical_replacement",?error,
-                        "Original public freeze refused or already attempted");
-                        return Err(Error::forbidden()); // NEVER remap late MetadataBusy
-                    }
-                }
-                tokio::select! {biased;
-                    _=self.stop.cancelled()=>return Err(Error::forbidden()),
-                    _=cancel.cancelled()=>return Err(Error::forbidden()),
-                    _=tokio::time::sleep_until(until)=>return Err(Error::new("authority-busy","Original freeze admission cutoff elapsed")),
-                    _=tokio::time::sleep(Duration::from_millis(20))=>{},
-                }
+                (frontier, None)
             };
             tracing::debug!(target:"connect_service::canonical_replacement",
                 boundary="public-video-bootstrap",stage="core-freeze-returned",
@@ -337,10 +378,18 @@ impl Runtime {
                     let i = self
                         .continuation_read_once(root, started, Phase::WarmVideo(plan.clone()))
                         .await?;
-                    match self
-                        .core
-                        .try_prepare_staged_public_video_warm_with_held(&plan, &i)
-                    {
+                    let warm = match &withdrawal {
+                        Some(original) => self
+                            .core
+                            .prepare_staged_withdrawn_public_video_bridge_warm_with_held(
+                                &plan, original, &i,
+                            )
+                            .map(Some),
+                        None => self
+                            .core
+                            .try_prepare_staged_public_video_warm_with_held(&plan, &i),
+                    };
+                    match warm {
                         Ok(Some(warm)) => {
                             // Own actual original B BEFORE releasing even this setup
                             // interval, then before any native task/SQL observation.

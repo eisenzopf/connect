@@ -1,3 +1,4 @@
+import { type WebRtcBridgeReadyMarker } from "./browser_webrtc_public_video_bridge.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import { BrowserDeadline } from "./browser_deadline.js";
 import { type BrowserReplacementReceipt, type BrowserReplacementRoot } from "./browser_replacement.js";
@@ -39,6 +40,8 @@ export declare class BrowserWebRtcReplacement {
     private selected?;
     private readyOffer?;
     private publicReadyOffer?;
+    private bridgeReadyOffer?;
+    private bridgeOptIn?;
     private readonly originalObservations;
     constructor(client: BrowserClient, root: BrowserReplacementRoot, receiveReservation?: OriginalWebRtcReceiveReservation | undefined);
     get mayHaveCommitted(): boolean;
@@ -56,6 +59,12 @@ export declare class BrowserWebRtcReplacement {
         root: BrowserReplacementRoot;
         reservation: OriginalWebRtcReceiveReservation;
         challenge: WebRtcReplacementChallenge;
+        bridgeOptIn: Readonly<Readonly<{
+            profile: "connect/webrtc-public-video-precut-bridge/1";
+            carrier: "webrtc-rtp";
+            presentation: "exclusive-public";
+            feed: "public-programme-private-decode";
+        }>> | undefined;
     }>;
     private checkReservedStatus;
     reservedStatus(options: RequestOptions): Promise<JsonObject>;
@@ -63,6 +72,8 @@ export declare class BrowserWebRtcReplacement {
     /** Same frozen private A/audio observation. Only an original signed
      * pre-cut read can permit replay; no decoder is observed again. */
     reservedPrivateReady(evidence: WebRtcDecodedReadiness, options: RequestOptions, original?: JsonObject): Promise<void>;
+    reservedBridgeReady(marker: WebRtcBridgeReadyMarker, options: RequestOptions, original?: JsonObject): Promise<void>;
+    reservedReceiverWitness(value: JsonObject, final: boolean): unknown;
     /** Frozen B marker uses the original signed offer continuation, never a new
      * business operation, challenge, private readiness or media observation. */
     reservedPublicReady(marker: WebRtcPublicVideoReadyMarker, options: RequestOptions, original?: JsonObject): Promise<void>;

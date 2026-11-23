@@ -1,16 +1,20 @@
+import { ReceiverVideoReleaseOwner } from "./browser_receiver_video_release.js";
+import { bridgeCanonical, parseWebRtcReceiverPostCut, receiverScope } from "./browser_webrtc_public_video_bridge.js";
 import { ConnectError } from "./errors.js";
 import { jsonObject } from "./uctp_json.js";
 import { recoverableReadinessFailure } from "./browser_webrtc_replacement.js";
 import { WebRtcPublicVideoPhaseOwner } from "./browser_webrtc_public_video_phase.js";
-import { observeWebRtcPublicVideoReadiness } from "./browser_webrtc_public_video_readiness.js";
+import { observeWebRtcPublicVideoReadiness, prearmWebRtcPublicVideoBridge } from "./browser_webrtc_public_video_readiness.js";
 const invalid = () => new ConnectError("protocol", "Original reserved public video workflow changed");
 const cancelled = () => new ConnectError("cancelled", "Original reserved public video wait cancelled");
 class CompletedPublicVideo {
+    releaseOwner;
     picture;
     track;
     loan;
     floor;
-    constructor(picture, track) {
+    constructor(picture, track, releaseOwner) {
+        this.releaseOwner = releaseOwner;
         this.picture = picture;
         this.track = track;
         this.floor = picture.presentedFloor;
@@ -19,21 +23,28 @@ class CompletedPublicVideo {
         if (!this.picture || !this.track || this.track !== track || track.readyState !== "live" || this.loan)
             throw invalid();
         const picture = this.picture, token = {};
+        const released = this.releaseOwner?.borrow();
         this.loan = token;
         return Object.freeze({ element: picture.element, presentedFloor: this.floor,
-            presented: (value) => {
+            eligible: (metadata) => this.loan === token && (!released || released.eligibleRtp({ rtpTimestamp: metadata.rtpTimestamp, presentedFrames: metadata.presentedFrames })),
+            presented: (value, rtpTimestamp) => {
                 if (this.loan !== token || !Number.isSafeInteger(value) || value <= this.floor)
                     throw invalid();
+                released?.presentedRtp({ rtpTimestamp: rtpTimestamp, presentedFrames: value });
                 this.floor = value;
             },
-            release: () => { if (this.loan === token)
-                this.loan = undefined; }, });
+            release: () => { if (this.loan === token) {
+                released?.release();
+                this.loan = undefined;
+            } }, });
     }
     release() {
         const picture = this.picture;
         this.picture = undefined;
         this.track = undefined;
         this.loan = undefined;
+        this.releaseOwner?.close();
+        this.releaseOwner = undefined;
         if (!picture)
             return Promise.resolve();
         let failure;
@@ -66,6 +77,8 @@ export class BrowserWebRtcPublicVideoLifecycle {
     signal;
     running;
     observation;
+    prearmed;
+    provisional;
     completed;
     stopped = false;
     constructor(original, peer, roles, scope, budget, signal, trackTask) {
@@ -75,7 +88,7 @@ export class BrowserWebRtcPublicVideoLifecycle {
         this.budget = budget;
         this.trackTask = trackTask;
         const context = original.reservedContext();
-        this.phaseOwner = new WebRtcPublicVideoPhaseOwner(context.root, scope, context.reservation, context.challenge.target_generation, context.challenge.nonce);
+        this.phaseOwner = new WebRtcPublicVideoPhaseOwner(context.root, scope, context.reservation, context.challenge.target_generation, context.challenge.nonce, context.bridgeOptIn);
         this.signal = AbortSignal.any([signal, this.cancel.signal]);
     }
     check() {
@@ -117,6 +130,8 @@ export class BrowserWebRtcPublicVideoLifecycle {
         const context = this.original.reservedContext();
         const phase = this.phaseOwner.observe(raw, { recordId: context.root.recordId, operationId: context.root.operationId,
             targetConnectionId: context.root.targetConnectionId, targetGeneration: context.challenge.target_generation, rootCompleted: receipt !== undefined });
+        if (this.phaseOwner.bridgeEnabled())
+            this.phaseOwner.observeBridge(value.webrtc_public_video_bridge);
         if (phase.phase === "discarded")
             throw new ConnectError("refused", "Original reserved public video was discarded");
         return phase;
@@ -152,8 +167,12 @@ export class BrowserWebRtcPublicVideoLifecycle {
                 }
                 await this.delay();
             }
+            if (this.phaseOwner.bridgeEnabled())
+                this.prearmed = await prearmWebRtcPublicVideoBridge(this.phaseOwner, this.peer, this.roles, this.budget, this.signal, this.trackTask);
+            this.prearmed?.assertPreCutCurrent();
             const evidence = await this.run(observePrivate);
             this.check();
+            this.prearmed?.assertPreCutCurrent();
             if (!privateCurrent())
                 throw invalid();
             let attempts = 0, replay = false, next = 0;
@@ -174,6 +193,21 @@ export class BrowserWebRtcPublicVideoLifecycle {
                 }
             };
             await sendPrivate();
+            let bridgeMarker, bridgeAttempts = 0, bridgeReplay = false, bridgeNext = 0;
+            const sendBridge = async (original) => {
+                this.check();
+                bridgeAttempts++;
+                try {
+                    await this.run(() => this.original.reservedBridgeReady(bridgeMarker, this.options(), original));
+                    bridgeReplay = false;
+                }
+                catch (error) {
+                    if (!recoverableReadinessFailure(error))
+                        throw error;
+                    bridgeReplay = true;
+                    bridgeNext = performance.now() + Math.min(1000, 50 * 2 ** (bridgeAttempts - 1));
+                }
+            };
             for (;;) {
                 try {
                     current = await this.read();
@@ -185,7 +219,27 @@ export class BrowserWebRtcPublicVideoLifecycle {
                     continue;
                 }
                 phase = this.phase(current, true);
-                if (phase.phase === "cut-bound-post-f")
+                if (this.prearmed) {
+                    const bridge = this.phaseOwner.observeBridge(current.webrtc_public_video_bridge);
+                    if (bridge.feeding && !bridgeMarker) {
+                        bridgeMarker = await this.prearmed.bridgeReady(bridge.feeding);
+                        await sendBridge();
+                    }
+                    if (bridgeReplay && bridgeAttempts < 8 && performance.now() >= bridgeNext && current.state === "preparing" && phase.phase === "negotiated-never-fed")
+                        await sendBridge(current);
+                    if (phase.phase === "cut-bound-post-f") {
+                        if (!bridgeMarker || !bridge.decoded_ready || bridgeCanonical(bridgeMarker) !== bridgeCanonical(bridge.decoded_ready))
+                            throw invalid();
+                        const raw = this.original.reservedReceiverWitness(current, false);
+                        if (raw !== undefined) {
+                            this.provisional = parseWebRtcReceiverPostCut(raw, this.original.reservedContext().root, phase);
+                            break;
+                        }
+                        await this.delay();
+                        continue;
+                    }
+                }
+                else if (phase.phase === "cut-bound-post-f")
                     break;
                 if (phase.phase !== "negotiated-never-fed")
                     throw invalid();
@@ -194,7 +248,8 @@ export class BrowserWebRtcPublicVideoLifecycle {
                 else
                     await this.delay();
             }
-            this.observation = await observeWebRtcPublicVideoReadiness(this.phaseOwner, this.peer, this.roles, this.budget, this.signal, this.trackTask);
+            this.observation = this.prearmed ? await this.prearmed.postCut(this.provisional) : await observeWebRtcPublicVideoReadiness(this.phaseOwner, this.peer, this.roles, this.budget, this.signal, this.trackTask);
+            this.prearmed = undefined;
             this.check();
             const marker = this.observation.readiness;
             attempts = 0;
@@ -228,10 +283,35 @@ export class BrowserWebRtcPublicVideoLifecycle {
                     continue;
                 }
                 phase = this.phase(current, true);
+                if (this.provisional && phase.phase !== "activated") {
+                    const raw = this.original.reservedReceiverWitness(current, false);
+                    if (raw === undefined || bridgeCanonical(parseWebRtcReceiverPostCut(raw, this.original.reservedContext().root, phase)) !== bridgeCanonical(this.provisional))
+                        throw invalid();
+                }
                 if (phase.phase === "activated") {
                     if (current.state !== "completed")
                         throw invalid();
                     const receipt = this.original.reservedCompleted(current);
+                    let releaseOwner;
+                    if (this.provisional) {
+                        const raw = this.original.reservedReceiverWitness(current, true);
+                        if (raw === undefined) {
+                            await this.delay();
+                            continue;
+                        }
+                        const expected = { ...this.provisional, profile: "connect-receiver-video-release-v1" };
+                        if (bridgeCanonical(raw) !== bridgeCanonical(expected))
+                            throw invalid();
+                        const peer = new WeakRef(this.peer), roles = new WeakRef(this.roles), binding = this.roles.binding("public");
+                        if (!binding)
+                            throw invalid();
+                        const track = new WeakRef(binding.track), receiver = new WeakRef(binding.receiver), owner = this.phaseOwner, mid = phase.binding.mid;
+                        releaseOwner = new ReceiverVideoReleaseOwner(receiverScope(this.original.reservedContext().root, phase), { carrier: "webrtc-rtp", physical_writer_incarnation: phase.binding.physical_writer_incarnation, primary_ssrc: phase.binding.primary_ssrc }, () => {
+                            const p = peer.deref(), r = roles.deref()?.binding("public");
+                            return !!p && owner.exactLocalPeer(p) && !!r && r.track === track.deref() && r.receiver === receiver.deref() && r.mid === mid && r.track.readyState === "live" && !['closed', 'failed'].includes(p.connectionState);
+                        });
+                        releaseOwner.observe(raw, { operationRecordId: phase.operation_record_id, operationId: phase.operation_id, targetConnectionId: phase.target_connection_id, releaseAuthorized: true });
+                    }
                     this.check();
                     const binding = this.roles.binding("public");
                     if (!binding)
@@ -239,7 +319,7 @@ export class BrowserWebRtcPublicVideoLifecycle {
                     const picture = this.observation.take(phase, binding.track);
                     if (!picture)
                         throw invalid();
-                    this.completed = new CompletedPublicVideo(picture, binding.track);
+                    this.completed = new CompletedPublicVideo(picture, binding.track, releaseOwner);
                     adopted = true;
                     this.observation = undefined;
                     this.peer = undefined;
@@ -266,8 +346,9 @@ export class BrowserWebRtcPublicVideoLifecycle {
         }
         finally {
             if (!adopted) {
-                const observation = this.observation;
+                const observation = this.observation ?? this.prearmed;
                 this.observation = undefined;
+                this.prearmed = undefined;
                 this.phaseOwner.close();
                 if (observation)
                     try {
@@ -299,8 +380,9 @@ export class BrowserWebRtcPublicVideoLifecycle {
         this.stopped = true;
         this.cancel.abort();
         this.phaseOwner.close();
-        const pending = this.observation, completed = this.completed;
+        const pending = this.observation ?? this.prearmed, completed = this.completed;
         this.observation = undefined;
+        this.prearmed = undefined;
         this.completed = undefined;
         this.peer = undefined;
         this.roles = undefined;

@@ -36,7 +36,10 @@ impl State {
         if !Arc::ptr_eq(self, &store.authority_writer_boundary)
             || !matches!(
                 action,
-                "public-video-reservation" | "public-video-phase" | "public-video-terminal"
+                "public-video-reservation"
+                    | "public-video-phase"
+                    | "public-video-terminal"
+                    | "public-video-bridge"
             )
             || expected.len() > 32768
             || c.transaction_state(Some(rusqlite::DatabaseName::Main))

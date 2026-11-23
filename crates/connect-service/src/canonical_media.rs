@@ -1277,6 +1277,25 @@ impl MediaPolicy for Policy {
             .ok_or(StreamControlError::Authority)?
             .public_video_warm(scope, warm)
     }
+    fn current_pre_cut_public_video_bridge(
+        &self,
+        scope: &MediaScope<'_>,
+        bridge: &rvoip_core::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeScope,
+        held: Option<&(dyn Any + Send + Sync)>,
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        if let Some(held) = held {
+            let invocation = held
+                .downcast_ref::<crate::canonical_replacement::continuation::Invocation>()
+                .ok_or(StreamControlError::Authority)?;
+            if !std::ptr::eq(self, Arc::as_ptr(&invocation.policy.base)) {
+                return Err(StreamControlError::Authority);
+            }
+            return invocation.pre_cut_public_video_bridge(scope, bridge);
+        }
+        self.replacement_target(scope.connection)?
+            .ok_or(StreamControlError::Authority)?
+            .pre_cut_public_video_bridge(scope, bridge)
+    }
     fn current_transport_update(
         &self,
         scope: &MediaScope<'_>,

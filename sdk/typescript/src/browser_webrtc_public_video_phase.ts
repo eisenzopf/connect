@@ -1,3 +1,4 @@
+import { bridgeCanonical, parseWebRtcBridgeOptIn, parseWebRtcBridgeSnapshot, type WebRtcBridgeOptIn, type WebRtcBridgeSnapshot, type WebRtcBridgeFeeding, type WebRtcBridgeReadyMarker } from "./browser_webrtc_public_video_bridge.js";
 import { ConnectError } from "./errors.js";
 import { identifier } from "./uctp_wire.js";
 import { replacementRoot, type BrowserReplacementRoot } from "./browser_replacement.js";
@@ -61,6 +62,8 @@ export class WebRtcPublicVideoPhaseOwner {
     readonly root: Readonly<BrowserReplacementRoot>;
     readonly scope: Readonly<WebRtcReceiveReservationScope>;
     private selected?: Readonly<WebRtcPublicVideoPhase>;
+    private bridgeSnapshot?:Readonly<WebRtcBridgeSnapshot>;
+    private bridgeMarker?:Readonly<WebRtcBridgeReadyMarker>;
     private binding?: Readonly<WebRtcPublicVideoBinding>;
     private cut?: {id: string; nonce: string};
     private discardedCut?: string | null;
@@ -69,8 +72,10 @@ export class WebRtcPublicVideoPhaseOwner {
     constructor(root: BrowserReplacementRoot, scope: WebRtcReceiveReservationScope,
         private readonly reservation: OriginalWebRtcReceiveReservation,
         private readonly targetGeneration: number,
-        private readonly privateReadinessNonce: string) {
+        private readonly privateReadinessNonce: string,
+        private readonly bridgeOptIn?:Readonly<WebRtcBridgeOptIn>) {
         this.root = replacementRoot(root);
+        if(bridgeOptIn)parseWebRtcBridgeOptIn(bridgeOptIn);
         this.scope = Object.freeze({...scope});
         if (!positive(targetGeneration) || !identifier(privateReadinessNonce) ||
             !reservation.owner.owns(reservation.intent, scope) ||
@@ -100,6 +105,7 @@ export class WebRtcPublicVideoPhaseOwner {
             const challenge = closed(v.public_readiness, ["nonce", "decoder_startup"]);
             if (!opaque(v.source_cut_id) || !identifier(challenge.nonce) || challenge.nonce === this.privateReadinessNonce || challenge.nonce === this.reservation.intent.nonce || challenge.decoder_startup !== "fresh-receiver-first-decoded-frame") throw invalid();
             if (this.cut && (this.cut.id !== v.source_cut_id || this.cut.nonce !== challenge.nonce)) throw invalid();
+            if(this.bridgeSnapshot?.feeding?.bridge_readiness.nonce===challenge.nonce)throw invalid();
             publicReadiness = Object.freeze({nonce: challenge.nonce, decoder_startup: "fresh-receiver-first-decoded-frame"});
         }
         if (phase === "discarded") {
@@ -124,6 +130,34 @@ export class WebRtcPublicVideoPhaseOwner {
         parsed.set(result, this);
         if (phase === "discarded") this.retire();
         return result;
+    }
+    bridgeEnabled():boolean {this.check();return this.bridgeOptIn!==undefined;}
+    negotiated():Readonly<WebRtcPublicVideoPhase> {
+        this.check();if(!this.bridgeOptIn||this.selected?.phase!=="negotiated-never-fed")throw invalid();return this.selected;
+    }
+    /** Prearmed hidden output remains bound to the original physical B while
+     * cut/ready progress. This never permits take or public presentation. */
+    acceptsPreCutBinding(value:Readonly<WebRtcPublicVideoPhase>):boolean {
+        return !!this.bridgeOptIn&&!this.stopped&&parsed.get(value)===this&&!!this.selected&&this.selected.phase!=="discarded"&&equalBinding(value.binding,this.selected.binding)&&this.reservation.owner.owns(this.reservation.intent,this.scope);
+    }
+    observeBridge(value:unknown):Readonly<WebRtcBridgeSnapshot> {
+        this.check();if(!this.bridgeOptIn||!this.binding)throw invalid();
+        const next=parseWebRtcBridgeSnapshot(value,this.root,this.reservation.intent.reservation_id,this.binding,this.privateReadinessNonce,this.reservation.intent.nonce,this.targetGeneration);
+        if(bridgeCanonical(next.opt_in)!==bridgeCanonical(this.bridgeOptIn)||next.feeding?.target_generation!==undefined&&next.feeding.target_generation!==this.targetGeneration)throw invalid();
+        if(this.bridgeSnapshot?.feeding&&(!next.feeding||bridgeCanonical(this.bridgeSnapshot.feeding)!==bridgeCanonical(next.feeding)))throw invalid();
+        if(this.bridgeSnapshot?.decoded_ready&&(!next.decoded_ready||bridgeCanonical(this.bridgeSnapshot.decoded_ready)!==bridgeCanonical(next.decoded_ready)))throw invalid();
+        if(next.feeding&&this.cut?.nonce===next.feeding.bridge_readiness.nonce)throw invalid();
+        if(next.decoded_ready&&(!this.bridgeMarker||bridgeCanonical(next.decoded_ready)!==bridgeCanonical(this.bridgeMarker)))throw invalid();
+        this.bridgeSnapshot=Object.freeze({...next,feeding:this.bridgeSnapshot?.feeding??next.feeding,decoded_ready:this.bridgeSnapshot?.decoded_ready??next.decoded_ready});return this.bridgeSnapshot;
+    }
+    bridgeFeeding():Readonly<WebRtcBridgeFeeding> {
+        this.check();if(!this.bridgeOptIn||!this.bridgeSnapshot?.feeding)throw invalid();return this.bridgeSnapshot.feeding;
+    }
+    acceptsBridgeFeeding(value:Readonly<WebRtcBridgeFeeding>):boolean {
+        return !!this.bridgeSnapshot?.feeding&&value===this.bridgeSnapshot.feeding&&this.acceptsPreCutBinding(this.selected!);
+    }
+    expectBridgeMarker(marker:Readonly<WebRtcBridgeReadyMarker>):void {
+        this.check();if(this.bridgeMarker&&bridgeCanonical(this.bridgeMarker)!==bridgeCanonical(marker))throw invalid();this.bridgeMarker=marker;
     }
     check(): void {
         if (this.stopped || !this.reservation.owner.owns(this.reservation.intent, this.scope)) throw new ConnectError("closed", "Original public video phase owner retired");

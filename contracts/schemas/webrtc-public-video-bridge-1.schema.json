@@ -1,0 +1,265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://connect.invalid/schemas/webrtc-public-video-bridge-1.schema.json",
+  "title": "Explicit original WebRTC B pre-cut bridge metadata",
+  "description": "Closed optional metadata, never an IO grant, F, post-F Ready, public presentation or Commit. Exact signed original intent, actual B writer coordinate and current custody are checked separately.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/OptIn"
+    },
+    {
+      "$ref": "#/$defs/Snapshot"
+    },
+    {
+      "$ref": "#/$defs/ReadyMarker"
+    }
+  ],
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._~-]+$"
+    },
+    "Opaque": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[!-~]+$"
+    },
+    "PositiveCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "Binding": {
+      "type": "object",
+      "properties": {
+        "stream_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "preview_stream_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "mid": {
+          "$ref": "#/$defs/Opaque"
+        },
+        "stream_generation": {
+          "$ref": "#/$defs/PositiveCount"
+        },
+        "physical_writer_incarnation": {
+          "$ref": "#/$defs/Opaque"
+        },
+        "connection_generation": {
+          "$ref": "#/$defs/PositiveCount"
+        },
+        "primary_ssrc": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "payload_type": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127
+        },
+        "clock_rate_hz": {
+          "const": 90000
+        },
+        "codec": {
+          "const": "vp8"
+        }
+      },
+      "required": [
+        "stream_id",
+        "preview_stream_id",
+        "mid",
+        "stream_generation",
+        "physical_writer_incarnation",
+        "connection_generation",
+        "primary_ssrc",
+        "payload_type",
+        "clock_rate_hz",
+        "codec"
+      ],
+      "additionalProperties": false,
+      "description": "Actual original B native tuple. SSRC zero is valid. Generations are independent namespaces; runtime matches distinct stream IDs/native pointers/current original owners, never infers identity from these data alone."
+    },
+    "OptIn": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "const": "connect/webrtc-public-video-precut-bridge/1"
+        },
+        "carrier": {
+          "const": "webrtc-rtp"
+        },
+        "presentation": {
+          "const": "exclusive-public"
+        },
+        "feed": {
+          "const": "public-programme-private-decode"
+        }
+      },
+      "required": [
+        "profile",
+        "carrier",
+        "presentation",
+        "feed"
+      ],
+      "additionalProperties": false
+    },
+    "Challenge": {
+      "type": "object",
+      "properties": {
+        "nonce": {
+          "$ref": "#/$defs/Id"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/PositiveCount"
+        },
+        "decoder_startup": {
+          "const": "fresh-b-receiver-precut-keyframe"
+        }
+      },
+      "required": [
+        "nonce",
+        "expires_at",
+        "decoder_startup"
+      ],
+      "additionalProperties": false
+    },
+    "Feeding": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "const": "connect/webrtc-public-video-precut-bridge/1"
+        },
+        "phase": {
+          "const": "feeding"
+        },
+        "reservation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "operation_record_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "target_connection_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "target_generation": {
+          "$ref": "#/$defs/PositiveCount"
+        },
+        "binding": {
+          "$ref": "#/$defs/Binding"
+        },
+        "bridge_readiness": {
+          "$ref": "#/$defs/Challenge"
+        }
+      },
+      "required": [
+        "profile",
+        "phase",
+        "reservation_id",
+        "operation_record_id",
+        "operation_id",
+        "target_connection_id",
+        "target_generation",
+        "binding",
+        "bridge_readiness"
+      ],
+      "additionalProperties": false
+    },
+    "DecodedObservation": {
+      "type": "object",
+      "properties": {
+        "reservation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "nonce": {
+          "$ref": "#/$defs/Id"
+        },
+        "binding": {
+          "$ref": "#/$defs/Binding"
+        },
+        "decoded_rtp_timestamp": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "decoded_frames": {
+          "$ref": "#/$defs/PositiveCount"
+        },
+        "decoder_startup": {
+          "const": "fresh-b-receiver-precut-keyframe"
+        }
+      },
+      "required": [
+        "reservation_id",
+        "nonce",
+        "binding",
+        "decoded_rtp_timestamp",
+        "decoded_frames",
+        "decoder_startup"
+      ],
+      "additionalProperties": false
+    },
+    "ReadyMarker": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "const": "connect-replacement-public-video-bridge-ready-v1"
+        },
+        "operation_record_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "bridge_readiness": {
+          "$ref": "#/$defs/DecodedObservation"
+        }
+      },
+      "required": [
+        "profile",
+        "operation_record_id",
+        "bridge_readiness"
+      ],
+      "additionalProperties": false
+    },
+    "Snapshot": {
+      "type": "object",
+      "properties": {
+        "opt_in": {
+          "$ref": "#/$defs/OptIn"
+        },
+        "feeding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Feeding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "decoded_ready": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReadyMarker"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "opt_in",
+        "feeding",
+        "decoded_ready"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,3161 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/old_video_freeze.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/old_video_freeze.rs
+@@ -45,6 +45,7 @@
+         let p=&plan.preparation;
+         self.owns_replacement(p)?;p.check()?;
+         let _flight=p.flight.clone().try_acquire_owned().map_err(|_|ParticipantTransitionError::Conflict)?;
++        plan.media.require_legacy_video_effects()?;
+         let request=scope(p,ReplacementPhase::FreezeVideo,Some(&plan.media));
+         let control=p.runtime.policy.current_replacement_control(&request,held)?;
+         let result:ControlResult<_>=async {
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/pre_cut_public_video_bridge.rs
+@@ -0,0 +1,104 @@
++//! Exact pre-F public-programme-only route. Current source/candidate Reader
++//! is distinct from private preparation and from final publication authority.
++use super::*;
++impl Orchestrator {
++    pub fn prepare_staged_pre_cut_public_video_bridge_with_held(
++        self:&Arc<Self>,plan:&ManagedAudioDeviceReplacementPlan,
++        ownership:&Arc<crate::staged_streams::public_video_reservation::PreCutPublicVideoBridgeOwnership>,
++        held:&(dyn Any+Send+Sync),
++    )->ControlResult<Arc<crate::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeScope>> {
++        let p=&plan.preparation;self.owns_replacement(p)?;p.check()?;
++        let _flight = p.flight.clone().try_acquire_owned().map_err(|error| match error {
++            tokio::sync::TryAcquireError::NoPermits => StreamControlError::MetadataBusy,
++            tokio::sync::TryAcquireError::Closed => StreamControlError::Cancelled,
++        })?;
++        if !ownership.matches_original_preparation(p) {return Err(ParticipantControlError::Authority);}
++        let request=scope(p,ReplacementPhase::BridgeVideo,Some(&plan.media));
++        let control=p.runtime.policy.current_replacement_control(&request,held)?;
++        let validate=||->std::result::Result<(),StreamControlError> {
++            self.owns_replacement(p).map_err(handoff::media_error)?;p.check().map_err(handoff::media_error)?;
++            check_authority(&request,&control.current(&request).map_err(handoff::media_error)?)
++                .map_err(handoff::media_error)
++        };
++        validate()?;
++        let scene=p.runtime.mixer.staged.as_ref().ok_or(ParticipantControlError::Unsupported)?;
++        Ok(scene.prepare_pre_cut_public_video_bridge(&plan.media,&p.intent,p.preparation_identity(),ownership,
++            deadline_for(&p.principal,p.deadline.min(control.deadline)),held,&validate)?)
++    }
++}
++
++struct BridgeWithdrawalAttempt {
++    bridge:Arc<crate::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeScope>,transferred:bool,
++}
++impl Drop for BridgeWithdrawalAttempt {
++    fn drop(&mut self) {if !self.transferred&&self.bridge.withdrawal_started() {self.bridge.close();}}
++}
++impl Orchestrator {
++    /// Explicit late OLD withdrawal for the SAME original bridge/plan/B route.
++    /// Known metadata/capability failures occur before either bridge suspension
++    /// or OLD pause. Once actual acquisition starts, errors remain fail-closed.
++    /// The returned owner is NOT a post-F IO, decoded-ready or Commit grant;
++    /// the explicit conversion is required before the existing W3 adoption.
++    pub async fn withdraw_staged_pre_cut_public_video_bridge_with_held(
++        self:&Arc<Self>,plan:&ManagedAudioDeviceReplacementPlan,
++        bridge:&Arc<crate::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeScope>,
++        held:&(dyn Any+Send+Sync),
++    )->ControlResult<crate::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeWithdrawal> {
++        let p=&plan.preparation;self.owns_replacement(p)?;p.check()?;
++        let _flight=p.flight.clone().try_acquire_owned().map_err(|_|ParticipantTransitionError::Conflict)?;
++        let ownership=bridge.ownership_for_withdrawal(&plan.media,&p.preparation_identity())?;
++        if !ownership.matches_original_preparation(p) {return Err(ParticipantControlError::Authority);}
++        let request=scope(p,ReplacementPhase::FreezeVideo,Some(&plan.media));
++        let control=p.runtime.policy.current_replacement_control(&request,held)?;
++        let scene=p.runtime.mixer.staged.as_ref().ok_or(ParticipantControlError::Unsupported)?;
++        let (pin,old_flight)=scene.capture_bridge_freeze_structure(&plan.media,bridge)?;
++        let mut attempt=BridgeWithdrawalAttempt {bridge:bridge.clone(),transferred:false};
++        let validate=||->std::result::Result<(),StreamControlError> {
++            self.owns_replacement(p).map_err(handoff::media_error)?;p.check().map_err(handoff::media_error)?;
++            pin.validate()?;
++            // This remains exact B resource metadata, not a fresh current B
++            // owner or a renewed grant after any await.
++            if !bridge.withdrawal_metadata_current()||!ownership.is_current() {return Err(StreamControlError::NotReady);}
++            let authority=control.current(&request).map_err(handoff::media_error)?;
++            check_authority(&request,&authority).map_err(handoff::media_error)?;
++            if plan.media.old_may_speak()&&!authority.may_send_audio {return Err(StreamControlError::Authority);}
++            Ok(())
++        };
++        let result:ControlResult<_>=async {
++            validate()?;
++            scene.preflight_old_video_initial_picture_sources(&plan.media)?;validate()?;
++            let realm=p.runtime.frame_realm.as_ref().map(|realm|realm.handle()).and_then(|realm|realm.incarnation())
++                .ok_or(ParticipantControlError::Unsupported)?;
++            if realm!=bridge.realm_incarnation() {return Err(ParticipantControlError::Authority);}
++            let deadline=deadline_for(&p.principal,p.deadline.min(control.deadline).min(bridge.deadline()));
++            let frozen=scene.freeze_old_video_pinned(&plan.media,realm,deadline,p.cancellation.clone(),held,&validate,&pin,old_flight).await?;
++            self.owns_replacement(p)?;p.check()?;pin.validate_frozen(&frozen)?;
++            Ok(scene.finish_pre_cut_bridge_withdrawal(&plan.media,bridge)?)
++        }.await;
++        if result.is_ok() {attempt.transferred=true;}
++        result
++    }
++}
++
++impl Orchestrator {
++    /// Convert the exact suspended B route to original post-F warm custody.
++    /// This performs no native IO/start. The returned start() invokes only
++    /// adopt_public_video_bridge, which must switch the SAME existing writer.
++    pub fn prepare_staged_withdrawn_public_video_bridge_warm_with_held(
++        self:&Arc<Self>,plan:&ManagedAudioDeviceReplacementPlan,
++        withdrawal:&crate::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeWithdrawal,
++        held:&(dyn Any+Send+Sync),
++    )->ControlResult<crate::staged_streams::direct_subscriptions::PublicVideoWarmPreparation> {
++        let p=&plan.preparation;self.owns_replacement(p)?;p.check()?;
++        let _flight=p.flight.clone().try_acquire_owned().map_err(|_|ParticipantTransitionError::Conflict)?;
++        if !withdrawal.bridge().matches_original_plan(&plan.media)||!withdrawal.is_current() {return Err(ParticipantControlError::Authority);}
++        let request=scope(p,ReplacementPhase::WarmVideo,Some(&plan.media));let control=p.runtime.policy.current_replacement_control(&request,held)?;
++        let validate=||->std::result::Result<(),StreamControlError> {
++            self.owns_replacement(p).map_err(handoff::media_error)?;p.check().map_err(handoff::media_error)?;
++            check_authority(&request,&control.current(&request).map_err(handoff::media_error)?).map_err(handoff::media_error)
++        };
++        validate()?;let scene=p.runtime.mixer.staged.as_ref().ok_or(ParticipantControlError::Unsupported)?;
++        Ok(scene.prepare_public_video_bridge_conversion(&plan.media,p.preparation_identity(),withdrawal,
++            deadline_for(&p.principal,p.deadline.min(control.deadline)),p.cancellation.clone(),held,&validate)?)
++    }
++}
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/public_video_bridge_ownership.rs
+@@ -0,0 +1,30 @@
++//! Resource-only ownership transition. No public candidate source grant,
++//! media route, native start, F, OLD pause or replacement publication.
++use super::*;
++impl Orchestrator {
++    pub fn prepare_staged_public_video_bridge_ownership_with_held(
++        self:&Arc<Self>,plan:&ManagedAudioDeviceReplacementPlan,held:&(dyn Any+Send+Sync),
++    )->ControlResult<crate::staged_streams::public_video_reservation::PreCutPublicVideoBridgeOwnership> {
++        let p=&plan.preparation;
++        self.owns_replacement(p)?;p.check()?;
++        let _flight = p.flight.clone().try_acquire_owned().map_err(|error| match error {
++            tokio::sync::TryAcquireError::NoPermits => StreamControlError::MetadataBusy,
++            tokio::sync::TryAcquireError::Closed => StreamControlError::Cancelled,
++        })?;
++        plan.media.require_legacy_video_effects()?;
++        let request=scope(p,ReplacementPhase::ReserveVideo,None);
++        let control=p.runtime.policy.current_replacement_control(&request,held)?;
++        let validate=||->std::result::Result<(),StreamControlError> {
++            self.owns_replacement(p).map_err(handoff::media_error)?;
++            p.check().map_err(handoff::media_error)?;
++            check_authority(&request,&control.current(&request).map_err(handoff::media_error)?)
++                .map_err(handoff::media_error)
++        };
++        validate()?;
++        let scene=p.runtime.mixer.staged.as_ref().ok_or(ParticipantControlError::Unsupported)?;
++        if !scene.old_video_freeze_unstarted(&plan.media) {return Err(ParticipantControlError::Media(StreamControlError::NotReady));}
++        let reservation=p.public_video_reservation.current(p)?;
++        Ok(reservation.claim_pre_cut_bridge_ownership(&plan.media,&p.preparation_identity(),
++            p.public_video_reservation.bridge_guard(),deadline_for(&p.principal,p.deadline.min(control.deadline)),&validate)?)
++    }
++}
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -23,6 +23,8 @@
+ mod candidate_discard;
+ mod public_video_warm;
+ mod public_video_reservation;
++mod public_video_bridge_ownership;
++mod pre_cut_public_video_bridge;
+ mod old_video_restore;
+ pub use candidate_discard::UnpublishedCandidateDiscardContext;
+ pub use publication::CurrentReplacementPublication;
+@@ -48,6 +50,8 @@
+     Discard,
+     /// Pending-public B current read authority; never Commit/private fallback.
+     WarmVideo,
++    /// Current pre-F PUBLIC-programme candidate; no final F or publication.
++    BridgeVideo,
+     /// Compatible current resource-preparation Reader only; no media grant.
+     ReserveVideo,
+ }
+@@ -1214,6 +1218,7 @@
+                 video,
+             },
+         )?;
++        let media=media.with_public_video_bridge_guard(p.public_video_reservation.bridge_guard());
+         Ok(ManagedAudioDeviceReplacementPlan {
+             media,
+             preparation: p.clone(),
+@@ -1225,6 +1230,7 @@
+         held: &(dyn Any + Send + Sync),
+     ) -> ControlResult<(AudioDeviceReplacementOutcome, AudioDeviceReplacementHandle)> {
+         let p = &plan.preparation;
++        self.owns_replacement(p)?;p.check()?;plan.media.require_legacy_video_effects()?;
+         let cutoff = std::sync::Mutex::new(p.deadline);
+         // Backpressure from the scene is a definite metadata collision before
+         // publication. Each failed attempt drops its locks, controls, inflight
+@@ -2206,6 +2212,7 @@
+         let p = &plan.preparation;
+         owner.owns_replacement(p)?;
+         p.check()?;
++        plan.media.require_legacy_video_effects()?;
+         let request = scope(p, ReplacementPhase::Commit, Some(&plan.media));
+         // The actual short planning grant exists in the caller. These calls
+         // occur before ANY media/model/registry guard, never with a fake held
+@@ -2252,7 +2259,7 @@
+     // succeeds. No async work follows until the caller drops its planning read.
+     pub(crate) fn stage_once(self) -> ControlResult<PreparedReplacementCut> {
+         let p = &self.plan.preparation;
+-        p.check()?;
++        p.check()?;self.plan.media.require_legacy_video_effects()?;
+         if self.cancellation.is_cancelled() { return Err(ParticipantControlError::Cancelled); }
+         if tokio::time::Instant::now() >= self.deadline { return Err(ParticipantControlError::Deadline); }
+         let state = super::managed_cut::try_mutex(&self.runtime.state)?;
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -1390,6 +1390,14 @@
+         // the SAME prepared one-shot token, or actual cleanup, may escape.
+         let caught=std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| -> ControlResult<(AudioAudienceOutcome,AudioAudienceCommit,Instant)> {
+             let plan=&prepared.plan;
++            if let Some(intent)=plan.replacement.as_ref().filter(|intent|intent.public_video_bridge_owned.load(Ordering::Acquire)) {
++                // A cold legacy cut staged before the bridge claim cannot
++                // borrow a later conversion flag. It must itself own the one
++                // exact same-intent post-F B adoption captured by W3.
++                if !intent.public_video_bridge_converted.load(Ordering::Acquire)||prepared.public_adoptions.len()!=1 {
++                    return Err(StreamControlError::Unsupported);
++                }
++            }
+             let members=super::control_metadata::try_lock(&self.members)?;
+             let mut registry=super::control_metadata::try_lock(&self.audiences)?;
+             let mut disclosure=super::control_metadata::try_lock(&self.disclosure_changed_at)?;
+@@ -1400,6 +1408,16 @@
+             let _flights=prepared.targets.iter().filter(|target|!frozen.as_ref().is_some_and(|freeze|freeze.holds_controller(&target.controller)))
+                 .map(|target|target.controller.inflight.clone().try_acquire_owned().map_err(|_|StreamControlError::MetadataBusy))
+                 .collect::<ControlResult<Vec<_>>>()?;
++            // The bridge transfer takes the SAME target control flight. Recheck
++            // after all flights, before any Port/consumer/ticket cut resources.
++            if let Some(intent)=plan.replacement.as_ref().filter(|intent|intent.public_video_bridge_owned.load(Ordering::Acquire)) {
++                // A cold legacy cut staged before the bridge claim cannot
++                // borrow a later conversion flag. It must itself own the one
++                // exact same-intent post-F B adoption captured by W3.
++                if !intent.public_video_bridge_converted.load(Ordering::Acquire)||prepared.public_adoptions.len()!=1 {
++                    return Err(StreamControlError::Unsupported);
++                }
++            }
+             let mut states=prepared.targets.iter().map(|target|super::control_metadata::try_lock(&target.controller.state)).collect::<ControlResult<Vec<_>>>()?;
+             for (target,state) in prepared.targets.iter().zip(&states) {
+                 let member=turn.members.get(&target.controller.connection).ok_or(StreamControlError::Authority)?;
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+@@ -21,6 +21,10 @@
+ }
+ #[derive(Clone)]
+ pub(super) struct ReplacementIntent {
++    // Shared by ALL managed plans of the same original preparation. This
++    // resource-only bridge slice cannot enter the legacy freeze/publication.
++    pub(super) public_video_bridge_owned:Arc<std::sync::atomic::AtomicBool>,
++    pub(super) public_video_bridge_converted:Arc<std::sync::atomic::AtomicBool>,
+     pub(super) public_video_warm_started:Arc<std::sync::atomic::AtomicBool>,
+     pub(super) request: AudioDeviceReplacementRequest,
+     pub(super) preparation: Arc<ClosedAudience>,
+@@ -60,6 +64,7 @@
+         consumers:&audio_consumer::ConsumerCutGuards<'_>,ports:&super::control_port_guards::PortCutGuards<'_>,
+         tickets:&rvoip_core_traits::peer_switch::PeerRouteGuardSet<'_>,
+     )->ControlResult<()> {
++        if self.public_video_bridge_owned.load(Ordering::Acquire)&&!self.public_video_bridge_converted.load(Ordering::Acquire) {return Err(StreamControlError::Unsupported);}
+         if self.origins.get(&controller.connection).is_some_and(|origin|!origin.matches(controller)) {return Err(StreamControlError::Authority);}
+         if let Some(video)=&self.video {video.validate(controller,state)?;}
+         if !self.old_role.current_cut(consumers,tickets) {return Err(MediaTransitionError::Conflict.into());}
+@@ -108,6 +113,12 @@
+     /// Used only by a fully validated original freeze pin retaining every
+     /// original controller flight and the authoritative scene epoch.
+     pub(super) fn freeze_pin_current(&self,target:&StreamController,state:&State)->ControlResult<()> {
++        if self.public_video_bridge_owned.load(Ordering::Acquire)&&!self.public_video_bridge_converted.load(Ordering::Acquire) {return Err(StreamControlError::Unsupported);}
++        self.freeze_pin_current_exact(target,state)
++    }
++    // Called only by the exact bridge-carrying FreezeStructuralPin. This does
++    // not clear the shared bridge tombstone or open legacy freeze/Commit.
++    pub(super) fn freeze_pin_current_exact(&self,target:&StreamController,state:&State)->ControlResult<()> {
+         if !self.old_role.is_current_under_control_pin() {return Err(MediaTransitionError::Conflict.into());}
+         if !self.pending.confirmation_ready() {return Err(StreamControlError::NotReady);}
+         if target.connection!=self.request.admitted {return Err(StreamControlError::Authority);}
+@@ -118,6 +129,13 @@
+     pub(super) fn validate_target_without_video_freeze(
+         &self, controller: &StreamController, state: &State,
+     ) -> ControlResult<()> {
++        if self.public_video_bridge_owned.load(Ordering::Acquire)&&!self.public_video_bridge_converted.load(Ordering::Acquire) {return Err(StreamControlError::Unsupported);}
++        self.validate_target_without_video_freeze_exact(controller,state)
++    }
++    // Same predicates; only the opt-in bridge pin chooses this internal entry.
++    pub(super) fn validate_target_without_video_freeze_exact(
++        &self,controller:&StreamController,state:&State,
++    )->ControlResult<()> {
+         if self
+             .origins
+             .get(&controller.connection)
+@@ -150,6 +168,21 @@
+     audience: AudioAudiencePlan,
+ }
+ impl AudioDeviceReplacementPlan {
++    /// Bind before the managed plan escapes. Regenerated plans share this SAME
++    /// preparation-level tombstone; dropping a plan/bridge cannot reopen it.
++    pub(crate) fn with_public_video_bridge_guard(mut self,guard:Arc<std::sync::atomic::AtomicBool>)->Self {
++        if let Some(intent)=self.audience.replacement.as_mut() {
++            Arc::make_mut(intent).public_video_bridge_owned=guard;
++        }
++        self
++    }
++    pub(crate) fn require_legacy_video_effects(&self)->ControlResult<()> {
++        if self.audience.replacement.as_ref().is_some_and(|intent|intent.public_video_bridge_owned.load(Ordering::Acquire)&&!intent.public_video_bridge_converted.load(Ordering::Acquire)) {
++            return Err(StreamControlError::Unsupported);
++        }
++        Ok(())
++    }
++
+     pub(crate) fn finish_managed_audience(&self,media:AudioAudienceOutcome,audience:AudioAudienceHandle)->(AudioDeviceReplacementOutcome,AudioDeviceReplacementHandle) {
+         let intent=self.audience.replacement.as_ref().expect("validated original replacement audience");
+         let private_successor = intent
+@@ -589,7 +622,9 @@
+         };
+         let (old_speaks, old_role) = members[&request.source].audio_consumer.role_snapshot();
+         let replacement = Arc::new(ReplacementIntent {
++            public_video_bridge_owned:Arc::new(std::sync::atomic::AtomicBool::new(false)),
+             public_video_warm_started:Arc::new(std::sync::atomic::AtomicBool::new(false)),
++            public_video_bridge_converted:Arc::new(std::sync::atomic::AtomicBool::new(false)),
+             request,
+             preparation: context.group.clone(),
+             programs,
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/bridge_conversion.rs
+@@ -0,0 +1,70 @@
++//! Cold metadata conversion of the SAME suspended bridge writer. It never
++//! starts native IO, reacquires a queue or infers readiness from pre-F work.
++use super::*;
++impl media_scene::GuardedMediaScene {
++    pub(crate) fn prepare_public_video_bridge_conversion(
++        &self,plan:&device_replacement::AudioDeviceReplacementPlan,
++        identity:ReplacementPreparationIdentity,withdrawal:&PreCutPublicVideoBridgeWithdrawal,
++        deadline:tokio::time::Instant,cancel:CancellationToken,held:&(dyn Any+Send+Sync),
++        current_control:&(dyn Fn()->ControlResult<()>+Send+Sync),
++    )->ControlResult<PublicVideoWarmPreparation> {
++        current_control()?;
++        let parts=withdrawal.conversion_parts(plan,&identity)?;
++        let intent=plan.audience().replacement.as_ref().ok_or(StreamControlError::Authority)?.clone();
++        if plan.audience().scene!=self.id||!parts.scope.matches_original_plan(plan)
++            ||intent.public_video_warm_started.load(Ordering::Acquire)||intent.public_video_bridge_converted.load(Ordering::Acquire)
++            ||!parts.frozen.is_current() {return Err(StreamControlError::Authority);}
++        let target=plan.audience().controllers.get(&intent.request.admitted).and_then(Weak::upgrade).ok_or(StreamControlError::NotReady)?;
++        let _flight=target.inflight.clone().try_acquire_owned().map_err(|_|StreamControlError::MetadataBusy)?;
++        let credential=target.credential_snapshot();let state=target.state.try_lock().map_err(metadata_lock_error)?;
++        if state.closed||state.model.revision()!=plan.audience().expected[&target.connection] {return Err(MediaTransitionError::Conflict.into());}
++        // The explicit same-bridge capability is already verified above. ALL
++        // original target predicates stay intact; no legacy guard is cleared.
++        intent.validate_target_without_video_freeze_exact(&target,&state)?;
++        let source_port=parts.source.upgrade().ok_or(StreamControlError::NotReady)?;
++        let target_port=parts.target.upgrade().ok_or(StreamControlError::NotReady)?;
++        if !state.active.get(&parts.scope.target().logical_id).is_some_and(|current|Arc::ptr_eq(current,&target_port)) {return Err(StreamControlError::Authority);}
++        source_port.require_ticket(TicketSide::Ingress,&parts.source_ticket)?;target_port.require_ticket(TicketSide::Egress,&parts.target_ticket)?;
++        if !parts.original.is_current() {return Err(StreamControlError::NotReady);}
++        let gate=&target.direct_subscriptions;
++        let previous={let routing=gate.routing.try_lock().map_err(metadata_lock_error)?;
++            routing.preparation.get(&parts.scope.target().logical_id).filter(|route|route.bridge.as_ref().is_some_and(|bridge|Weak::ptr_eq(bridge,&Arc::downgrade(&parts.scope)))).cloned().ok_or(StreamControlError::Authority)?};
++        let deadline=deadline.min(parts.scope.deadline()).min(parts.frozen.deadline).min(StreamController::command_deadline(&credential.principal,deadline));
++        if cancel.is_cancelled()||tokio::time::Instant::now()>=deadline {return Err(StreamControlError::Deadline);}
++        // The bridge has actual prior IO, so every new owner failure MUST
++        // retire its token instead of raw Drop reopening an exposed peer.
++        let owner=Arc::new(WarmOwner {phase:AtomicU8::new(0),started:AtomicBool::new(false),witness:parts.ownership.original_witness(),original:Arc::downgrade(&intent),
++            frozen:parts.frozen,seal:Mutex::new(None),deadline,initial_authority_cutoff:OnceLock::new(),cancel:cancel.child_token(),exposed:AtomicBool::new(true)});
++        let scope=Arc::new(PostCutPublicVideoScope {submission_recorder_claimed:AtomicBool::new(false),submission:OnceLock::new(),owner:owner.weak_authority(),published:OnceLock::new(),
++            original:parts.scope.original_intent().clone(),conversation:target.conversation.clone(),session:target.session.clone(),source:parts.scope.source().clone(),
++            target:parts.scope.target().clone(),frontier:owner.frozen.frontier.clone()});
++        let until={let media=target.scope(&credential.principal,MediaPurpose::Receive {source:scope.source()});
++            let lease=target.policy.current_public_video_warm(&media,&scope,Some(held))?;
++            StreamController::check(&media,lease.authority())?;state.model.authorize_binding(&lease.authority().current())?;
++            if !lease.authority().may_route_source||!lease.authority().send_media.contains(&Medium::Video) {return Err(StreamControlError::Authority);}
++            StreamController::media_deadline(&credential.principal,lease.as_ref(),deadline)?};
++        owner.initial_authority_cutoff.set(until).map_err(|_|StreamControlError::Authority)?;
++        let route=Arc::new(Route {retire_on_drop:AtomicBool::new(false),feedback:previous.feedback.clone(),selection:previous.selection.clone(),ticket:previous.ticket.clone(),started:previous.started,
++            preparation:Some(PrerollBinding::for_public_warm(parts.original,identity,parts.source.clone(),parts.source_ticket.clone(),parts.target.clone(),parts.target_ticket.clone(),owner.cancel.clone(),until)),
++            post_cut:Some(scope),bridge:None});
++        let initial_picture=InitialPublicVideoPicture::from_route(gate,&route,parts.source,parts.source_ticket,parts.target,parts.target_ticket,parts.source_scene,parts.target_scene)?
++            .with_bridge_origin(parts.scope.clone())?;
++        let mut routing=gate.routing.try_lock().map_err(metadata_lock_error)?;
++        if !routing.preparation.get(&route.selection.receiver).is_some_and(|current|Arc::ptr_eq(current,&previous))
++            ||!routing.program.is_empty()||!withdrawal.is_current()||!parts.ownership.is_current()||!owner.current() {return Err(StreamControlError::Authority);}
++        target.check_credential_snapshot(&credential)?;current_control()?;
++        if tokio::time::Instant::now()>=until {return Err(StreamControlError::Deadline);}
++        // All fallible preparation is complete before this one-shot resource
++        // transfer. A failure after CAS remains terminal, never a fresh owner.
++        let mut owned=owner.seal.try_lock().map_err(metadata_lock_error)?;
++        intent.public_video_warm_started.compare_exchange(false,true,Ordering::AcqRel,Ordering::Acquire).map_err(|_|StreamControlError::NotReady)?;
++        *owned=Some(parts.ownership.take_bridge_seal_for_conversion(&target,&state)?);drop(owned);
++        // Same delivery root: old queued bridge stamps remain suspended under
++        // their original scope and can never borrow this new wrapper lifetime.
++        previous.retire_on_drop.store(false,Ordering::Release);route.retire_on_drop.store(true,Ordering::Release);
++        routing.preparation.insert(route.selection.receiver.clone(),route.clone());
++        intent.public_video_bridge_converted.store(true,Ordering::Release);withdrawal.transferred();
++        let mut routes=BTreeMap::new();routes.insert(route.selection.receiver.clone(),route);
++        Ok(PublicVideoWarmPreparation {owner,gate:Arc::downgrade(gate),routes,initial_picture})
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/initial_picture.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/initial_picture.rs
+@@ -5,6 +5,7 @@
+ 
+ pub(super) struct InitialPublicVideoPicture {
+     source:Weak<Port>,target:Weak<Port>,
++    bridge_origin:Option<Arc<PreCutPublicVideoBridgeScope>>,
+     source_ticket:PeerRouteTicket,target_ticket:PeerRouteTicket,
+     source_scene:Option<scene_consumer::SceneStamp>,
+     target_scene:Option<scene_consumer::SceneStamp>,
+@@ -145,6 +146,9 @@
+     pub fn keyframe_submission_recorder(&self,native_ssrc:u32,payload_type:u8)->ControlResult<super::PublicVideoKeyframeRecorder> {
+         super::PublicVideoKeyframeRecorder::from_start(self,native_ssrc,payload_type)
+     }
++    /// Exact historical Core bridge allocation. A converted start MUST move
++    /// this SAME live writer to scope(), never allocate/restart/take a queue.
++    pub fn pre_cut_bridge(&self)->Option<&PreCutPublicVideoBridgeScope> {self.original.bridge_origin.as_deref()}
+     pub fn target_port(&self)->&AdapterMediaPort {&self.target}
+     pub fn scope(&self)->&Arc<PostCutPublicVideoScope> {&self.scope}
+     pub fn deadline(&self)->tokio::time::Instant {self.deadline}
+@@ -193,8 +197,19 @@
+         target_port.require_ticket(TicketSide::Egress,&target_ticket)?;
+         let direct=DirectStamp {feedback:route.feedback.clone(),gate:Arc::downgrade(gate),
+             ticket:route.ticket.clone(),selection:route.selection.clone(),cancel:gate.cancel.clone(),
+-            preparation:route.preparation.clone(),post_cut:route.post_cut.clone()};
+-        Ok(Self {source,target,source_ticket,target_ticket,source_scene,target_scene,direct,attempted:AtomicU8::new(0),started:AtomicU8::new(0),recovery:AtomicU8::new(0),initial_completed:OnceLock::new()})
++            preparation:route.preparation.clone(),post_cut:route.post_cut.clone(),bridge:None};
++        Ok(Self {bridge_origin:None,source,target,source_ticket,target_ticket,source_scene,target_scene,direct,attempted:AtomicU8::new(0),started:AtomicU8::new(0),recovery:AtomicU8::new(0),initial_completed:OnceLock::new()})
++    }
++    pub(super) fn with_bridge_origin(mut self,bridge:Arc<PreCutPublicVideoBridgeScope>)->ControlResult<Self> {
++        let scope=self.direct.post_cut.as_ref().ok_or(StreamControlError::Authority)?;
++        if bridge.original_intent()!=scope.original_intent()||bridge.target()!=scope.target()
++            ||bridge.source().conversation!=scope.source().conversation||bridge.source().session!=scope.source().session
++            ||bridge.source().connection!=scope.source().connection||bridge.source().participant!=scope.source().participant
++            ||bridge.source().membership_epoch!=scope.source().membership_epoch||bridge.source().logical_id!=scope.source().logical_id
++            ||bridge.source().transport_id!=scope.source().transport_id||bridge.source().stream_generation!=scope.source().stream_generation
++            ||bridge.source().connection_generation!=scope.source().connection_generation
++            ||bridge.realm_incarnation()!=scope.frontier().realm_incarnation() {return Err(StreamControlError::Authority);}
++        self.bridge_origin=Some(bridge);Ok(self)
+     }
+     fn current(&self)->bool {
+         if !self.direct.is_current() {terminal_current_refusal(self,"current-direct-stamp","currentness-only-no-effect-proof");return false;}
+@@ -289,7 +304,10 @@
+                 // IO; no error/timeout/cancel can later yield a retry token.
+                 reservation.enter().inspect_err(|error|terminal_refusal(self,"invoke-once-CAS-refused","before-this-invocation-adapter-entry-prior-entry-possible",error))?;
+                 if kind==InvocationKind::Start {
+-                    callback_adapter.start_public_video_warm(&warm).await.inspect_err(|error|terminal_refusal(self,"invoke-warm-adapter-return","after-once-CAS-and-adapter-entry-effects-possible",error))?;
++                    let adopted=if self.bridge_origin.is_some() {
++                        callback_adapter.adopt_public_video_bridge(&warm).await
++                    } else {callback_adapter.start_public_video_warm(&warm).await};
++                    adopted.inspect_err(|error|terminal_refusal(self,"invoke-warm-adapter-return","after-once-CAS-and-adapter-entry-effects-possible",error))?;
+                     scope.owner.upgrade().ok_or_else(||{terminal_refusal(self,"invoke-owner-gone-after-adapter","after-adapter-success-effects-possible",&StreamControlError::Cancelled);StreamControlError::Cancelled})?.into_owner().started.store(true,Ordering::Release);
+                     Ok(true)
+                 }else {
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/submission.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/submission.rs
+@@ -51,13 +51,23 @@
+         if !start.is_current() || payload_type>=128 {return Err(StreamControlError::Authority);}
+         let scope=start.scope();let port=start.target_port();let binding=port.binding();
+         let physical=port.physical_video_exposure().ok_or(StreamControlError::Unsupported)?;
++        // The converted bridge has already fed exactly this private B
++        // writer. Only the sealed original start may account for those
++        // prior submissions. The legacy path still requires an unused B.
++        let valid_prior_exposure = match start.pre_cut_bridge() {
++            None => physical.maximum_potential_ordinal == 0,
++            Some(bridge) => physical.maximum_potential_ordinal > 0
++                && bridge.original_intent() == scope.original_intent()
++                && bridge.target() == scope.target()
++                && bridge.realm_incarnation() == scope.frontier().realm_incarnation(),
++        };
+         if binding.negotiated.requested.logical_id!=scope.target.logical_id
+             || binding.transport_id!=scope.target.transport_id
+             || binding.generation!=scope.target.stream_generation
+             || binding.connection_generation!=scope.target.connection_generation
+             || !physical.coverage_complete || physical.physical_family!=scope.target.physical_writer_incarnation
+             || physical.realm_incarnation!=Some(scope.frontier.realm_incarnation())
+-            || physical.maximum_potential_ordinal!=0 || physical.inherited_potential_ordinal!=0 {
++            || !valid_prior_exposure || physical.inherited_potential_ordinal!=0 {
+             return Err(StreamControlError::Authority);
+         }
+         scope.submission_recorder_claimed.compare_exchange(false,true,Ordering::AcqRel,Ordering::Acquire)
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public.rs
+@@ -11,6 +11,7 @@
+ use std::sync::{OnceLock,atomic::{AtomicBool,AtomicU8}};
+ use super::super::published_video_protection::{PendingProtection,PublishedVideoFloor};
+ mod adoption;
++mod bridge_conversion;
+ pub(in crate::staged_streams) use adoption::PublicVideoAdoption;
+ mod submission;
+ pub use submission::{PublicVideoKeyframeRecorder,PublicVideoKeyframeSubmission};
+@@ -114,6 +115,8 @@
+     pub fn source(&self)->&MediaSource {&self.source}
+     pub fn target(&self)->&PublicVideoWarmTarget {&self.target}
+     pub fn frontier(&self)->&FrozenOldVideoFrontier {&self.frontier}
++    /// SAME actual immutable Core-minted allocation; not current authority.
++    pub fn frontier_owner(&self)->&Arc<FrozenOldVideoFrontier> {&self.frontier}
+     pub fn is_published(&self)->bool {self.published.get().is_some()}
+     pub fn is_current(&self)->bool {
+         self.published.get().map_or_else(||self.owner.upgrade().is_some_and(|owner|owner.current()),PublishedVideoFloor::current)
+@@ -273,7 +276,7 @@
+         let until=StreamController::media_deadline(&credential.principal,lease.as_ref(),deadline)?;
+         if tokio::time::Instant::now()>=until {return Err(StreamControlError::Deadline);}
+         owner.initial_authority_cutoff.set(until).map_err(|_|StreamControlError::Authority)?;
+-        let route=Arc::new(Route {retire_on_drop:std::sync::atomic::AtomicBool::new(true),feedback:Arc::new(video_feedback::FeedbackCache::default()),selection,ticket:PeerRouteTicket::initial(),started:Instant::now(),preparation:Some(PrerollBinding::for_public_warm(original_selection,identity.clone(),source_weak.clone(),source_ticket.clone(),target_weak.clone(),target_ticket.clone(),owner.cancel.clone(),until)),post_cut:Some(scope)});
++        let route=Arc::new(Route {retire_on_drop:std::sync::atomic::AtomicBool::new(true),feedback:Arc::new(video_feedback::FeedbackCache::default()),selection,ticket:PeerRouteTicket::initial(),started:Instant::now(),preparation:Some(PrerollBinding::for_public_warm(original_selection,identity.clone(),source_weak.clone(),source_ticket.clone(),target_weak.clone(),target_ticket.clone(),owner.cancel.clone(),until)),post_cut:Some(scope),bridge:None});
+         // Metadata may refuse: construct BEFORE the one-shot publication flag
+         // or route insertion. No successful-delivery feedback epoch is issued.
+         let initial_picture=InitialPublicVideoPicture::from_route(
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/pre_cut_public_bridge.rs
+@@ -0,0 +1,290 @@
++//! Current PUBLIC-programme-only private candidate route before F. Never
++//! private A, ordinary public publication, a fabricated F or a decoded lease.
++use super::*;
++use crate::participant_transitions::ParticipantReplacementMutation;
++use crate::orchestrator::participant_control::replacement::ReplacementPreparationIdentity;
++use crate::staged_streams::public_video_reservation::PreCutPublicVideoBridgeOwnership;
++use std::sync::atomic::AtomicBool;
++
++// Preserve the SAME strong resource allocation while keeping the typed
++// preparation/runtime graph out of packet Scope auto-trait obligations.
++// Sole private implementation; no new allocation or public authority factory.
++trait BridgeResource:Send+Sync {
++    fn is_current(&self)->bool;
++    fn close(&self);
++    fn into_ownership(self:Arc<Self>)->Arc<PreCutPublicVideoBridgeOwnership>;
++}
++impl BridgeResource for PreCutPublicVideoBridgeOwnership {
++    fn is_current(&self)->bool {PreCutPublicVideoBridgeOwnership::is_current(self)}
++    fn close(&self) {PreCutPublicVideoBridgeOwnership::close(self)}
++    fn into_ownership(self:Arc<Self>)->Arc<PreCutPublicVideoBridgeOwnership> {self}
++}
++/// Opaque exact original candidate source and receiving resource. Root must
++/// retain this Arc before any native egress start. Routes keep Weak only.
++/// This context grants neither IO nor readiness; every original attempt uses
++/// the separate current_pre_cut_public_video_bridge policy hook below.
++pub struct PreCutPublicVideoBridgeScope {
++    resource:Arc<dyn BridgeResource>,
++    original:ParticipantReplacementMutation,conversation:ConversationId,session:SessionId,
++    source:MediaSource,target:PublicVideoWarmTarget,realm:u128,
++    original_selection:DirectStamp,source_port:Weak<Port>,source_ticket:PeerRouteTicket,
++    target_port:Weak<Port>,target_ticket:PeerRouteTicket,
++    old_scene:Option<scene_consumer::SceneStamp>,source_scene:Option<scene_consumer::SceneStamp>,target_scene:Option<scene_consumer::SceneStamp>,
++    gate:Weak<DirectGate>,deadline:tokio::time::Instant,cancel:CancellationToken,
++    withdrawal:std::sync::atomic::AtomicU8,original_plan:Weak<dyn Any+Send+Sync>,
++    closed:AtomicBool,installed:AtomicBool,installed_ticket:std::sync::OnceLock<PeerRouteTicket>,
++}
++impl PreCutPublicVideoBridgeScope {
++    pub(in crate::staged_streams) fn matches_original_plan_intent(&self,intent:&Arc<device_replacement::ReplacementIntent>)->bool {
++        std::ptr::eq(self.original_plan.as_ptr() as *const (),Arc::as_ptr(intent) as *const ())
++    }
++    pub fn matches_original_plan(&self,plan:&device_replacement::AudioDeviceReplacementPlan)->bool {
++        plan.audience().replacement.as_ref().is_some_and(|intent|
++            std::ptr::eq(self.original_plan.as_ptr() as *const (),Arc::as_ptr(intent) as *const ()))
++    }
++    pub(crate) fn ownership_for_withdrawal(&self,plan:&device_replacement::AudioDeviceReplacementPlan,identity:&ReplacementPreparationIdentity)->ControlResult<Arc<PreCutPublicVideoBridgeOwnership>> {
++        if !self.matches_original_plan(plan)||!self.is_current() {return Err(StreamControlError::Authority);}
++        let ownership=self.resource.clone().into_ownership();ownership.require_plan(plan,identity)?;Ok(ownership)
++    }
++    /// Only an actual original freeze pin with ALL original controller flights
++    /// may use this after OLD EGRESS becomes paused. The original selection
++    /// was current at pin capture and no structural writer can change it.
++    pub(crate) fn withdrawal_metadata_current(&self)->bool {
++        !self.closed.load(Ordering::Acquire)&&!self.cancel.is_cancelled()
++            &&tokio::time::Instant::now()<self.deadline&&self.resource.is_current()
++            &&self.source_ticket.is_active()&&self.target_ticket.is_active()
++            &&self.installed.load(Ordering::Acquire)&&self.installed_ticket.get().is_some_and(PeerRouteTicket::is_active)
++            &&self.source_port.upgrade().is_some_and(|port|!port.terminal_requested())
++            &&self.target_port.upgrade().is_some_and(|port|!port.terminal_requested())
++            &&[&self.old_scene,&self.source_scene,&self.target_scene].into_iter().flatten().all(|scene|!scene.cancel.is_cancelled())
++            &&self.withdrawal.load(Ordering::Acquire)<3
++    }
++    pub(crate) fn withdrawal_started(&self)->bool {self.withdrawal.load(Ordering::Acquire)!=0}
++    pub(crate) fn begin_withdrawal(&self)->ControlResult<()> {
++        if !self.is_current() {return Err(StreamControlError::NotReady);}
++        self.withdrawal.compare_exchange(0,1,Ordering::AcqRel,Ordering::Acquire).map_err(|_|StreamControlError::NotReady)?;Ok(())
++    }
++    pub(in crate::staged_streams) fn finish_withdrawal(self:&Arc<Self>,plan:&device_replacement::AudioDeviceReplacementPlan,
++        frozen:crate::staged_streams::old_video_freeze::FrozenVideoWarmWitness)->ControlResult<PreCutPublicVideoBridgeWithdrawal> {
++        if !self.matches_original_plan(plan)||!self.withdrawal_metadata_current()||!frozen.is_current()
++            ||self.withdrawal.load(Ordering::Acquire)!=1||frozen.frontier.realm_incarnation()!=self.realm
++            ||frozen.frontier.operation_id()!=self.original.operation_id
++            ||frozen.frontier.source_connection()!=&self.original.source
++            ||frozen.frontier.target_connection()!=&self.original.replacement {return Err(StreamControlError::Authority);}
++        self.withdrawal.store(2,Ordering::Release);
++        Ok(PreCutPublicVideoBridgeWithdrawal {scope:self.clone(),frozen,transferred:AtomicBool::new(false)})
++    }
++    pub fn matches_ownership(&self,ownership:&Arc<PreCutPublicVideoBridgeOwnership>)->bool {
++        std::ptr::eq(Arc::as_ptr(&self.resource) as *const (),Arc::as_ptr(ownership) as *const ())
++    }
++    pub fn original_intent(&self)->&ParticipantReplacementMutation {&self.original}
++    pub fn conversation(&self)->&ConversationId {&self.conversation}
++    pub fn session(&self)->&SessionId {&self.session}
++    pub fn source(&self)->&MediaSource {&self.source}
++    pub fn target(&self)->&PublicVideoWarmTarget {&self.target}
++    pub fn realm_incarnation(&self)->u128 {self.realm}
++    pub fn deadline(&self)->tokio::time::Instant {self.deadline}
++    pub fn cancellation(&self)->CancellationToken {self.cancel.clone()}
++    /// Checked original resource metadata for controlled native setup only.
++    /// This returns no raw peer/track and grants no packet delivery permission;
++    /// Scope/Port/root/current policy MUST be rechecked after every native await.
++    pub fn target_port(&self)->ControlResult<AdapterMediaPort> {
++        if !self.installed.load(Ordering::Acquire)||!self.is_current() {return Err(StreamControlError::NotReady);}
++        let port=self.target_port.upgrade().ok_or(StreamControlError::Cancelled)?;
++        port.require_ticket(TicketSide::Egress,&self.target_ticket)?;
++        let binding=&port.binding;
++        if binding.negotiated.requested.logical_id!=self.target.logical_id||binding.transport_id!=self.target.transport_id
++            ||binding.generation!=self.target.stream_generation||binding.connection_generation!=self.target.connection_generation {
++            return Err(StreamControlError::Authority);
++        }
++        let port=AdapterMediaPort(port);
++        let physical=port.physical_video_exposure().ok_or(StreamControlError::Unsupported)?;
++        if !physical.coverage_complete||physical.realm_incarnation!=Some(self.realm)
++            ||physical.physical_family!=self.target.physical_writer_incarnation {return Err(StreamControlError::Authority);}
++        Ok(port)
++    }
++    /// Nonblocking exact lifetime metadata, safe inside held policy callbacks.
++    /// This deliberately has NO F and cannot stand in for a current grant.
++    pub fn is_current(&self)->bool {
++        !self.closed.load(Ordering::Acquire)&&!self.cancel.is_cancelled()
++            &&self.withdrawal.load(Ordering::Acquire)==0
++            &&tokio::time::Instant::now()<self.deadline&&self.resource.is_current()
++            &&self.original_selection.is_current()&&self.source_ticket.is_active()&&self.target_ticket.is_active()
++            &&(!self.installed.load(Ordering::Acquire)||self.installed_ticket.get().is_some_and(PeerRouteTicket::is_active))
++            &&self.source_port.upgrade().is_some_and(|port|!port.terminal_requested())
++            &&self.target_port.upgrade().is_some_and(|port|!port.terminal_requested())
++            &&[&self.old_scene,&self.source_scene,&self.target_scene].into_iter().flatten().all(|scene|!scene.cancel.is_cancelled())
++    }
++    pub(crate) fn require_original_frame(&self,original:Option<&Arc<OriginalVideoFrame>>)->ControlResult<()> {
++        if !self.installed.load(Ordering::Acquire)||!self.is_current() {return Err(StreamControlError::NotReady);}
++        // A later bridge may originate from an already published B. Preserve
++        // that receiver's prior permanent floor; pre-F here means only that no
++        // NEW cut has been taken, never that an inherited cut disappears.
++        if let Some(prior)=self.original_selection.post_cut.as_ref() {prior.require_original_frame(original)?;}
++        let point=original.and_then(|frame|frame.frame_realm()).ok_or(StreamControlError::Unsupported)?;
++        if point.incarnation()!=self.realm {return Err(StreamControlError::Authority);}
++        // Pre-F candidate context deliberately has no ordinal floor. Existing
++        // post-F checks are unchanged and are NEVER replaced by this branch.
++        Ok(())
++    }
++    /// Idempotent route cancellation, not a native join/no-write receipt.
++    /// Readers/roles must be released before physical whole-candidate cleanup.
++    pub fn close(&self) {
++        if self.closed.swap(true,Ordering::AcqRel) {return;}
++        self.withdrawal.store(3,Ordering::Release);
++        self.cancel.cancel();
++        if let Some(gate)=self.gate.upgrade() {
++            if let Ok(mut routing)=gate.routing.try_lock() {
++                let same=routing.preparation.get(&self.target.logical_id)
++                    .and_then(|route|route.bridge.as_ref()).is_some_and(|scope|std::ptr::eq(scope.as_ptr(),self));
++                if same {routing.preparation.remove(&self.target.logical_id);}
++            }
++        }
++        // A busy metadata map may retain a dead/cancelled Weak route until
++        // original target cleanup. It can never fall back to ordinary Receive.
++        if self.installed.load(Ordering::Acquire) {self.resource.close();}
++    }
++}
++impl Drop for PreCutPublicVideoBridgeScope {fn drop(&mut self){self.close();}}
++
++/// SAME actual B resource/route and actual Core-minted OLD frontier, after
++/// successful late withdrawal. This owner grants no post-F IO, readiness or
++/// public release. Legacy Commit stays blocked until exact same-writer
++/// conversion installs a W3 adoption. That conversion preserves original
++/// selection/tickets while replacing the suspended bridge wrapper lifetime.
++pub struct PreCutPublicVideoBridgeWithdrawal {
++    scope:Arc<PreCutPublicVideoBridgeScope>,
++    frozen:crate::staged_streams::old_video_freeze::FrozenVideoWarmWitness,transferred:AtomicBool,
++}
++impl PreCutPublicVideoBridgeWithdrawal {
++    pub(super) fn conversion_parts(&self,plan:&device_replacement::AudioDeviceReplacementPlan,identity:&ReplacementPreparationIdentity)->ControlResult<BridgeConversionParts> {
++        if self.transferred.load(Ordering::Acquire)||!self.is_current()||!self.scope.matches_original_plan(plan) {return Err(StreamControlError::Authority);}
++        let ownership=self.scope.resource.clone().into_ownership();ownership.require_plan(plan,identity)?;
++        Ok(BridgeConversionParts {scope:self.scope.clone(),ownership,frozen:self.frozen.clone(),original:self.scope.original_selection.clone(),
++            source:self.scope.source_port.clone(),source_ticket:self.scope.source_ticket.clone(),target:self.scope.target_port.clone(),target_ticket:self.scope.target_ticket.clone(),
++            source_scene:self.scope.source_scene.clone(),target_scene:self.scope.target_scene.clone()})
++    }
++    pub(super) fn transferred(&self) {self.transferred.store(true,Ordering::Release);}
++    pub fn frontier(&self)->&crate::staged_streams::old_video_freeze::FrozenOldVideoFrontier {&self.frozen.frontier}
++    pub fn frontier_owner(&self)->&Arc<crate::staged_streams::old_video_freeze::FrozenOldVideoFrontier> {&self.frozen.frontier}
++    pub fn bridge(&self)->&Arc<PreCutPublicVideoBridgeScope> {&self.scope}
++    pub fn is_current(&self)->bool {!self.transferred.load(Ordering::Acquire)&&self.scope.withdrawal.load(Ordering::Acquire)==2&&self.scope.withdrawal_metadata_current()&&self.frozen.is_current()}
++    pub fn close(&self) {self.scope.close();}
++}
++impl Drop for PreCutPublicVideoBridgeWithdrawal {fn drop(&mut self){if !self.transferred.load(Ordering::Acquire){self.close();}}}
++
++impl media_scene::GuardedMediaScene {
++    pub(crate) fn prepare_pre_cut_public_video_bridge(
++        &self,plan:&device_replacement::AudioDeviceReplacementPlan,
++        original:&ParticipantReplacementMutation,identity:ReplacementPreparationIdentity,
++        ownership:&Arc<PreCutPublicVideoBridgeOwnership>,deadline:tokio::time::Instant,
++        held:&(dyn Any+Send+Sync),original_control:&(dyn Fn()->ControlResult<()>+Send+Sync),
++    )->ControlResult<Arc<PreCutPublicVideoBridgeScope>> {
++        original_control()?;ownership.validate_current()?;ownership.require_plan(plan,&identity)?;
++        let audience=plan.audience();let intent=audience.replacement.as_ref().ok_or(StreamControlError::Authority)?;
++        if audience.scene!=self.id || !self.old_video_freeze_unstarted(plan)
++            || intent.private_consultation_parent().is_some() || !audience.group.origins.is_empty()
++            || ownership.original_intent()!=original {return Err(StreamControlError::Authority);}
++        let old=audience.controllers.get(&intent.request.source).and_then(Weak::upgrade).ok_or(StreamControlError::NotReady)?;
++        let target=audience.controllers.get(&intent.request.admitted).and_then(Weak::upgrade).ok_or(StreamControlError::NotReady)?;
++        if Arc::ptr_eq(&old,&target)||!Arc::ptr_eq(&old.policy,&target.policy)
++            || !identity.matches_scope(&target.conversation,&target.session,ownership.realm_incarnation()) {return Err(StreamControlError::Authority);}
++        let video=intent.video.as_ref().ok_or(StreamControlError::Unsupported)?;
++        if video.incoming.len()!=1 {return Err(StreamControlError::Unsupported);}
++        let request=intent.request.video.as_ref().ok_or(StreamControlError::Unsupported)?;
++        let selection=video.incoming[0].clone();validate(&DirectSubscriptionChange::Subscribe(vec![selection.clone()]))?;
++        let publisher=selection.publisher().ok_or(StreamControlError::NotReady)?;
++        // A candidate's own still-unpublished/muted camera is not a current
++        // public-programme source grant. It needs a distinct publication path.
++        if Arc::ptr_eq(&publisher,&target) {return Err(StreamControlError::Unsupported);}
++        if publisher.conversation!=target.conversation||publisher.session!=target.session||!Arc::ptr_eq(&publisher.policy,&target.policy) {
++            return Err(StreamControlError::Authority);
++        }
++        {
++            let members=self.members.try_lock().map_err(metadata_lock_error)?;
++            for controller in [&old,&publisher,&target] {
++                if members.get(&controller.connection).is_none_or(|member|!Arc::ptr_eq(&member.controller,controller)) {
++                    return Err(StreamControlError::Authority);
++                }
++            }
++        }
++        let previous=request.receivers.iter().find(|mapping|mapping.replacement==selection.receiver).ok_or(StreamControlError::Authority)?;
++        let original_selection=old.direct_subscriptions.try_private_stamp(&publisher,&selection.source.logical,&previous.previous,Instant::now())?
++            .ok_or(StreamControlError::MetadataBusy)?;
++        if original_selection.preparation.is_some()||original_selection.bridge.is_some()
++            ||original_selection.post_cut.as_ref().is_some_and(|scope|!scope.is_published()||!scope.is_current()) {return Err(StreamControlError::Authority);}
++        if original_selection.post_cut.as_ref().is_some_and(|scope|scope.frontier().realm_incarnation()!=ownership.realm_incarnation()) {
++            return Err(StreamControlError::Unsupported);
++        }
++        let _flight = target.inflight.clone().try_acquire_owned().map_err(|error| match error {
++            tokio::sync::TryAcquireError::NoPermits => StreamControlError::MetadataBusy,
++            tokio::sync::TryAcquireError::Closed => StreamControlError::Cancelled,
++        })?;
++        let credential=target.credential_snapshot();
++        let state=target.state.try_lock().map_err(metadata_lock_error)?;
++        let source_state=publisher.state.try_lock().map_err(metadata_lock_error)?;
++        let source_port=StreamController::direct_port(&source_state,&selection.source.logical)?;
++        let target_port=StreamController::direct_port(&state,&selection.receiver)?;
++        let binding=&target_port.binding;
++        if !ownership.matches_target_port(target_port)||state.closed
++            ||binding.negotiated.requested.medium!=Medium::Video||source_port.binding.negotiated.requested.medium!=Medium::Video
++            ||binding.negotiated.requested.direction!=StreamDirection::Send||!binding.sink_ready||!source_port.binding.source_ready
++            ||source_port.binding.negotiated.format!=binding.negotiated.format
++            ||!matches!(&binding.negotiated.format,MediaFormat::Encoded {name,clock_rate_hz:90000,channels:0,fmtp}
++                if name.eq_ignore_ascii_case("vp8")&&fmtp.as_ref().is_none_or(|value|value.is_empty())) {return Err(StreamControlError::Unsupported);}
++        let source=MediaSource {conversation:publisher.conversation.clone(),session:publisher.session.clone(),connection:publisher.connection.clone(),
++            participant:publisher.origin_member.participant().clone(),membership_epoch:publisher.origin_member.epoch(),
++            connection_generation:source_port.binding.connection_generation,logical_id:selection.source.logical.clone(),
++            transport_id:source_port.binding.transport_id.clone(),stream_generation:source_port.binding.generation};
++        let source_weak=Arc::downgrade(source_port);let source_ticket=source_port.ticket(TicketSide::Ingress);
++        let target_weak=Arc::downgrade(target_port);let target_ticket=target_port.ticket(TicketSide::Egress);
++        drop(source_state);
++        let deadline=deadline.min(ownership.deadline()).min(StreamController::command_deadline(&credential.principal,deadline));
++        if tokio::time::Instant::now()>=deadline {return Err(StreamControlError::Deadline);}
++        let resource:Arc<dyn BridgeResource>=ownership.clone();
++        let opaque_plan:Arc<dyn Any+Send+Sync>=intent.clone();
++        let original_plan=Arc::downgrade(&opaque_plan);drop(opaque_plan);
++        let mut scope=Arc::new(PreCutPublicVideoBridgeScope {resource,original:original.clone(),conversation:target.conversation.clone(),session:target.session.clone(),source,
++            target:ownership.target().clone(),realm:ownership.realm_incarnation(),original_selection:original_selection.clone(),
++            source_port:source_weak.clone(),source_ticket:source_ticket.clone(),target_port:target_weak.clone(),target_ticket:target_ticket.clone(),
++            old_scene:old.current_scene_stamp()?,source_scene:publisher.current_scene_stamp()?,target_scene:target.current_scene_stamp()?,gate:Arc::downgrade(&target.direct_subscriptions),
++            deadline,cancel:ownership.cancellation(),withdrawal:std::sync::atomic::AtomicU8::new(0),original_plan,closed:AtomicBool::new(false),installed:AtomicBool::new(false),installed_ticket:std::sync::OnceLock::new()});
++        let until={
++            let media_scope=target.scope(&credential.principal,MediaPurpose::Receive {source:scope.source()});
++            let lease=target.policy.current_pre_cut_public_video_bridge(&media_scope,&scope,Some(held))?;
++            StreamController::check(&media_scope,lease.authority())?;state.model.authorize_binding(&lease.authority().current())?;
++            if !lease.authority().may_route_source||!lease.authority().send_media.contains(&Medium::Video) {return Err(StreamControlError::Authority);}
++            StreamController::media_deadline(&credential.principal,lease.as_ref(),deadline)?
++        };
++        // The Scope has not escaped or entered a route; install the earliest
++        // actual grant bound without acquiring another budget/owner.
++        Arc::get_mut(&mut scope).ok_or(StreamControlError::Authority)?.deadline=until;
++        let route=Arc::new(Route {retire_on_drop:AtomicBool::new(true),feedback:Arc::new(video_feedback::FeedbackCache::default()),selection,
++            ticket:PeerRouteTicket::initial(),started:Instant::now(),preparation:Some(PrerollBinding::for_public_bridge(original_selection,identity.clone(),
++                source_weak,source_ticket,target_weak,target_ticket,scope.cancel.clone(),until)),post_cut:None,bridge:Some(Arc::downgrade(&scope))});
++        let mut routing=target.direct_subscriptions.routing.try_lock().map_err(metadata_lock_error)?;
++        if !routing.program.is_empty()||routing.preparation.contains_key(&route.selection.receiver)
++            ||routing.preparation.values().any(|route|route.post_cut.is_some()||route.bridge.is_some()
++                ||route.preparation.as_ref().is_none_or(|binding|!binding.belongs_to_preparation(&identity))) {
++            return Err(StreamControlError::Authority);
++        }
++        target.check_credential_snapshot(&credential)?;original_control()?;
++        if !scope.is_current()||tokio::time::Instant::now()>=until {return Err(StreamControlError::NotReady);}
++        scope.installed_ticket.set(route.ticket.clone()).map_err(|_|StreamControlError::Authority)?;
++        ownership.mark_route_installed()?;
++        scope.installed.store(true,Ordering::Release);
++        routing.preparation.insert(route.selection.receiver.clone(),route);
++        Ok(scope)
++    }
++}
++
++// Cold same-original metadata only. This is not a public custody constructor.
++pub(super) struct BridgeConversionParts {
++    pub(super) scope:Arc<PreCutPublicVideoBridgeScope>,
++    pub(super) ownership:Arc<PreCutPublicVideoBridgeOwnership>,
++    pub(super) frozen:crate::staged_streams::old_video_freeze::FrozenVideoWarmWitness,
++    pub(super) original:DirectStamp,
++    pub(super) source:Weak<Port>,pub(super) source_ticket:PeerRouteTicket,
++    pub(super) target:Weak<Port>,pub(super) target_ticket:PeerRouteTicket,
++    pub(super) source_scene:Option<scene_consumer::SceneStamp>,pub(super) target_scene:Option<scene_consumer::SceneStamp>,
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/preroll.rs
+@@ -33,6 +33,13 @@
+         cancel:CancellationToken,deadline:tokio::time::Instant,
+     )->Arc<Self> {
+         Arc::new(Self {original_preparation:Some(identity),original,delivery:Arc::new(delivery::Counters::default()),source,source_ticket,target,target_ticket,cancel,deadline})
++    }
++    pub(super) fn for_public_bridge(
++        original:DirectStamp,identity:crate::orchestrator::participant_control::replacement::ReplacementPreparationIdentity,
++        source:Weak<Port>,source_ticket:PeerRouteTicket,target:Weak<Port>,target_ticket:PeerRouteTicket,
++        cancel:CancellationToken,deadline:tokio::time::Instant,
++    )->Arc<Self> {
++        Self::for_public_warm(original,identity,source,source_ticket,target,target_ticket,cancel,deadline)
+     }
+     pub(super) fn belongs_to_preparation(&self,original:&crate::orchestrator::participant_control::replacement::ReplacementPreparationIdentity)->bool {
+         self.original_preparation.as_ref().is_some_and(|identity|identity.same(original))
+@@ -336,6 +343,7 @@
+                     ticket: PeerRouteTicket::initial(),
+                     started: Instant::now(),
+                     post_cut:None,
++                    bridge:None,
+                     preparation: Some(Arc::new(PrerollBinding {
+                         original_preparation:lifetime.original_identity(),
+                         original,
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -6,6 +6,8 @@
+ pub(super) mod preparation_metadata;
+ mod preroll;
+ mod post_cut_public;
++mod pre_cut_public_bridge;
++pub use pre_cut_public_bridge::{PreCutPublicVideoBridgeScope,PreCutPublicVideoBridgeWithdrawal};
+ pub(super) use post_cut_public::PublicVideoAdoption;
+ pub(super) mod restore_sources;
+ pub use post_cut_public::{PublicVideoKeyframeRecorder,PublicVideoKeyframeSubmission,PublicVideoWarmStart,PublicVideoWarmInvocation,PublicVideoWarmRetry,InitialVideoPictureRequest,PostCutPublicVideoScope,PublicVideoWarmPreparation,PublicVideoWarmTarget};
+@@ -90,6 +92,7 @@
+     started: Instant,
+     preparation: Option<Arc<PrerollBinding>>,
+     post_cut:Option<Arc<PostCutPublicVideoScope>>,
++    bridge:Option<Weak<PreCutPublicVideoBridgeScope>>,
+ }
+ impl Drop for Route {
+     fn drop(&mut self) {
+@@ -192,6 +195,7 @@
+                     && r.ticket.is_current()
+                     && r.preparation.as_ref().is_none_or(|p| p.is_current())
+                     && r.post_cut.as_ref().is_none_or(|p|p.is_current())
++                    && r.bridge.as_ref().is_none_or(|scope|scope.upgrade().is_some_and(|scope|scope.is_current()))
+                     && !self.cancel.is_cancelled()
+             })
+             .map(|(id, _)| id.clone())
+@@ -216,6 +220,7 @@
+                         && r.ticket.is_current()
+                         && r.preparation.as_ref().is_none_or(|p| p.is_current())
+                     && r.post_cut.as_ref().is_none_or(|p|p.is_current())
++                    && r.bridge.as_ref().is_none_or(|scope|scope.upgrade().is_some_and(|scope|scope.is_current()))
+                 })
+     }
+     pub(super) fn stamp(
+@@ -272,6 +277,7 @@
+             cancel: self.cancel.clone(),
+             preparation: selection.preparation.clone(),
+             post_cut:selection.post_cut.clone(),
++            bridge:selection.bridge.clone(),
+         })
+     }
+ }
+@@ -298,6 +304,7 @@
+     pub(super) cancel: CancellationToken,
+     preparation: Option<Arc<PrerollBinding>>,
+     pub(super) post_cut:Option<Arc<PostCutPublicVideoScope>>,
++    pub(super) bridge:Option<Weak<PreCutPublicVideoBridgeScope>>,
+ }
+ impl DirectStamp {
+     pub(super) fn cut_tickets(&self)->Vec<PeerRouteTicket> {
+@@ -309,9 +316,11 @@
+         self.gate.strong_count()!=0&&!self.cancel.is_cancelled()&&tickets.is_current(&self.ticket)
+             &&(self.post_cut.as_ref().is_some_and(|scope|scope.is_published())||self.preparation.as_ref().is_none_or(|binding|binding.current_cut(tickets)))
+             &&self.post_cut.as_ref().is_none_or(|scope|scope.current_cut(tickets))
++            &&self.bridge.is_none()
+     }
+ 
+     pub(super) fn delivery_counters(&self) -> Option<Arc<delivery::Counters>> {
++        if self.bridge.is_some() {return None;}
+         if self.post_cut.is_some() {return None;}
+         self.preparation.as_ref().map(|p| p.delivery.clone())
+     }
+@@ -322,6 +331,7 @@
+             && self.ticket.is_current()
+             && (self.post_cut.as_ref().is_some_and(|scope|scope.is_published()) || self.preparation.as_ref().is_none_or(|p| p.is_current()))
+             && self.post_cut.as_ref().is_none_or(|p|p.is_current())
++            && self.bridge.as_ref().is_none_or(|scope|scope.upgrade().is_some_and(|scope|scope.is_current()))
+     }
+ 
+     pub(super) fn delivery_ticket(&self) -> PeerRouteTicket {
+@@ -717,6 +727,10 @@
+         let routing = super::control_metadata::try_lock(&self.direct_subscriptions.routing)?;
+         let old = routing.program.clone();
+         let private = routing.preparation.clone();
++        if matches!(change,DirectSubscriptionChange::Subscribe(items)
++            if items.iter().any(|item|private.get(&item.receiver).is_some_and(|route|route.bridge.is_some()))) {
++            return Err(StreamControlError::Unsupported);
++        }
+         let mut program = old
+             .iter()
+             .map(|(id, r)| (id.clone(), r.selection.clone()))
+@@ -977,6 +991,7 @@
+                             started,
+                             preparation: None,
+                             post_cut,
++                            bridge:None,
+                         }),
+                     );
+                 }
+@@ -1039,6 +1054,7 @@
+                             started,
+                             preparation: None,
+                             post_cut,
++                            bridge:None,
+                         }),
+                     );
+                 }
+--- a/crates/foundation/rvoip-core/src/staged_streams/old_video_freeze/cold_receipt.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/old_video_freeze/cold_receipt.rs
+@@ -7,6 +7,7 @@
+ }
+ pub(crate) struct FreezeStructuralPin<'a> {
+     scene:&'a media_scene::GuardedMediaScene,epoch:u64,
++    bridge:Option<Arc<direct_subscriptions::PreCutPublicVideoBridgeScope>>,
+     intent:Arc<device_replacement::ReplacementIntent>,members:Vec<MemberPin>,old:usize,
+     // Strong original controller Arcs accompany these exact owned permits.
+     // No map/model/Port/role guard or authority lease crosses the drain await.
+@@ -27,8 +28,15 @@
+             }
+         }
+         let target=self.members.iter().find(|member|member.controller.connection==self.intent.request.admitted).ok_or(StreamControlError::Authority)?;
+-        self.intent.freeze_pin_current(&target.controller,&target.state)?;
++        if let Some(bridge)=&self.bridge {
++            if !bridge.matches_original_plan_intent(&self.intent)||!bridge.withdrawal_metadata_current() {return Err(StreamControlError::NotReady);}
++            self.intent.freeze_pin_current_exact(&target.controller,&target.state)?;
++        } else {self.intent.freeze_pin_current(&target.controller,&target.state)?;}
+         if !self.scene.structural_epoch.unchanged(self.epoch) {return Err(MediaTransitionError::Conflict.into());}
++        Ok(())
++    }
++    pub(crate) fn begin_bridge_withdrawal(&self)->ControlResult<()> {
++        if let Some(bridge)=&self.bridge {bridge.begin_withdrawal()?;}
+         Ok(())
+     }
+     pub(crate) fn old(&self)->&Arc<StreamController> {&self.members[self.old].controller}
+@@ -64,6 +72,18 @@
+ impl media_scene::GuardedMediaScene {
+     pub(crate) fn capture_freeze_structure(&self,plan:&device_replacement::AudioDeviceReplacementPlan)
+         ->ControlResult<(FreezeStructuralPin<'_>,OwnedSemaphorePermit)> {
++        self.capture_freeze_structure_inner(plan,None)
++    }
++    pub(crate) fn capture_bridge_freeze_structure(&self,plan:&device_replacement::AudioDeviceReplacementPlan,
++        bridge:&Arc<direct_subscriptions::PreCutPublicVideoBridgeScope>,
++    )->ControlResult<(FreezeStructuralPin<'_>,OwnedSemaphorePermit)> {
++        if !bridge.matches_original_plan(plan)||!bridge.is_current() {return Err(StreamControlError::Authority);}
++        self.capture_freeze_structure_inner(plan,Some(bridge.clone()))
++    }
++    fn capture_freeze_structure_inner(&self,plan:&device_replacement::AudioDeviceReplacementPlan,
++        bridge:Option<Arc<direct_subscriptions::PreCutPublicVideoBridgeScope>>,
++    )->ControlResult<(FreezeStructuralPin<'_>,OwnedSemaphorePermit)> {
++        if bridge.as_ref().is_some_and(|scope|!scope.matches_original_plan(plan)||!scope.is_current()) {return Err(StreamControlError::Authority);}
+         let plan=plan.audience();
+         let intent=plan.replacement.as_ref().ok_or(StreamControlError::Authority)?.clone();
+         if intent.private_consultation_parent().is_some() || !plan.group.origins.is_empty() || intent.video.is_none() {
+@@ -92,7 +112,8 @@
+             }
+             // Full original predicates under actual guards. Later validation
+             // uses exclusion plus early invalidation, never notification hints.
+-            intent.validate_target_without_video_freeze(controller,state)?;
++            if bridge.is_some() {intent.validate_target_without_video_freeze_exact(controller,state)?;}
++            else {intent.validate_target_without_video_freeze(controller,state)?;}
+             captured.push(MemberPin {controller:controller.clone(),state:state.control_metadata_snapshot(),
+                 credential:controller.credential_snapshot(),scene_cancel:member.control_view().consumer.cancel.clone(),
+                 audio_cancel:member.audio_consumer.stamp().cancellation,
+@@ -103,7 +124,7 @@
+         // Every snapshot is coherent before releasing any original guard.
+         drop(states);drop(registry);drop(members);
+         let old_flight=flights[old].take().ok_or(StreamControlError::Authority)?;
+-        let pin=FreezeStructuralPin {scene:self,epoch,intent,members:captured,old,
++        let pin=FreezeStructuralPin {scene:self,epoch,bridge,intent,members:captured,old,
+             _other_flights:flights.into_iter().flatten().collect()};
+         pin.validate()?;
+         Ok((pin,old_flight))
+--- a/crates/foundation/rvoip-core/src/staged_streams/old_video_freeze.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/old_video_freeze.rs
+@@ -426,6 +426,16 @@
+         let hook=intent.video_freeze.after_frozen.lock().expect("original test hook mutex").take();
+         // Every slot guard is released BEFORE the one-shot real-State holder.
+         if let Some(hook)=hook {hook(frontier);}
++    }
++    pub(crate) fn finish_pre_cut_bridge_withdrawal(
++        &self,
++        plan: &device_replacement::AudioDeviceReplacementPlan,
++        bridge: &Arc<super::direct_subscriptions::PreCutPublicVideoBridgeScope>,
++    ) -> ControlResult<super::direct_subscriptions::PreCutPublicVideoBridgeWithdrawal> {
++        if plan.audience().scene != self.id { return Err(StreamControlError::Authority); }
++        let intent = plan.audience().replacement.as_ref().ok_or(StreamControlError::Authority)?;
++        let frozen = intent.video_freeze.warm_witness(intent)?;
++        bridge.finish_withdrawal(plan, frozen)
+     }
+     pub(crate) fn old_video_freeze_unstarted(&self,plan:&device_replacement::AudioDeviceReplacementPlan)->bool {
+         let audience=plan.audience();
+@@ -544,6 +554,10 @@
+         // Effect-free setup/capability collisions never consume the one-shot
+         // slot. The already-held old flight prevents publication/rebind here.
+         let attempt=intent.video_freeze.begin()?;
++        // This exact bridge is suspended only AFTER every known metadata /
++        // capability preflight and the original one-shot slot claim. No new B
++        // IO may begin through the old selection while OLD is being drained.
++        pin.begin_bridge_withdrawal()?;
+         let mut owned=HeldOldVideo {ports:checked_ports,guards:vec![],seal:Some(seal.freeze()),_flight:flight,native_pin};
+         for old_port in &owned.ports {
+             pin.validate_old_port(&old_port.port,&old_port.ticket)?;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/public_video_reservation/bridge_ownership.rs
+@@ -0,0 +1,154 @@
++//! Exact original B resource transfer before F. NO route, media grant, writer,
++//! decoded readiness, publication, OLD drain or graceful-restore authority.
++use super::*;
++
++/// Nonclone resource ownership for a future pre-F PUBLIC-programme bridge.
++/// It owns the SAME original seal, not a new native binding or an F=0 scope.
++/// No constructor/start/release/Clone/Deserialize can turn it into permission.
++/// This slice intentionally blocks legacy freeze/Commit until an explicit
++/// same-writer bridge-to-final-cut transition is implemented.
++pub struct PreCutPublicVideoBridgeOwnership {
++    original:Arc<ReservationOwner>,
++    seal:Mutex<Option<PhysicalVideoExposureSeal>>,
++    closed:AtomicBool,route_installed:AtomicBool,
++    guard:Arc<AtomicBool>,
++    deadline:tokio::time::Instant,
++}
++impl PreCutPublicVideoBridgeOwnership {
++    pub fn original_intent(&self)->&ParticipantReplacementMutation {&self.original.original}
++    pub fn conversation(&self)->&ConversationId {&self.original.conversation}
++    pub fn session(&self)->&SessionId {&self.original.session}
++    pub(crate) fn deadline(&self)->tokio::time::Instant {self.deadline}
++    pub(crate) fn cancellation(&self)->CancellationToken {self.original.cancellation.child_token()}
++    /// Nonblocking lifetime metadata for held policy callbacks. Exact current
++    /// Port/State/source/target admissions still run before every actual IO.
++    pub fn is_current(&self)->bool {
++        let owner=&self.original;
++        !self.closed.load(Ordering::Acquire) && self.guard.load(Ordering::Acquire)
++            && owner.preparation.strong_count()!=0 && !owner.cancellation.is_cancelled()
++            && tokio::time::Instant::now()<self.deadline && owner.ticket.is_active()
++            && owner.witness.is_current()
++            && owner.controller.upgrade().is_some_and(|target|!target.shutdown.is_cancelled()
++                && target.check_credential_snapshot(&owner.credential).is_ok())
++            && owner.port.upgrade().is_some_and(|port|!port.terminal_requested()
++                && port.video_exposure.get().and_then(|observer|observer.snapshot()).is_some_and(|physical|
++                    physical.coverage_complete && physical.realm_incarnation==Some(owner.realm)
++                        && physical.physical_family==owner.target.physical_writer_incarnation
++                        && physical.inherited_potential_ordinal==0
++                        && (self.route_installed.load(Ordering::Acquire)||physical.maximum_potential_ordinal==0)))
++    }
++    pub fn close(&self) {
++        if self.closed.swap(true,Ordering::AcqRel) {return;}
++        if let Some(seal)=self.seal.lock().unwrap_or_else(|p|p.into_inner()).take() {seal.retire();}
++    }
++    pub(crate) fn require_plan(&self,plan:&device_replacement::AudioDeviceReplacementPlan,identity:&ReplacementPreparationIdentity)->ControlResult<()> {
++        if !self.original.identity.same(identity) {return Err(StreamControlError::Authority);}
++        let value=PublicVideoReservationPreparation {owner:self.original.clone()};value.validate_plan_identity(plan)?;
++        let intent=plan.audience().replacement.as_ref().ok_or(StreamControlError::Authority)?;
++        if !Arc::ptr_eq(&intent.public_video_bridge_owned,&self.guard) {return Err(StreamControlError::Authority);}
++        Ok(())
++    }
++    pub(crate) fn matches_target_port(&self,port:&Arc<Port>)->bool {
++        Weak::ptr_eq(&self.original.port,&Arc::downgrade(port))
++    }
++    pub(crate) fn mark_route_installed(&self)->ControlResult<()> {
++        if !self.is_current() {return Err(StreamControlError::NotReady);}
++        self.route_installed.compare_exchange(false,true,Ordering::AcqRel,Ordering::Acquire)
++            .map_err(|_|StreamControlError::NotReady)?;Ok(())
++    }
++    pub(in crate::staged_streams) fn take_bridge_seal_for_conversion(&self,target:&Arc<StreamController>,state:&State)->ControlResult<PhysicalVideoExposureSeal> {
++        if !self.is_current()||state.closed||!Weak::ptr_eq(&self.original.controller,&Arc::downgrade(target)) {return Err(StreamControlError::NotReady);}
++        target.check_credential_snapshot(&self.original.credential)?;
++        let port=self.original.port.upgrade().ok_or(StreamControlError::NotReady)?;
++        if state.active.get(&self.original.target.logical_id).is_none_or(|current|!Arc::ptr_eq(current,&port)) {return Err(StreamControlError::Authority);}
++        port.require_ticket(TicketSide::Egress,&self.original.ticket)?;
++        let mut owned=self.seal.try_lock().map_err(metadata_lock_error)?;
++        let seal=owned.as_ref().ok_or(StreamControlError::NotReady)?;
++        let physical=AdapterMediaPort(port).physical_video_exposure_sealed(seal).ok_or(StreamControlError::Unsupported)?;
++        if !physical.coverage_complete||physical.realm_incarnation!=Some(self.original.realm)
++            ||physical.physical_family!=self.original.target.physical_writer_incarnation||physical.inherited_potential_ordinal!=0 {return Err(StreamControlError::Authority);}
++        Ok(owned.take().ok_or(StreamControlError::NotReady)?)
++    }
++    pub(in crate::staged_streams) fn original_witness(&self)->super::super::physical_video_exposure::PhysicalVideoSealWitness {self.original.witness.clone()}
++    pub fn target(&self)->&PublicVideoWarmTarget {&self.original.target}
++    pub fn realm_incarnation(&self)->u128 {self.original.realm}
++    pub fn matches_original_preparation(&self,p:&Arc<DeviceReplacementPreparation>)->bool {
++        Weak::ptr_eq(&self.original.preparation,&Arc::downgrade(p))
++    }
++    pub fn same_reserved_owner(&self,reservation:&PublicVideoReservationPreparation)->bool {
++        Arc::ptr_eq(&self.original,&reservation.owner)
++    }
++    /// Resource metadata only. It is not source/receiver policy, readiness or
++    /// authorization to feed B. Metadata contention remains typed and retryable
++    /// by the caller; this query mutates no model/route/ticket/permission.
++    pub fn validate_current(&self)->ControlResult<()> {
++        let owner=&self.original;
++        if self.closed.load(Ordering::Acquire) || !self.guard.load(Ordering::Acquire) || owner.preparation.strong_count()==0
++            || owner.cancellation.is_cancelled() {return Err(StreamControlError::Cancelled);}
++        if tokio::time::Instant::now()>=self.deadline {return Err(StreamControlError::Deadline);}
++        let target=owner.controller.upgrade().ok_or(StreamControlError::Cancelled)?;
++        if target.shutdown.is_cancelled() {return Err(StreamControlError::Cancelled);}
++        target.check_credential_snapshot(&owner.credential)?;
++        let state=target.state.try_lock().map_err(metadata_lock_error)?;
++        if state.closed || !owner.ticket.is_active() || !owner.witness.is_current() {
++            return Err(StreamControlError::NotReady);
++        }
++        let port=owner.port.upgrade().ok_or(StreamControlError::NotReady)?;
++        if state.active.get(&owner.target.logical_id).is_none_or(|current|!Arc::ptr_eq(current,&port)) {
++            return Err(StreamControlError::Authority);
++        }
++        let seal=self.seal.try_lock().map_err(metadata_lock_error)?;
++        let seal=seal.as_ref().ok_or(StreamControlError::NotReady)?;
++        let physical=AdapterMediaPort(port.clone()).physical_video_exposure_sealed(seal).ok_or(StreamControlError::Unsupported)?;
++        let binding=&port.binding;
++        if !physical.coverage_complete || physical.realm_incarnation!=Some(owner.realm)
++            || physical.physical_family!=owner.target.physical_writer_incarnation
++            || (!self.route_installed.load(Ordering::Acquire)&&physical.maximum_potential_ordinal!=0) || physical.inherited_potential_ordinal!=0
++            || binding.negotiated.requested.logical_id!=owner.target.logical_id
++            || binding.transport_id!=owner.target.transport_id
++            || binding.generation!=owner.target.stream_generation
++            || binding.connection_generation!=owner.target.connection_generation {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(())
++    }
++}
++impl Drop for PreCutPublicVideoBridgeOwnership {
++    fn drop(&mut self) {
++        // Never raw-Drop the moved seal back to unexposed. Only the exact
++        // candidate's original physical cleanup may retire this resource.
++        self.close();
++        // The shared guard is a permanent tombstone, including last-owner Drop.
++    }
++}
++impl PublicVideoReservationPreparation {
++    pub(crate) fn claim_pre_cut_bridge_ownership(
++        &self,plan:&device_replacement::AudioDeviceReplacementPlan,
++        identity:&ReplacementPreparationIdentity,guard:Arc<AtomicBool>,deadline:tokio::time::Instant,
++        current_control:&(dyn Fn()->ControlResult<()>+Send+Sync),
++    )->ControlResult<PreCutPublicVideoBridgeOwnership> {
++        current_control()?;
++        if !self.matches_identity(identity) {return Err(StreamControlError::Authority);}
++        self.validate_plan_identity(plan)?;
++        let intent=plan.audience().replacement.as_ref().ok_or(StreamControlError::Authority)?;
++        if !Arc::ptr_eq(&intent.public_video_bridge_owned,&guard) {return Err(StreamControlError::Authority);}
++        let target=self.owner.controller.upgrade().ok_or(StreamControlError::Cancelled)?;
++        // Existing controller-control exclusion closes a competing legacy
++        // publication/terminal mutation before this transition takes State.
++        // It drops on return and never occupies an ordinary packet path.
++        let _flight=target.inflight.clone().try_acquire_owned().map_err(|_|MediaTransitionError::Conflict)?;
++        let state=target.state.try_lock().map_err(metadata_lock_error)?;
++        self.validate_locked(&target,&state)?;
++        intent.validate_target_without_video_freeze(&target,&state)?;
++        if intent.public_video_warm_started.load(Ordering::Acquire) {return Err(StreamControlError::NotReady);}
++        let deadline=deadline.min(self.owner.deadline);
++        if tokio::time::Instant::now()>=deadline {return Err(StreamControlError::Deadline);}
++        // Finish EVERY fallible metadata acquisition before claiming state.
++        let mut seal=self.owner.seal.try_lock().map_err(metadata_lock_error)?;
++        if seal.is_none() {return Err(StreamControlError::NotReady);}
++        current_control()?;
++        guard.compare_exchange(false,true,Ordering::AcqRel,Ordering::Acquire).map_err(|_|StreamControlError::NotReady)?;
++        self.owner.consumed.store(true,Ordering::Release);
++        Ok(PreCutPublicVideoBridgeOwnership {original:self.owner.clone(),seal:Mutex::new(seal.take()),closed:AtomicBool::new(false),route_installed:AtomicBool::new(false),guard,deadline})
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/public_video_reservation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/public_video_reservation.rs
+@@ -2,6 +2,8 @@
+ //! The actual candidate controller is already bound, but B has never had IO.
+ //! One original preparation owns one seal; a dead Weak slot is a tombstone.
+ use super::*;
++mod bridge_ownership;
++pub use bridge_ownership::PreCutPublicVideoBridgeOwnership;
+ use super::direct_subscriptions::PublicVideoWarmTarget;
+ use super::physical_video_exposure::{PhysicalVideoExposureSeal,PhysicalVideoSealWitness};
+ use crate::orchestrator::participant_control::replacement::{DeviceReplacementPreparation,ReplacementPreparationIdentity};
+@@ -136,8 +138,9 @@
+     }
+ }
+ #[derive(Default)]
+-pub(crate) struct PublicVideoReservationSlot {owner:OnceLock<Weak<ReservationOwner>>}
++pub(crate) struct PublicVideoReservationSlot {owner:OnceLock<Weak<ReservationOwner>>,bridge_owned:Arc<AtomicBool>}
+ impl PublicVideoReservationSlot {
++    pub(crate) fn bridge_guard(&self)->Arc<AtomicBool> {self.bridge_owned.clone()}
+     pub(crate) fn install(&self,value:&PublicVideoReservationPreparation)->ControlResult<()> {
+         self.owner.set(Arc::downgrade(&value.owner)).map_err(|_|StreamControlError::NotReady)
+     }
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/bridge_conversion_controls.rs
+@@ -0,0 +1,79 @@
++//! Actual managed route/ticket/seal transfer and original compound publication.
++//! Adapter adoption is explicit controlled metadata; Host signed readiness and
++//! actual transport/decoder/GOP continuity remain mandatory integration work.
++use super::*;
++use crate::staged_streams::direct_subscriptions::{PreCutPublicVideoBridgeScope,PreCutPublicVideoBridgeWithdrawal};
++use crate::staged_streams::public_video_reservation::PreCutPublicVideoBridgeOwnership;
++use crate::orchestrator::participant_control::{ManagedCutAttempt,ReplacementPhase,ParticipantReplacementScope};
++use super::super::managed_model_cut_controls::ReplacementCutCurrent;
++fn install(room:&ManagedRoom,ready:&Ready)->Arc<PreCutPublicVideoBridgeScope> {
++    let owned=Arc::new(room.orch.prepare_staged_public_video_bridge_ownership_with_held(&ready.plan,&ready.grant).unwrap());room.world.warm_allowed.store(true,Ordering::Release);
++    let held=Command::Audience {root:ready.grant.clone(),plan:ready.plan.media().audience().clone()};
++    room.orch.prepare_staged_pre_cut_public_video_bridge_with_held(&ready.plan,&owned,&held).unwrap()
++}
++async fn withdraw(room:&ManagedRoom,ready:&Ready,bridge:&Arc<PreCutPublicVideoBridgeScope>)->PreCutPublicVideoBridgeWithdrawal {
++    room.orch.withdraw_staged_pre_cut_public_video_bridge_with_held(&ready.plan,bridge,&Command::Audience {root:ready.grant.clone(),plan:ready.plan.media().audience().clone()}).await.unwrap()
++}
++#[tokio::test]
++async fn managed_bridge_conversion_same_queue_tickets_seal_and_w3_public_lifetime_reject_old_stamps_and_staged_legacy_cut() {
++    let mut room=ManagedRoom::with_video(true).await;
++    let result=catch_original(async {
++        let(alice,old,source)=actors(&mut room).await;let ready=prepared(&mut room,&alice,&old,&source).await;
++        let held=Command::Audience {root:ready.grant.clone(),plan:ready.plan.media().audience().clone()};
++        let cold=room.orch.prepare_staged_managed_cut(room.orch.capture_staged_replacement_cut_facts(&ready.plan,ready.grant.until,CancellationToken::new(),&held).unwrap()).await.unwrap();
++        let bridge=install(&room,&ready);let target=ready.grant.intent.replacement.clone();let backend=room.nodes[&target].backend.clone();
++        let b=bridge.target_port().unwrap();let mut output=b.take_egress().unwrap();let mut old_output=room.nodes[&old].backend.port(Medium::Video).take_egress().unwrap();
++        let family=room.nodes[&target].video_exposures[&b_id()].clone();let old_family=room.nodes[&old].video_exposures[&desired(Medium::Video).logical_id].clone();let coverage=room.nodes[&target].video_coverage.as_ref().unwrap().clone();
++        let(packet,point)=video_packet(&room.nodes[&source],45000,None);let point=point.unwrap();publish_packet(&room.nodes[&source],packet,Some(point.clone())).await;
++        outgoing(&mut old_output).await.deliver(|_|async {old_family.record_potential(point.frame_realm());Ok(())}).await.unwrap();
++        let pre=outgoing(&mut output).await;let ticket=pre.direct.as_ref().unwrap().delivery_ticket();let source_ticket=pre.sources[0].ticket.clone();let target_ticket=pre.target_ticket.clone();
++        let pre_repair=pre.deliver_video_with_repair(|_,_|async {family.record_potential(point.frame_realm());Ok(())}).await.unwrap();
++        let(packet,next)=video_packet(&room.nodes[&source],48000,None);publish_packet(&room.nodes[&source],packet,next).await;let retained=outgoing(&mut output).await;
++        let frozen=withdraw(&room,&ready,&bridge).await;let f=frozen.frontier().ordinal();assert_eq!(f,point.frame_realm().unwrap().ordinal());
++        let warm=room.orch.prepare_staged_withdrawn_public_video_bridge_warm_with_held(&ready.plan,&frozen,&held).unwrap();
++        assert!(warm.matches_original_plan(&ready.plan)&&warm.is_current()&&!coverage.mark_escaped());
++        assert!(std::ptr::eq(warm.scopes()[0].frontier(),frozen.frontier()));assert!(warm.scopes()[0].successful_keyframe_submission().is_none(),"pre-F callback is not relabeled as a post-F receipt");
++        drop(frozen);assert!(!bridge.cancellation().is_cancelled(),"one returned observation cannot destroy transferred custody");
++        // A legacy final cut captured before bridge claim has no W3 adoption.
++        // The later exact conversion flag must not authorize that stale object.
++        let witness=ReplacementCutCurrent::capture(&room,&ready.grant,&ready.plan,"bridge-stale-cut","bridge-stale-effect");
++        let auth=ReplacementLease(ready.grant.clone()).current(&ParticipantReplacementScope {conversation:ready.grant.domain.member.conversation(),session:&ready.grant.domain.session,principal:&ready.grant.domain.principal,intent:&ready.grant.intent,phase:ReplacementPhase::Commit,plan:Some(ready.plan.media())}).unwrap();let cancel=CancellationToken::new();
++        match room.orch.try_commit_prepared_managed_cut(cold,witness.grant(&auth,&held,&cancel)) {
++            ManagedCutAttempt::Refused {error,post}=>{let denied=matches!(error,ParticipantControlError::Media(StreamControlError::Unsupported));room.orch.finish_managed_cut_publication(post).await.unwrap();assert!(denied);},
++            ManagedCutAttempt::EffectPossible {post,..}=>{room.orch.finish_managed_cut_publication(post).await.unwrap();panic!("stale legacy cut acquired effect");},
++            _=>panic!("legacy cut cannot borrow converted B"),
++        }
++        assert!(!ready.root.is_committed());backend.mode.store(26,Ordering::Release);
++        assert!(matches!(warm.start().await,Ok(PublicVideoWarmInvocation::Complete)));assert_eq!(backend.bridge_adoptions.load(Ordering::Acquire),1);assert_eq!(backend.public_warm_starts.load(Ordering::Acquire),0);
++        assert_eq!(backend.bridge_adopted_pointer.load(Ordering::Acquire),Arc::as_ptr(&bridge) as usize);
++        assert!(warm.start().await.is_err());let writes=AtomicUsize::new(0);
++        assert!(retained.deliver(|_|async {writes.fetch_add(1,Ordering::AcqRel);Ok(())}).await.is_err());assert!(pre_repair.repair(|_,_|async {writes.fetch_add(1,Ordering::AcqRel);Ok(())}).await.is_err());assert_eq!(writes.load(Ordering::Acquire),0);
++        let(packet,fresh)=video_packet(&room.nodes[&source],51000,None);let fresh=fresh.unwrap();publish_packet(&room.nodes[&source],packet,Some(fresh.clone())).await;let q=outgoing(&mut output).await;
++        assert!(q.direct.as_ref().unwrap().delivery_ticket().same_generation(&ticket)&&q.sources[0].ticket.same_generation(&source_ticket)&&q.target_ticket.same_generation(&target_ticket));
++        q.deliver(|_|async {family.record_potential(fresh.frame_realm());writes.fetch_add(1,Ordering::AcqRel);Ok(())}).await.unwrap();
++        let actual=room.world.owner(&target).unwrap();room.orch.commit_staged_device_replacement_with_held(ready.plan.clone(),&held).await.unwrap();assert!(warm.scopes()[0].is_published());
++        room.world.resources.lock().unwrap().insert(target.clone(),Resource {owner:actual,proof:None,pending:None,probe_operation:None});room.world.warm_allowed.store(false,Ordering::Release);
++        bridge.close();assert!(!coverage.mark_escaped(),"old bridge close cannot retire transferred public token");
++        let(packet,fresh)=video_packet(&room.nodes[&source],54000,None);let fresh=fresh.unwrap();publish_packet(&room.nodes[&source],packet,Some(fresh.clone())).await;outgoing(&mut output).await.deliver(|_|async {family.record_potential(fresh.frame_realm());writes.fetch_add(1,Ordering::AcqRel);Ok(())}).await.unwrap();
++        let(packet,_)=video_packet(&room.nodes[&source],57000,Some(point.clone()));publish_packet(&room.nodes[&source],packet,Some(point)).await;assert!(outgoing(&mut output).await.deliver(|_|async {writes.fetch_add(1,Ordering::AcqRel);Ok(())}).await.is_err());
++        assert_eq!(writes.load(Ordering::Acquire),2);assert!(b.take_egress().is_err());assert_eq!(backend.bridge_adoptions.load(Ordering::Acquire),1);assert_eq!(backend.public_warm_starts.load(Ordering::Acquire),0);
++    }).await;
++    let cleanup=room.close_originals().await;assert!(cleanup.into_iter().all(|done|done));if let Err(e)=result {resume_unwind(e)}
++}
++#[tokio::test]
++async fn managed_bridge_conversion_default_unsupported_cancel_and_adapter_error_never_restart_or_infer_publication() {
++    for mode in [0,27,28] {
++        let mut room=ManagedRoom::with_video(true).await;
++        let result=catch_original(async {
++            let(alice,old,source)=actors(&mut room).await;let ready=prepared(&mut room,&alice,&old,&source).await;let bridge=install(&room,&ready);let frozen=withdraw(&room,&ready,&bridge).await;
++            let held=Command::Audience {root:ready.grant.clone(),plan:ready.plan.media().audience().clone()};
++            let warm=room.orch.prepare_staged_withdrawn_public_video_bridge_warm_with_held(&ready.plan,&frozen,&held).unwrap();let backend=room.nodes[&ready.grant.intent.replacement].backend.clone();backend.mode.store(mode,Ordering::Release);
++            if mode==27 {let mut start=Box::pin(warm.start());std::future::poll_fn(|cx|{assert!(std::future::Future::poll(start.as_mut(),cx).is_pending());std::task::Poll::Ready(())}).await;drop(start);}else{assert!(warm.start().await.is_err());}
++            assert!(warm.start().await.is_err());
++            assert!(room.orch.commit_staged_device_replacement_with_held(ready.plan.clone(),&held).await.is_err(),"failed/incomplete writer adoption never permits publication");
++            assert!(!ready.root.is_committed()&&!warm.scopes()[0].is_published()&&warm.scopes()[0].successful_keyframe_submission().is_none());
++            assert_eq!(backend.public_warm_starts.load(Ordering::Acquire),0);assert_eq!(backend.bridge_adoptions.load(Ordering::Acquire),usize::from(mode!=0));warm.close();bridge.close();
++        }).await;
++        let cleanup=room.close_originals().await;assert!(cleanup.into_iter().all(|done|done));if let Err(e)=result {resume_unwind(e)}
++    }
++}
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/bridge_ownership_controls.rs
+@@ -0,0 +1,145 @@
++//! Actual managed Core resource ownership and effect exclusion only. Physical
++//! families are cold opt-in fixture metadata; no TLS/native IO/decoder or real
++//! pre-F route/feed/overlap is claimed by these controls.
++use super::*;
++use crate::orchestrator::participant_control::{ManagedCutAttempt,ReplacementPhase,ParticipantReplacementScope};
++use super::super::managed_model_cut_controls::ReplacementCutCurrent;
++
++async fn old_video_and_audio(room:&mut ManagedRoom,old:&ConnectionId,source:&ConnectionId) {
++    let port=room.nodes[old].backend.port(Medium::Video);
++    assert!(port.0.ticket(TicketSide::Egress).is_active(),"bridge ownership/refusal cannot pause OLD");
++    let mut output=port.take_egress().unwrap();while output.try_recv().is_ok(){}
++    let(packet,point)=video_packet(&room.nodes[source],21000,None);let point=point.unwrap();
++    publish_packet(&room.nodes[source],packet,Some(point.clone())).await;
++    let exposure=room.nodes[old].video_exposures[&desired(Medium::Video).logical_id].clone();
++    let writes=AtomicUsize::new(0);
++    let queued=outgoing(&mut output).await;assert!(Arc::ptr_eq(queued.original_video_frame().unwrap(),&point));
++    queued.deliver(|_|async {exposure.record_potential(point.frame_realm());writes.fetch_add(1,Ordering::AcqRel);Ok(())}).await.unwrap();
++    assert_eq!(writes.load(Ordering::Acquire),1);
++    for node in room.nodes.values_mut(){node.drain();}
++    room.nodes.get_mut(old).unwrap().publish(800).unwrap();room.nodes.get_mut(source).unwrap().hear(800).await;
++}
++fn unsupported(error:ParticipantControlError)->bool {
++    matches!(error,ParticipantControlError::Media(StreamControlError::Unsupported))
++}
++
++#[tokio::test]
++async fn managed_pre_cut_bridge_owns_same_b_seal_and_blocks_all_legacy_plans_without_old_effects() {
++    let mut room=ManagedRoom::with_video(true).await;
++    let result=catch_original(async {
++        let(alice,old,source)=actors(&mut room).await;let ready=prepared(&mut room,&alice,&old,&source).await;
++        // This is a distinct actual managed plan captured BEFORE the claim.
++        // Its shared preparation guard must also exclude legacy publication.
++        let sibling=room.orch.plan_staged_device_replacement(&ready.root,Some(final_request())).unwrap();
++        let target=ready.grant.intent.replacement.clone();let coverage=room.nodes[&target].video_coverage.as_ref().unwrap().clone();
++        let old_revision=room.nodes[&old].controller.revision();let target_revision=room.nodes[&target].controller.revision();
++        let owner=room.orch.prepare_staged_public_video_bridge_ownership_with_held(&ready.plan,&ready.grant).unwrap();
++        assert!(owner.matches_original_preparation(&ready.root)&&owner.same_reserved_owner(&ready.reservation));
++        assert_eq!(owner.original_intent(),ready.root.intent());assert_eq!(owner.target(),ready.reservation.target());
++        assert_eq!(owner.realm_incarnation(),ready.reservation.realm_incarnation());owner.validate_current().unwrap();
++        assert!(!ready.reservation.is_current());assert!(!coverage.mark_escaped(),"same no-escape token moved without a gap");
++        assert!(room.orch.prepare_staged_public_video_bridge_ownership_with_held(&ready.plan,&ready.grant).is_err());
++        for plan in [&ready.plan,&sibling] {
++            let held=Command::Audience {root:ready.grant.clone(),plan:plan.media().audience().clone()};
++            let refusal=room.orch.freeze_staged_device_replacement_video_with_held(plan,&held).await;
++            assert!(matches!(refusal,Err(error) if unsupported(error)));
++            let refusal=room.orch.commit_staged_device_replacement_with_held(plan.clone(),&held).await;
++            assert!(matches!(refusal,Err(error) if unsupported(error)));
++            assert!(warm(&room,plan,&ready.grant).await.is_err());
++        }
++        assert!(!ready.root.is_committed());assert_eq!(room.nodes[&old].controller.revision(),old_revision);
++        assert_eq!(room.nodes[&target].controller.revision(),target_revision);
++        assert!(ready.private.is_current(),"resource transition cannot replace private A");
++        drop(owner);
++        assert!(room.orch.prepare_staged_public_video_bridge_ownership_with_held(&ready.plan,&ready.grant).is_err(),"dead owner cannot remint");
++        assert!(ready.plan.media().require_legacy_video_effects().is_err(),"drop is a permanent exclusion tombstone");
++        old_video_and_audio(&mut room,&old,&source).await;
++    }).await;
++    let cleanup=room.close_originals().await;assert!(cleanup.into_iter().all(|done|done));
++    if let Err(error)=result {resume_unwind(error)}
++}
++
++#[tokio::test]
++async fn managed_pre_cut_bridge_busy_target_and_competing_control_leave_reservation_unconsumed_then_aba_refuses() {
++    let mut room=ManagedRoom::with_video(true).await;
++    let result=catch_original(async {
++        let(alice,old,source)=actors(&mut room).await;let ready=prepared(&mut room,&alice,&old,&source).await;
++        let target=room.nodes[&ready.grant.intent.replacement].controller.clone();
++        {
++            let state=target.state.lock().unwrap();
++            let refusal=room.orch.prepare_staged_public_video_bridge_ownership_with_held(&ready.plan,&ready.grant);
++            assert!(matches!(refusal,Err(ParticipantControlError::Media(StreamControlError::MetadataBusy))));
++            drop(state);
++        }
++        {
++            let flight=target.inflight.clone().try_acquire_owned().unwrap();
++            assert!(room.orch.prepare_staged_public_video_bridge_ownership_with_held(&ready.plan,&ready.grant).is_err());
++            drop(flight);
++        }
++        assert!(ready.reservation.is_current());ready.plan.media().require_legacy_video_effects().unwrap();
++        let owner=room.orch.prepare_staged_public_video_bridge_ownership_with_held(&ready.plan,&ready.grant).unwrap();
++        owner.validate_current().unwrap();
++        target.set_paused(&b_id(),target.revision(),true,deadline()).await.unwrap();
++        target.set_paused(&b_id(),target.revision(),false,deadline()).await.unwrap();
++        assert!(owner.validate_current().is_err(),"the original B EGRESS root cannot adopt the resumed root");
++        assert!(room.orch.prepare_staged_public_video_bridge_ownership_with_held(&ready.plan,&ready.grant).is_err());
++        assert!(ready.plan.media().require_legacy_video_effects().is_err());
++        drop(owner);old_video_and_audio(&mut room,&old,&source).await;
++    }).await;
++    let cleanup=room.close_originals().await;assert!(cleanup.into_iter().all(|done|done));
++    if let Err(error)=result {resume_unwind(error)}
++}
++
++#[tokio::test]
++async fn managed_pre_cut_bridge_foreign_root_and_cancel_never_borrow_authority_or_stop_old() {
++    let mut room=ManagedRoom::with_video(true).await;let mut foreign=ManagedRoom::with_video(true).await;
++    let result=catch_original(async {
++        let(alice,old,source)=actors(&mut room).await;let ready=prepared(&mut room,&alice,&old,&source).await;
++        let(other,other_old,other_source)=actors(&mut foreign).await;let other=prepared(&mut foreign,&other,&other_old,&other_source).await;
++        assert!(room.orch.prepare_staged_public_video_bridge_ownership_with_held(&other.plan,&other.grant).is_err());
++        assert!(room.orch.prepare_staged_public_video_bridge_ownership_with_held(&ready.plan,&other.grant).is_err());
++        assert!(ready.reservation.is_current()&&other.reservation.is_current());
++        ready.plan.media().require_legacy_video_effects().unwrap();other.plan.media().require_legacy_video_effects().unwrap();
++        let owner=room.orch.prepare_staged_public_video_bridge_ownership_with_held(&ready.plan,&ready.grant).unwrap();
++        ready.root.cancel();assert!(owner.validate_current().is_err());drop(owner);
++        assert!(room.orch.prepare_staged_public_video_bridge_ownership_with_held(&ready.plan,&ready.grant).is_err());
++        old_video_and_audio(&mut room,&old,&source).await;
++    }).await;
++    let cleanup=room.close_originals().await;let other_cleanup=foreign.close_originals().await;
++    assert!(cleanup.into_iter().all(|done|done));assert!(other_cleanup.into_iter().all(|done|done));
++    if let Err(error)=result {resume_unwind(error)}
++}
++
++#[tokio::test]
++async fn managed_pre_cut_bridge_claim_refuses_a_prepared_legacy_final_cut_before_ticket_effects() {
++    let mut room=ManagedRoom::with_video(true).await;
++    let result=catch_original(async {
++        let(alice,old,source)=actors(&mut room).await;let ready=prepared(&mut room,&alice,&old,&source).await;
++        let held=Command::Audience {root:ready.grant.clone(),plan:ready.plan.media().audience().clone()};
++        let facts=room.orch.capture_staged_replacement_cut_facts(&ready.plan,ready.grant.until,CancellationToken::new(),&held).unwrap();
++        drop(held);
++        let cold=room.orch.prepare_staged_managed_cut(facts).await.unwrap();
++        let owner=room.orch.prepare_staged_public_video_bridge_ownership_with_held(&ready.plan,&ready.grant).unwrap();
++        let witness=ReplacementCutCurrent::capture(&room,&ready.grant,&ready.plan,"bridge-original-attempt","bridge-original-effect");
++        let authority=ReplacementLease(ready.grant.clone()).current(&ParticipantReplacementScope {
++            conversation:ready.grant.domain.member.conversation(),session:&ready.grant.domain.session,
++            principal:&ready.grant.domain.principal,intent:&ready.grant.intent,phase:ReplacementPhase::Commit,
++            plan:Some(ready.plan.media()),
++        }).unwrap();
++        let held=Command::Audience {root:ready.grant.clone(),plan:ready.plan.media().audience().clone()};let cancel=CancellationToken::new();
++        match room.orch.try_commit_prepared_managed_cut(cold,witness.grant(&authority,&held,&cancel)) {
++            ManagedCutAttempt::Refused {error,post}=> {
++                let refused=unsupported(error);
++                drop(held);room.orch.finish_managed_cut_publication(post).await.unwrap();assert!(refused);
++            }
++            ManagedCutAttempt::EffectPossible {post,..}=> {
++                drop(held);room.orch.finish_managed_cut_publication(post).await.unwrap();panic!("bridge refusal cannot permit a legacy effect");
++            }
++            _=>panic!("a prepared legacy final cut cannot publish/retry through a bridge ownership claim"),
++        }
++        assert!(!ready.root.is_committed());owner.validate_current().unwrap();drop(owner);
++        old_video_and_audio(&mut room,&old,&source).await;
++    }).await;
++    let cleanup=room.close_originals().await;assert!(cleanup.into_iter().all(|done|done));
++    if let Err(error)=result {resume_unwind(error)}
++}
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/bridge_withdrawal_controls.rs
+@@ -0,0 +1,65 @@
++//! Real managed plan/OLD drain/Core-minted F. Native callbacks are modeled;
++//! no actual transport/decode, post-F B feeding or public release is claimed.
++use super::*;
++use crate::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeScope;
++use crate::staged_streams::public_video_reservation::PreCutPublicVideoBridgeOwnership;
++fn install(room:&ManagedRoom,ready:&Ready)->(Arc<PreCutPublicVideoBridgeOwnership>,Arc<PreCutPublicVideoBridgeScope>) {
++    let owner=Arc::new(room.orch.prepare_staged_public_video_bridge_ownership_with_held(&ready.plan,&ready.grant).unwrap());
++    room.world.warm_allowed.store(true,Ordering::Release);
++    let held=Command::Audience {root:ready.grant.clone(),plan:ready.plan.media().audience().clone()};
++    let bridge=room.orch.prepare_staged_pre_cut_public_video_bridge_with_held(&ready.plan,&owner,&held).unwrap();(owner,bridge)
++}
++#[tokio::test]
++async fn managed_bridge_late_withdrawal_preflight_retry_keeps_old_then_retains_same_b_resource_route_and_actual_f() {
++    let mut room=ManagedRoom::with_video(true).await;
++    let result=catch_original(async {
++        let(alice,old,source)=actors(&mut room).await;let ready=prepared(&mut room,&alice,&old,&source).await;
++        let(owner,bridge)=install(&room,&ready);
++        let old_port=room.nodes[&old].backend.port(Medium::Video);let old_ticket=old_port.0.ticket(TicketSide::Egress);let ingress=old_port.0.ticket(TicketSide::Ingress);
++        let mut old_output=old_port.take_egress().unwrap();let b=bridge.target_port().unwrap();let bt=b.0.ticket(TicketSide::Egress);let mut output=b.take_egress().unwrap();
++        let held=Command::Audience {root:ready.grant.clone(),plan:ready.plan.media().audience().clone()};
++        room.nodes[&source].backend.mode.store(52,Ordering::Release);
++        assert!(matches!(room.orch.withdraw_staged_pre_cut_public_video_bridge_with_held(&ready.plan,&bridge,&held).await,Err(ParticipantControlError::Media(StreamControlError::MetadataBusy))));
++        assert!(bridge.is_current()&&owner.is_current()&&old_ticket.is_active()&&ingress.is_active());
++        assert_eq!(room.orch.staged_old_video_freeze_custody(&ready.plan).unwrap().resource_state(),crate::staged_streams::old_video_freeze::OldVideoFreezeResourceState::Unstarted);
++        room.nodes[&source].backend.mode.store(0,Ordering::Release);
++        let(packet,point)=video_packet(&room.nodes[&source],45000,None);let point=point.unwrap();publish_packet(&room.nodes[&source],packet,Some(point.clone())).await;
++        let of=room.nodes[&old].video_exposures[&desired(Medium::Video).logical_id].clone();let bf=room.nodes[&ready.grant.intent.replacement].video_exposures[&b_id()].clone();
++        let oq=outgoing(&mut old_output).await;let bq=outgoing(&mut output).await;
++        assert!(Arc::ptr_eq(oq.original_video_frame().unwrap(),&point)&&Arc::ptr_eq(bq.original_video_frame().unwrap(),&point));
++        oq.deliver(|_|async {of.record_potential(point.frame_realm());Ok(())}).await.unwrap();
++        bq.deliver(|_|async {bf.record_potential(point.frame_realm());Ok(())}).await.unwrap();
++        for n in room.nodes.values_mut(){n.drain();}room.nodes.get_mut(&old).unwrap().publish(800).unwrap();room.nodes.get_mut(&source).unwrap().hear(800).await;
++        let(packet,pending)=video_packet(&room.nodes[&source],48000,None);publish_packet(&room.nodes[&source],packet,pending).await;let pending=outgoing(&mut output).await;
++        let withdrawal=room.orch.withdraw_staged_pre_cut_public_video_bridge_with_held(&ready.plan,&bridge,&held).await.unwrap();
++        assert!(withdrawal.is_current()&&Arc::ptr_eq(withdrawal.bridge(),&bridge));
++        assert_eq!(withdrawal.frontier().realm_incarnation(),point.frame_realm().unwrap().incarnation());assert_eq!(withdrawal.frontier().ordinal(),point.frame_realm().unwrap().ordinal());
++        assert!(!old_ticket.is_active()&&old_ticket.is_current()&&ingress.is_active());assert!(b.0.ticket(TicketSide::Egress).same_generation(&bt)&&bt.is_active());
++        assert!(!bridge.is_current()&&bridge.target_port().is_err(),"OLD-dependent bridge cannot masquerade as post-F class");
++        let writes=AtomicUsize::new(0);assert!(pending.deliver(|_|async {writes.fetch_add(1,Ordering::AcqRel);Ok(())}).await.is_err());assert_eq!(writes.load(Ordering::Acquire),0);
++        assert!(owner.is_current()&&ready.plan.media().require_legacy_video_effects().is_err());assert!(!ready.root.is_committed());
++        assert!(room.orch.withdraw_staged_pre_cut_public_video_bridge_with_held(&ready.plan,&bridge,&held).await.is_err());
++        for n in room.nodes.values_mut(){n.drain();}room.nodes.get_mut(&old).unwrap().publish(800).unwrap();room.nodes.get_mut(&source).unwrap().hear(800).await;
++        drop(withdrawal);assert!(!owner.is_current()&&bridge.cancellation().is_cancelled());assert!(!old_ticket.is_active(),"only actual closed candidate + fresh OLD authority may restore");
++    }).await;
++    let cleanup=room.close_originals().await;assert!(cleanup.into_iter().all(|done|done));if let Err(e)=result {resume_unwind(e)}
++}
++#[tokio::test]
++async fn managed_bridge_late_withdrawal_foreign_refusal_is_effect_free_and_cancelled_actual_drain_is_terminal() {
++    let mut room=ManagedRoom::with_video(true).await;let mut foreign=ManagedRoom::with_video(true).await;
++    let result=catch_original(async {
++        let(alice,old,source)=actors(&mut room).await;let ready=prepared(&mut room,&alice,&old,&source).await;let(_,bridge)=install(&room,&ready);
++        let held=Command::Audience {root:ready.grant.clone(),plan:ready.plan.media().audience().clone()};
++        let(a2,o2,s2)=actors(&mut foreign).await;let f=prepared(&mut foreign,&a2,&o2,&s2).await;let fh=Command::Audience {root:f.grant.clone(),plan:f.plan.media().audience().clone()};
++        let ft=foreign.nodes[&o2].backend.port(Medium::Video).0.ticket(TicketSide::Egress);
++        assert!(foreign.orch.withdraw_staged_pre_cut_public_video_bridge_with_held(&f.plan,&bridge,&fh).await.is_err());assert!(ft.is_active()&&bridge.is_current());
++        let port=room.nodes[&old].backend.port(Medium::Video);let ticket=port.0.ticket(TicketSide::Egress);let ingress=port.0.ticket(TicketSide::Ingress);let delivery=ticket.try_begin_delivery().unwrap();
++        let mut pending=Box::pin(room.orch.withdraw_staged_pre_cut_public_video_bridge_with_held(&ready.plan,&bridge,&held));
++        std::future::poll_fn(|cx| {assert!(std::future::Future::poll(pending.as_mut(),cx).is_pending());std::task::Poll::Ready(())}).await;
++        assert!(!ticket.is_active()&&ticket.is_current()&&!bridge.is_current());drop(pending);drop(delivery);
++        assert!(!ticket.is_current()&&ingress.is_active()&&bridge.cancellation().is_cancelled());
++        assert_eq!(room.orch.staged_old_video_freeze_custody(&ready.plan).unwrap().resource_state(),crate::staged_streams::old_video_freeze::OldVideoFreezeResourceState::Terminal);
++        assert!(room.orch.staged_old_video_freeze_custody(&ready.plan).unwrap().frontier().is_none());assert!(room.orch.withdraw_staged_pre_cut_public_video_bridge_with_held(&ready.plan,&bridge,&held).await.is_err());assert!(ft.is_active());
++    }).await;
++    let a=room.close_originals().await;let b=foreign.close_originals().await;assert!(a.into_iter().chain(b).all(|done|done));if let Err(e)=result {resume_unwind(e)}
++}
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/pre_cut_bridge_controls.rs
+@@ -0,0 +1,124 @@
++//! Actual original public candidate route, current policy and Core queue IO.
++//! Cold physical families and final native callbacks are fixture metadata;
++//! no actual transport/decoder overlap, signed phase or public release claim.
++use super::*;
++use crate::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeScope;
++use crate::staged_streams::public_video_reservation::PreCutPublicVideoBridgeOwnership;
++
++pub(in super::super) fn current(world:&Arc<World>,scope:&MediaScope<'_>,bridge:&PreCutPublicVideoBridgeScope,held:Option<&(dyn Any+Send+Sync)>)->ControlResult<Box<dyn MediaAuthorityLease>> {
++    if !world.warm_allowed.load(Ordering::Acquire) {return Err(StreamControlError::Unsupported);}
++    let MediaPurpose::Receive {source}=scope.purpose else {return Err(StreamControlError::Authority);};
++    let resource=world.raw(scope.connection)?;let pending=resource.pending.as_ref().ok_or(StreamControlError::Authority)?;
++    if !bridge.is_current()||bridge.original_intent()!=pending.intent()||scope.connection!=&bridge.original_intent().replacement
++        ||scope.conversation!=bridge.conversation()||scope.session!=bridge.session()
++        ||!same_source(source,bridge.source())||bridge.target().logical_id!=b_id() {return Err(StreamControlError::Authority);}
++    if let Some(held)=held {
++        let root=replacement_grant(held).ok_or(StreamControlError::Authority)?;
++        if !Arc::ptr_eq(&root.world,world)||&root.intent!=bridge.original_intent() {return Err(StreamControlError::Authority);}
++    }
++    world.lease(scope)
++}
++fn ownership(room:&ManagedRoom,ready:&Ready)->Arc<PreCutPublicVideoBridgeOwnership> {
++    Arc::new(room.orch.prepare_staged_public_video_bridge_ownership_with_held(&ready.plan,&ready.grant).unwrap())
++}
++fn route(room:&ManagedRoom,ready:&Ready,owner:&Arc<PreCutPublicVideoBridgeOwnership>)->std::result::Result<Arc<PreCutPublicVideoBridgeScope>,ParticipantControlError> {
++    room.orch.prepare_staged_pre_cut_public_video_bridge_with_held(&ready.plan,owner,
++        &Command::Audience {root:ready.grant.clone(),plan:ready.plan.media().audience().clone()})
++}
++async fn old_progress(room:&mut ManagedRoom,old:&ConnectionId,source:&ConnectionId) {
++    let port=room.nodes[old].backend.port(Medium::Video);assert!(port.0.ticket(TicketSide::Egress).is_active());
++    let mut output=port.take_egress().unwrap();while output.try_recv().is_ok(){}
++    let(packet,point)=video_packet(&room.nodes[source],39000,None);let point=point.unwrap();
++    publish_packet(&room.nodes[source],packet,Some(point.clone())).await;
++    let exposure=room.nodes[old].video_exposures[&desired(Medium::Video).logical_id].clone();
++    let queued=outgoing(&mut output).await;assert!(Arc::ptr_eq(queued.original_video_frame().unwrap(),&point));
++    queued.deliver(|_|async {exposure.record_potential(point.frame_realm());Ok(())}).await.unwrap();
++    for node in room.nodes.values_mut(){node.drain();}
++    room.nodes.get_mut(old).unwrap().publish(800).unwrap();room.nodes.get_mut(source).unwrap().hear(800).await;
++}
++
++#[tokio::test]
++async fn managed_pre_cut_bridge_real_queue_io_and_repair_keep_old_public_current_and_close_with_root_arc_retained() {
++    let mut room=ManagedRoom::with_video(true).await;
++    let result=catch_original(async {
++        let(alice,old,source)=actors(&mut room).await;let ready=prepared(&mut room,&alice,&old,&source).await;
++        let owner=ownership(&room,&ready);room.world.warm_allowed.store(true,Ordering::Release);
++        let scope=route(&room,&ready,&owner).unwrap();assert!(scope.is_current());
++        assert_eq!(scope.source().connection,source);assert_eq!(scope.target().logical_id,b_id());
++        assert_eq!(scope.original_intent(),ready.root.intent());assert!(ready.private.is_current());
++        let target=ready.grant.intent.replacement.clone();let port=room.nodes[&target].backend.ports.lock().unwrap()[&b_id()].clone();
++        assert!(scope.target_port().unwrap().same_original(&port));
++        let mut output=port.take_egress().unwrap();let exposure=room.nodes[&target].video_exposures[&b_id()].clone();
++        let(packet,point)=video_packet(&room.nodes[&source],27000,None);let point=point.unwrap();publish_packet(&room.nodes[&source],packet,Some(point.clone())).await;
++        let writes=AtomicUsize::new(0);let queued=outgoing(&mut output).await;
++        assert!(Arc::ptr_eq(queued.original_video_frame().unwrap(),&point));
++        let repair=queued.deliver_video_with_repair(|_,_|async {exposure.record_potential(point.frame_realm());writes.fetch_add(1,Ordering::AcqRel);Ok(())}).await.unwrap();
++        assert_eq!(writes.load(Ordering::Acquire),1);assert!(scope.is_current(),"tracked candidate IO does not reapply zero-feed reservation predicate");
++        repair.repair(|_,_|async {writes.fetch_add(1,Ordering::AcqRel);Ok(())}).await.unwrap();assert_eq!(writes.load(Ordering::Acquire),2);
++        let(packet,next_point)=video_packet(&room.nodes[&source],30000,None);let next_point=next_point.unwrap();
++        publish_packet(&room.nodes[&source],packet,Some(next_point.clone())).await;let pending=outgoing(&mut output).await;
++        assert!(Arc::ptr_eq(pending.original_video_frame().unwrap(),&next_point));
++        scope.close();scope.close();assert!(!scope.is_current());assert!(owner.validate_current().is_err());
++        assert!(scope.target_port().is_err()&&scope.cancellation().is_cancelled());
++        assert!(!ready.root.resource_lifetime().is_cancelled(),"closing B scope does not cancel original Root/OLD authority");
++        assert!(pending.deliver(|_|async {writes.fetch_add(1,Ordering::AcqRel);Ok(())}).await.is_err());
++        assert!(repair.repair(|_,_|async {writes.fetch_add(1,Ordering::AcqRel);Ok(())}).await.is_err());
++        assert_eq!(writes.load(Ordering::Acquire),2,"retained Arc must not keep closed route permission alive");
++        assert!(route(&room,&ready,&owner).is_err());assert!(!ready.root.is_committed());
++        assert!(ready.plan.media().require_legacy_video_effects().is_err());
++        old_progress(&mut room,&old,&source).await;
++        drop(scope);
++    }).await;
++    let cleanup=room.close_originals().await;assert!(cleanup.into_iter().all(|done|done));
++    if let Err(error)=result {resume_unwind(error)}
++}
++
++#[tokio::test]
++async fn managed_pre_cut_bridge_real_metadata_busy_and_unsupported_keep_same_owned_seal_for_retry() {
++    let mut room=ManagedRoom::with_video(true).await;
++    let result=catch_original(async {
++        let(alice,old,source)=actors(&mut room).await;let ready=prepared(&mut room,&alice,&old,&source).await;
++        let owner=ownership(&room,&ready);
++        assert!(matches!(route(&room,&ready,&owner),Err(ParticipantControlError::Media(StreamControlError::Unsupported))));
++        owner.validate_current().unwrap();
++        room.world.warm_allowed.store(true,Ordering::Release);
++        let target=room.nodes[&ready.grant.intent.replacement].controller.clone();
++        {
++            let routing=target.direct_subscriptions.routing.lock().unwrap();
++            let attempt=route(&room,&ready,&owner);
++            assert!(matches!(attempt,Err(ParticipantControlError::Media(StreamControlError::MetadataBusy))));drop(routing);
++        }
++        owner.validate_current().unwrap();
++        let scope=route(&room,&ready,&owner).unwrap();assert!(scope.is_current());
++        assert!(route(&room,&ready,&owner).is_err(),"one installed route is never reminted");
++        let owned_scope=scope.clone();drop(scope);assert!(owned_scope.is_current());
++        let weak=Arc::downgrade(&owned_scope);drop(owned_scope);assert!(weak.upgrade().is_none(),"B route cannot self-retain Root scope");
++        assert!(owner.validate_current().is_err());old_progress(&mut room,&old,&source).await;
++    }).await;
++    let cleanup=room.close_originals().await;assert!(cleanup.into_iter().all(|done|done));
++    if let Err(error)=result {resume_unwind(error)}
++}
++
++#[tokio::test]
++async fn managed_pre_cut_bridge_unknown_original_policy_denial_and_old_selection_aba_never_use_ordinary_fallback() {
++    let mut room=ManagedRoom::with_video(true).await;
++    let result=catch_original(async {
++        let(alice,old,source)=actors(&mut room).await;let ready=prepared(&mut room,&alice,&old,&source).await;
++        let owner=ownership(&room,&ready);room.world.warm_allowed.store(true,Ordering::Release);let scope=route(&room,&ready,&owner).unwrap();
++        let target=ready.grant.intent.replacement.clone();let port=room.nodes[&target].backend.ports.lock().unwrap()[&b_id()].clone();let mut output=port.take_egress().unwrap();
++        let writes=AtomicUsize::new(0);
++        let(packet,_)=video_packet(&room.nodes[&source],30000,None);publish_packet(&room.nodes[&source],packet,None).await;
++        assert!(outgoing(&mut output).await.deliver(|_|async {writes.fetch_add(1,Ordering::AcqRel);Ok(())}).await.is_err());
++        let(packet,point)=video_packet(&room.nodes[&source],33000,None);publish_packet(&room.nodes[&source],packet,point).await;let queued=outgoing(&mut output).await;
++        room.world.warm_allowed.store(false,Ordering::Release);
++        assert!(queued.deliver(|_|async {writes.fetch_add(1,Ordering::AcqRel);Ok(())}).await.is_err());
++        room.world.warm_allowed.store(true,Ordering::Release);
++        let controller=room.nodes[&old].controller.clone();let publisher=room.nodes[&source].controller.clone();
++        controller.change_direct_subscriptions(controller.revision(),DirectSubscriptionChange::Clear,deadline(),CancellationToken::new(),None).await.unwrap();
++        controller.change_direct_subscriptions(controller.revision(),DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(&publisher,desired(Medium::Video).logical_id,desired(Medium::Video).logical_id)]),deadline(),CancellationToken::new(),None).await.unwrap();
++        assert!(!scope.is_current(),"original selected-programme ticket cannot adopt restored selection");
++        assert_eq!(writes.load(Ordering::Acquire),0);scope.close();old_progress(&mut room,&old,&source).await;
++    }).await;
++    let cleanup=room.close_originals().await;assert!(cleanup.into_iter().all(|done|done));
++    if let Err(error)=result {resume_unwind(error)}
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm.rs
+@@ -283,3 +283,15 @@
+ 
+ #[path="public_video_warm/structural_fence_controls.rs"]
+ mod structural_fence_controls;
++
++#[path="public_video_warm/bridge_ownership_controls.rs"]
++mod bridge_ownership_controls;
++
++#[path="public_video_warm/pre_cut_bridge_controls.rs"]
++pub(super) mod pre_cut_bridge_controls;
++
++#[path="public_video_warm/bridge_withdrawal_controls.rs"]
++mod bridge_withdrawal_controls;
++
++#[path="public_video_warm/bridge_conversion_controls.rs"]
++mod bridge_conversion_controls;
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+@@ -491,6 +491,9 @@
+     }
+     fn current_public_video_reservation(&self,scope:&MediaScope<'_>,original:&public_video_reservation::PublicVideoReservationPreparation,held:&(dyn Any+Send+Sync))->ControlResult<Box<dyn MediaAuthorityLease>> {
+         public_video_warm::current_reservation(&self.0,scope,original,held)
++    }
++    fn current_pre_cut_public_video_bridge(&self,scope:&MediaScope<'_>,bridge:&crate::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeScope,held:Option<&(dyn Any+Send+Sync)>)->ControlResult<Box<dyn MediaAuthorityLease>> {
++        public_video_warm::pre_cut_bridge_controls::current(&self.0,scope,bridge,held)
+     }
+     fn current_public_video_warm(&self,scope:&MediaScope<'_>,original:&crate::staged_streams::direct_subscriptions::PostCutPublicVideoScope,held:Option<&(dyn Any+Send+Sync)>)->ControlResult<Box<dyn MediaAuthorityLease>> {
+         public_video_warm::current(&self.0,scope,original,held)
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -278,6 +278,7 @@
+     prepare_calls: AtomicUsize,
+     initial_picture_calls: AtomicUsize,
+     public_warm_starts: AtomicUsize,
++    bridge_adoptions:AtomicUsize,bridge_adopted_pointer:AtomicUsize,
+     keyframe_recorder: Mutex<Option<crate::staged_streams::direct_subscriptions::PublicVideoKeyframeRecorder>>,
+     ports: Mutex<BTreeMap<StreamId, AdapterMediaPort>>,
+     mode: AtomicUsize,
+@@ -305,6 +306,7 @@
+             prepare_calls: AtomicUsize::new(0),
+             initial_picture_calls: AtomicUsize::new(0),
+             public_warm_starts: AtomicUsize::new(0),
++            bridge_adoptions:AtomicUsize::new(0),bridge_adopted_pointer:AtomicUsize::new(0),
+             keyframe_recorder: Mutex::new(None),
+             ports: Mutex::new(BTreeMap::new()),
+             mode: AtomicUsize::new(0),
+@@ -326,6 +328,20 @@
+ }
+ #[async_trait::async_trait]
+ impl StagedMediaAdapter for Adapter {
++    async fn adopt_public_video_bridge(&self,request:&crate::staged_streams::direct_subscriptions::PublicVideoWarmStart<'_>)->ControlResult<()> {
++        // Explicit metadata-only trusted adapter callback; no native writer
++        // or decoder is modeled as having submitted/delivered any packet.
++        let mode=self.mode.load(Ordering::Acquire);if !(26..=28).contains(&mode) {return Err(StreamControlError::Unsupported);}
++        if !request.is_current() {return Err(StreamControlError::NotReady);}
++        let bridge=request.pre_cut_bridge().ok_or(StreamControlError::Authority)?;
++        if bridge.target()!=request.scope().target()||bridge.original_intent()!=request.scope().original_intent()
++            ||self.ports.lock().unwrap().get(&bridge.target().logical_id).is_none_or(|port|!port.same_original(request.target_port())) {return Err(StreamControlError::Authority);}
++        self.bridge_adoptions.fetch_add(1,Ordering::AcqRel);self.bridge_adopted_pointer.store(bridge as *const _ as usize,Ordering::Release);
++        if mode==27 {self.entered.notify_one();self.release.notified().await;}
++        if mode==28 {return Err(StreamControlError::NotReady);}
++        if !request.is_current() {return Err(StreamControlError::NotReady);}
++        self.physical_video.get(&bridge.target().logical_id).ok_or(StreamControlError::Unsupported)?.inherit_frontier(request.scope().frontier());Ok(())
++    }
+     async fn start_public_video_warm(&self,request:&crate::staged_streams::direct_subscriptions::PublicVideoWarmStart<'_>)->ControlResult<()> {
+         let mode=self.mode.load(Ordering::Acquire);
+         if !(20..=22).contains(&mode) && mode!=24 {return Err(StreamControlError::Unsupported);}
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -336,6 +336,14 @@
+         _held:&(dyn Any+Send+Sync),
+     )->ControlResult<Box<dyn MediaAuthorityLease>> {Err(StreamControlError::Unsupported)}
+ 
++    /// Explicit pre-F PUBLIC-programme candidate. This is never private A,
++    /// ordinary Receive, post-F readiness or publication. None requires fresh
++    /// current compatible source/receiver authority; no Reader is retained.
++    fn current_pre_cut_public_video_bridge(
++        &self,_scope:&MediaScope<'_>,_bridge:&direct_subscriptions::PreCutPublicVideoBridgeScope,
++        _held:Option<&(dyn Any+Send+Sync)>,
++    )->ControlResult<Box<dyn MediaAuthorityLease>> {Err(StreamControlError::Unsupported)}
++
+     /// Distinct pending-public B original source class. No ordinary/private
+     /// Receive fallback; held is installation-only, None must acquire fresh
+     /// compatible current public candidate/source Read. Never retain a reader
+@@ -555,6 +563,12 @@
+     /// Initial selected-source PLI only. Core constructs this non-clone request
+     /// inside fresh source-publication and exact pending-public B admissions.
+     /// It is not successful feedback, readiness, or permission to send media.
++    /// Move the SAME already-running bridge writer to the supplied post-F
++    /// class. No egress queue take/native start/decoder reset is authorized.
++    /// The request exists only under fresh original source+Warm admissions.
++    async fn adopt_public_video_bridge(
++        &self,_request:&direct_subscriptions::PublicVideoWarmStart<'_>,
++    )->ControlResult<()> {Err(StreamControlError::Unsupported)}
+     async fn start_public_video_warm(
+         &self,_request:&direct_subscriptions::PublicVideoWarmStart<'_>,
+     )->ControlResult<()> {Err(StreamControlError::Unsupported)}
+@@ -2154,6 +2168,11 @@
+         deadline: &mut tokio::time::Instant,
+     ) -> ControlResult<QueuedMediaAdmission> {
+         self.require_authorization_epochs()?;
++        if let Some(weak)=self.direct.as_ref().and_then(|direct|direct.bridge.as_ref()) {
++            let bridge=weak.upgrade().ok_or(StreamControlError::Cancelled)?;
++            *deadline=(*deadline).min(bridge.deadline());
++            bridge.require_original_frame(self.original_video_frame())?;
++        }
+         if let Some(warm)=self.post_cut_public_video_scope() {
+             if !warm.is_published(){*deadline=(*deadline).min(warm.deadline().ok_or(StreamControlError::Cancelled)?);}
+             warm.require_original_frame(self.original_video_frame())?;
+@@ -2192,6 +2211,7 @@
+         }
+         if let Some(direct) = &self.direct {
+             tokens.push(direct.cancel.clone());
++            if let Some(bridge)=&direct.bridge {tokens.push(bridge.upgrade().ok_or(StreamControlError::Cancelled)?.cancellation());}
+             if let Some(warm)=direct.post_cut.as_ref().filter(|warm|!warm.is_published()) {tokens.push(warm.cancellation()?);}
+         }
+         if let Some(subscription) = &self.subscription {
+@@ -3477,7 +3497,11 @@
+                 );
+             }
+             let policy_started = delivery.as_ref().map(|_| Instant::now());
+-            let policy_result = if let Some(warm)=direct.and_then(|stamp|stamp.post_cut.as_ref()).filter(|warm|!warm.is_published()) {
++            let bridge=direct.and_then(|stamp|stamp.bridge.as_ref()).map(|weak|weak.upgrade().ok_or(StreamControlError::Cancelled)).transpose()?;
++            let policy_result = if let Some(bridge)=&bridge {
++                if !sending || source.is_none() || data.is_some() || !bridge.is_current() {return Err(StreamControlError::Authority);}
++                self.policy.current_pre_cut_public_video_bridge(&scope,bridge,held)
++            } else if let Some(warm)=direct.and_then(|stamp|stamp.post_cut.as_ref()).filter(|warm|!warm.is_published()) {
+                 if !sending || source.is_none() || data.is_some() || !warm.is_current() {return Err(StreamControlError::Authority);}
+                 self.policy.current_public_video_warm(&scope,warm,held)
+             } else { match (data, packet_context) {
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs
+@@ -225,6 +225,11 @@
+                         && self.envelope.original()["payload"]["substrate"] == "websocket+webrtc"
+                         && self.envelope.original()["payload"]["substrate_setup"]["kind"] == "websocket+webrtc"
+                 }
++                Some("connect-replacement-public-video-bridge-ready-v1") => {
++                    marker["bridge_readiness"].is_object()
++                        && self.envelope.original()["payload"]["substrate"] == "websocket+webrtc"
++                        && self.envelope.original()["payload"]["substrate_setup"]["kind"] == "websocket+webrtc"
++                }
+                 _ => false,
+             }
+     }
+--- a/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
++++ b/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
+@@ -424,6 +424,9 @@
+         "webrtc_video_receive_reservation": {
+           "$ref": "#/$defs/WebRtcPublicVideoIntent"
+         },
++        "webrtc_public_video_bridge_opt_in": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeOptIn"
++        },
+         "replacement_preparation": {
+           "oneOf": [
+             {
+@@ -466,6 +469,9 @@
+             },
+             {
+               "$ref": "#/$defs/WebRtcPublicVideoReadyMarker"
++            },
++            {
++              "$ref": "#/$defs/WebRtcPublicVideoBridgeReadyMarker"
+             }
+           ]
+         }
+@@ -618,6 +624,48 @@
+               "webrtc_video_receive_reservation"
+             ]
+           }
++        },
++        {
++          "if": {
++            "required": [
++              "webrtc_public_video_bridge_opt_in"
++            ]
++          },
++          "then": {
++            "required": [
++              "webrtc_video_receive_reservation"
++            ],
++            "properties": {
++              "substrate": {
++                "const": "websocket+webrtc"
++              }
++            }
++          }
++        },
++        {
++          "if": {
++            "required": [
++              "replacement_preparation"
++            ],
++            "properties": {
++              "replacement_preparation": {
++                "required": [
++                  "profile"
++                ],
++                "properties": {
++                  "profile": {
++                    "const": "connect-replacement-public-video-bridge-ready-v1"
++                  }
++                }
++              }
++            }
++          },
++          "then": {
++            "required": [
++              "webrtc_video_receive_reservation",
++              "webrtc_public_video_bridge_opt_in"
++            ]
++          }
+         }
+       ]
+     },
+@@ -2641,6 +2689,15 @@
+         },
+         "webrtc_public_video_phase": {
+           "$ref": "#/$defs/WebRtcPublicVideoPhase"
++        },
++        "webrtc_public_video_bridge": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeSnapshot"
++        },
++        "receiver_video_post_cut": {
++          "$ref": "#/$defs/WebRtcReceiverVideoPostCut"
++        },
++        "receiver_video_release": {
++          "$ref": "#/$defs/WebRtcReceiverVideoRelease"
+         }
+       },
+       "required": [
+@@ -2762,6 +2819,82 @@
+             "required": [
+               "webrtc_video_receive_reservation"
+             ]
++          }
++        },
++        {
++          "if": {
++            "required": [
++              "webrtc_public_video_bridge"
++            ]
++          },
++          "then": {
++            "required": [
++              "webrtc_video_receive_reservation",
++              "command_type",
++              "record_id",
++              "expected_revision"
++            ],
++            "properties": {
++              "command_type": {
++                "const": "connection.replace"
++              }
++            }
++          }
++        },
++        {
++          "if": {
++            "required": [
++              "receiver_video_post_cut"
++            ]
++          },
++          "then": {
++            "required": [
++              "webrtc_public_video_bridge",
++              "webrtc_public_video_phase"
++            ],
++            "properties": {
++              "state": {
++                "const": "preparing"
++              },
++              "webrtc_public_video_phase": {
++                "required": [
++                  "phase"
++                ],
++                "properties": {
++                  "phase": {
++                    "const": "cut-bound-post-f"
++                  }
++                }
++              }
++            }
++          }
++        },
++        {
++          "if": {
++            "required": [
++              "receiver_video_release"
++            ]
++          },
++          "then": {
++            "required": [
++              "webrtc_public_video_bridge",
++              "webrtc_public_video_phase"
++            ],
++            "properties": {
++              "state": {
++                "const": "completed"
++              },
++              "webrtc_public_video_phase": {
++                "required": [
++                  "phase"
++                ],
++                "properties": {
++                  "phase": {
++                    "const": "activated"
++                  }
++                }
++              }
++            }
+           }
+         },
+         {
+@@ -3293,6 +3426,252 @@
+       "additionalProperties": false,
+       "description": "Closed marker inside SAME original signed connection.offer. Preserve every other original offer/credential/key/device field. No audio readiness is supplied here. Host must match whole frozen original marker on replay; shape/signature/counters alone confer no media permission or physical proof."
+     },
++    "WebRtcPublicVideoBridgeId": {
++      "type": "string",
++      "minLength": 1,
++      "maxLength": 128,
++      "pattern": "^[A-Za-z0-9._~-]+$"
++    },
++    "WebRtcPublicVideoBridgeOpaque": {
++      "type": "string",
++      "minLength": 1,
++      "maxLength": 256,
++      "pattern": "^[!-~]+$"
++    },
++    "WebRtcPublicVideoBridgePositiveCount": {
++      "type": "integer",
++      "minimum": 1,
++      "maximum": 9007199254740991
++    },
++    "WebRtcPublicVideoBridgeBinding": {
++      "type": "object",
++      "properties": {
++        "stream_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
++        },
++        "preview_stream_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
++        },
++        "mid": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeOpaque"
++        },
++        "stream_generation": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgePositiveCount"
++        },
++        "physical_writer_incarnation": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeOpaque"
++        },
++        "connection_generation": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgePositiveCount"
++        },
++        "primary_ssrc": {
++          "type": "integer",
++          "minimum": 0,
++          "maximum": 4294967295
++        },
++        "payload_type": {
++          "type": "integer",
++          "minimum": 0,
++          "maximum": 127
++        },
++        "clock_rate_hz": {
++          "const": 90000
++        },
++        "codec": {
++          "const": "vp8"
++        }
++      },
++      "required": [
++        "stream_id",
++        "preview_stream_id",
++        "mid",
++        "stream_generation",
++        "physical_writer_incarnation",
++        "connection_generation",
++        "primary_ssrc",
++        "payload_type",
++        "clock_rate_hz",
++        "codec"
++      ],
++      "additionalProperties": false,
++      "description": "Actual original B native tuple. SSRC zero is valid. Generations are independent namespaces; runtime matches distinct stream IDs/native pointers/current original owners, never infers identity from these data alone."
++    },
++    "WebRtcPublicVideoBridgeOptIn": {
++      "type": "object",
++      "properties": {
++        "profile": {
++          "const": "connect/webrtc-public-video-precut-bridge/1"
++        },
++        "carrier": {
++          "const": "webrtc-rtp"
++        },
++        "presentation": {
++          "const": "exclusive-public"
++        },
++        "feed": {
++          "const": "public-programme-private-decode"
++        }
++      },
++      "required": [
++        "profile",
++        "carrier",
++        "presentation",
++        "feed"
++      ],
++      "additionalProperties": false
++    },
++    "WebRtcPublicVideoBridgeChallenge": {
++      "type": "object",
++      "properties": {
++        "nonce": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
++        },
++        "expires_at": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgePositiveCount"
++        },
++        "decoder_startup": {
++          "const": "fresh-b-receiver-precut-keyframe"
++        }
++      },
++      "required": [
++        "nonce",
++        "expires_at",
++        "decoder_startup"
++      ],
++      "additionalProperties": false
++    },
++    "WebRtcPublicVideoBridgeFeeding": {
++      "type": "object",
++      "properties": {
++        "profile": {
++          "const": "connect/webrtc-public-video-precut-bridge/1"
++        },
++        "phase": {
++          "const": "feeding"
++        },
++        "reservation_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
++        },
++        "operation_record_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
++        },
++        "operation_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
++        },
++        "target_connection_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
++        },
++        "target_generation": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgePositiveCount"
++        },
++        "binding": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeBinding"
++        },
++        "bridge_readiness": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeChallenge"
++        }
++      },
++      "required": [
++        "profile",
++        "phase",
++        "reservation_id",
++        "operation_record_id",
++        "operation_id",
++        "target_connection_id",
++        "target_generation",
++        "binding",
++        "bridge_readiness"
++      ],
++      "additionalProperties": false
++    },
++    "WebRtcPublicVideoBridgeDecodedObservation": {
++      "type": "object",
++      "properties": {
++        "reservation_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
++        },
++        "nonce": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
++        },
++        "binding": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeBinding"
++        },
++        "decoded_rtp_timestamp": {
++          "type": "integer",
++          "minimum": 0,
++          "maximum": 4294967295
++        },
++        "decoded_frames": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgePositiveCount"
++        },
++        "decoder_startup": {
++          "const": "fresh-b-receiver-precut-keyframe"
++        }
++      },
++      "required": [
++        "reservation_id",
++        "nonce",
++        "binding",
++        "decoded_rtp_timestamp",
++        "decoded_frames",
++        "decoder_startup"
++      ],
++      "additionalProperties": false
++    },
++    "WebRtcPublicVideoBridgeReadyMarker": {
++      "type": "object",
++      "properties": {
++        "profile": {
++          "const": "connect-replacement-public-video-bridge-ready-v1"
++        },
++        "operation_record_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
++        },
++        "bridge_readiness": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeDecodedObservation"
++        }
++      },
++      "required": [
++        "profile",
++        "operation_record_id",
++        "bridge_readiness"
++      ],
++      "additionalProperties": false
++    },
++    "WebRtcPublicVideoBridgeSnapshot": {
++      "type": "object",
++      "properties": {
++        "opt_in": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeOptIn"
++        },
++        "feeding": {
++          "anyOf": [
++            {
++              "$ref": "#/$defs/WebRtcPublicVideoBridgeFeeding"
++            },
++            {
++              "type": "null"
++            }
++          ]
++        },
++        "decoded_ready": {
++          "anyOf": [
++            {
++              "$ref": "#/$defs/WebRtcPublicVideoBridgeReadyMarker"
++            },
++            {
++              "type": "null"
++            }
++          ]
++        }
++      },
++      "required": [
++        "opt_in",
++        "feeding",
++        "decoded_ready"
++      ],
++      "additionalProperties": false
++    },
+     "ReplacementReadinessChallenge": {
+       "type": "object",
+       "properties": {
+@@ -3476,6 +3855,230 @@
+         "readiness"
+       ],
+       "additionalProperties": false
++    },
++    "WebRtcReceiverVideoPostCut": {
++      "type": "object",
++      "additionalProperties": false,
++      "properties": {
++        "profile": {
++          "const": "connect-receiver-video-post-cut-v1"
++        },
++        "operation_record_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "operation_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "reservation_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "source_connection_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "target_connection_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "stream_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "source_cut_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "stream_generation": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740991
++        },
++        "connection_generation": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740991
++        },
++        "target_generation": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740991
++        },
++        "original_frame": {
++          "type": "object",
++          "additionalProperties": false,
++          "properties": {
++            "realm": {
++              "type": "string",
++              "pattern": "^[0-9a-f]{32}$"
++            },
++            "last_old_ordinal": {
++              "type": "string",
++              "pattern": "^(0|[1-9][0-9]{0,19})$"
++            },
++            "ordinal": {
++              "type": "string",
++              "pattern": "^(0|[1-9][0-9]{0,19})$"
++            }
++          },
++          "required": [
++            "realm",
++            "last_old_ordinal",
++            "ordinal"
++          ]
++        },
++        "floor": {
++          "type": "object",
++          "additionalProperties": false,
++          "properties": {
++            "carrier": {
++              "const": "webrtc-rtp"
++            },
++            "physical_writer_incarnation": {
++              "type": "string",
++              "pattern": "^[0-9a-f]{32}$"
++            },
++            "primary_ssrc": {
++              "type": "integer",
++              "minimum": 0,
++              "maximum": 4294967295
++            },
++            "first_public_rtp_timestamp": {
++              "type": "integer",
++              "minimum": 0,
++              "maximum": 4294967295
++            }
++          },
++          "required": [
++            "carrier",
++            "physical_writer_incarnation",
++            "primary_ssrc",
++            "first_public_rtp_timestamp"
++          ]
++        }
++      },
++      "required": [
++        "profile",
++        "operation_record_id",
++        "operation_id",
++        "reservation_id",
++        "source_connection_id",
++        "target_connection_id",
++        "stream_id",
++        "source_cut_id",
++        "stream_generation",
++        "connection_generation",
++        "target_generation",
++        "original_frame",
++        "floor"
++      ]
++    },
++    "WebRtcReceiverVideoRelease": {
++      "type": "object",
++      "additionalProperties": false,
++      "properties": {
++        "profile": {
++          "const": "connect-receiver-video-release-v1"
++        },
++        "operation_record_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "operation_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "reservation_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "source_connection_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "target_connection_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "stream_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "source_cut_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "stream_generation": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740991
++        },
++        "connection_generation": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740991
++        },
++        "target_generation": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740991
++        },
++        "original_frame": {
++          "type": "object",
++          "additionalProperties": false,
++          "properties": {
++            "realm": {
++              "type": "string",
++              "pattern": "^[0-9a-f]{32}$"
++            },
++            "last_old_ordinal": {
++              "type": "string",
++              "pattern": "^(0|[1-9][0-9]{0,19})$"
++            },
++            "ordinal": {
++              "type": "string",
++              "pattern": "^(0|[1-9][0-9]{0,19})$"
++            }
++          },
++          "required": [
++            "realm",
++            "last_old_ordinal",
++            "ordinal"
++          ]
++        },
++        "floor": {
++          "type": "object",
++          "additionalProperties": false,
++          "properties": {
++            "carrier": {
++              "const": "webrtc-rtp"
++            },
++            "physical_writer_incarnation": {
++              "type": "string",
++              "pattern": "^[0-9a-f]{32}$"
++            },
++            "primary_ssrc": {
++              "type": "integer",
++              "minimum": 0,
++              "maximum": 4294967295
++            },
++            "first_public_rtp_timestamp": {
++              "type": "integer",
++              "minimum": 0,
++              "maximum": 4294967295
++            }
++          },
++          "required": [
++            "carrier",
++            "physical_writer_incarnation",
++            "primary_ssrc",
++            "first_public_rtp_timestamp"
++          ]
++        }
++      },
++      "required": [
++        "profile",
++        "operation_record_id",
++        "operation_id",
++        "reservation_id",
++        "source_connection_id",
++        "target_connection_id",
++        "stream_id",
++        "source_cut_id",
++        "stream_generation",
++        "connection_generation",
++        "target_generation",
++        "original_frame",
++        "floor"
++      ]
+     },
+     "ReconciliationHint": {
+       "type": "object",
+@@ -3794,12 +4397,43 @@
+         },
+         "video": {
+           "$ref": "#/$defs/ReplacementVideo"
++        },
++        "receiver_video_bridge": {
++          "$ref": "#/$defs/WebRtcPublicVideoBridgeOptIn"
+         }
+       },
+       "required": [
+         "retained_connid"
+       ],
+       "additionalProperties": true,
++      "allOf": [
++        {
++          "if": {
++            "required": [
++              "receiver_video_bridge"
++            ]
++          },
++          "then": {
++            "required": [
++              "video"
++            ],
++            "properties": {
++              "video": {
++                "properties": {
++                  "publications": {
++                    "minItems": 1,
++                    "maxItems": 1
++                  },
++                  "receivers": {
++                    "minItems": 1,
++                    "maxItems": 1
++                  }
++                }
++              }
++            }
++          }
++        }
++      ],
+       "oneOf": [
+         {
+           "required": [
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/public_warm.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/public_warm.rs
+@@ -97,4 +97,122 @@
+         io.start_locked(&mut setup,egress_loop(Egress::Video(video),io.health.stop.clone(),Medium::Video)).map_err(|error|{terminal_warm_refusal(request,"adapter-egress-worker-install","original-queue-consumed-picture-worker-installed",&error);error})?;
+         Ok(())
+     }
++
++    /// Start the exact originally reserved B writer under the Core bridge.
++    /// Its output remains private: the queue's separate policy/tickets still
++    /// guard every packet. No late-cut scope is created or synthesized here.
++    pub(in crate::canonical) async fn start_reserved_pre_cut_video(
++        &self,
++        scope: &Arc<direct_subscriptions::PreCutPublicVideoBridgeScope>,
++    ) -> ControlResult<Arc<crate::media::core_video::ReceiverReleaseObservation>> {
++        let port = scope.target_port()?;
++        let descriptor = scope.target();
++        let binding = port.binding();
++        let cancel = scope.cancellation();
++        if !self.original_controller.get().is_some_and(|owner| port.matches_adapter_media_owner(owner))
++            || self.id != scope.original_intent().replacement
++            || port.context_ids()? != (scope.conversation().clone(), scope.session().clone(), self.id.clone())
++            || self.physical.reserved_video.as_ref()
++                .map(|profile| profile.role(&binding.negotiated.requested))
++                .transpose()?.flatten() != Some(super::super::reserved_video::VideoRole::PublicReserved)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let io = self.ports.get(&descriptor.transport_id).map(|entry| entry.value().clone())
++            .ok_or(StreamControlError::NotReady)?;
++        let require_current = || {
++            if !self.current() || !scope.is_current() || !io.health.confirmed()
++                || !io.port.upgrade().is_some_and(|original| original.same_original(&port) && original.status() == PortStatus::Active)
++                || !same_binding(&io.binding, binding)
++                || !self.ports.get(&descriptor.transport_id).is_some_and(|current| Arc::ptr_eq(current.value(), &io))
++            {
++                return Err(StreamControlError::NotReady);
++            }
++            Ok(())
++        };
++        require_current()?;
++        // Setup/lifetime guards below never span network waits.
++        let peer = tokio::select! {biased;
++            _ = cancel.cancelled() => return Err(StreamControlError::Cancelled),
++            result = self.physical.peer_internal(scope.deadline()) => result.map_err(|_| StreamControlError::NotReady)?,
++        };
++        require_current()?;
++        let owner = io.reserved_video.as_ref().and_then(Weak::upgrade).ok_or(StreamControlError::NotReady)?;
++        let mut setup = io.health.setup.try_lock().map_err(|_| StreamControlError::MetadataBusy)?;
++        if setup.closing || !setup.tasks.is_empty() {
++            return Err(StreamControlError::NotReady);
++        }
++        let mut slot = owner.video.try_lock().map_err(|_| StreamControlError::MetadataBusy)?;
++        require_current()?;
++        let video = slot.as_mut().ok_or(StreamControlError::NotReady)?;
++        let (_, _, physical) = video.owned_binding_metadata(&peer).ok_or(StreamControlError::Authority)?;
++        if physical.physical_family != descriptor.physical_writer_incarnation
++            || physical.realm_incarnation != Some(scope.realm_incarnation())
++        {
++            return Err(StreamControlError::Authority);
++        }
++
++        // After the sole receipt is installed, any refusal is terminal for
++        // this candidate. The caller closes/joins the original whole candidate.
++        video.picture_requests().arm_bridge_initial_picture()?;
++        let receipt = video.reserve_receiver_release(scope.original_intent().clone(), descriptor.clone(), cancel)?;
++        let adoption = video.prepare_bridge_warm_adoption(scope, &receipt)?;
++        let mut adoption_slot = owner.warm_adoption.try_lock().map_err(|_| StreamControlError::Authority)?;
++        if adoption_slot.is_some() {
++            return Err(StreamControlError::Authority);
++        }
++        *adoption_slot = Some(adoption);
++        drop(adoption_slot);
++        let signals = video.register_reserved_feedback(&peer, io.health.stop.clone())?;
++        let video = slot.take().ok_or(StreamControlError::NotReady)?;
++        let pictures = video.picture_requests();
++        let routes = self.routes.clone();
++        let picture_next = self.picture_next.clone();
++        let picture_stop = io.health.stop.clone();
++        io.start_locked(&mut setup, async move {
++            let result = picture_feedback(
++                pictures, signals.picture.clone(), signals.repair.clone(),
++                routes, picture_next, picture_stop,
++            ).await;
++            drop(signals);
++            result
++        })?;
++        io.start_locked(&mut setup, egress_loop(Egress::Video(video), io.health.stop.clone(), Medium::Video))?;
++        Ok(receipt)
++    }
++
++    /// Convert the same already-running writer. A separate queue, timeline
++    /// reset, task restart or decoder is never created by this operation.
++    pub(super) fn adopt_reserved_pre_cut_video(
++        &self,
++        request: &direct_subscriptions::PublicVideoWarmStart<'_>,
++    ) -> ControlResult<()> {
++        let bridge = request.pre_cut_bridge().ok_or(StreamControlError::Authority)?;
++        let scope = request.scope();
++        let port = request.target_port();
++        let binding = port.binding();
++        let id = &scope.target().transport_id;
++        let io = self.ports.get(id).map(|entry| entry.value().clone()).ok_or(StreamControlError::NotReady)?;
++        let owner = io.reserved_video.as_ref().and_then(Weak::upgrade).ok_or(StreamControlError::NotReady)?;
++        let setup = io.health.setup.try_lock().map_err(|_| StreamControlError::MetadataBusy)?;
++        if setup.closing
++            || setup.tasks.len() != 2
++            || !self.current()
++            || !request.is_current()
++            || !io.health.confirmed()
++            || self.id != scope.original_intent().replacement
++            || !self.original_controller.get().is_some_and(|original| port.matches_adapter_media_owner(original))
++            || !io.port.upgrade().is_some_and(|original| original.same_original(port) && original.status() == PortStatus::Active)
++            || !same_binding(&io.binding, binding)
++            || !self.ports.get(id).is_some_and(|entry| Arc::ptr_eq(entry.value(), &io))
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let mut slot = owner.warm_adoption.try_lock().map_err(|_| StreamControlError::MetadataBusy)?;
++        if !slot.as_ref().is_some_and(|original| original.matches(bridge)) {
++            return Err(StreamControlError::Authority);
++        }
++        slot.take().ok_or(StreamControlError::Authority)?.adopt(request)
++    }
++
+ }
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -161,12 +161,14 @@
+ // its target Port, whose cleanup owns PortIo; PortIo MUST hold only Weak here.
+ struct ReservedVideoOutput {
+     video: Mutex<Option<CoreVideoEgress>>,
++    warm_adoption: Mutex<Option<crate::media::core_video::BridgeWarmAdoption>>,
+     stream: StreamId,
+     owners: Weak<DashMap<StreamId,Arc<ReservedVideoOutput>>>,
+ }
+ impl ReservedVideoOutput {
+     fn close(&self) {
+         self.video.lock().unwrap_or_else(|p|p.into_inner()).take();
++        self.warm_adoption.lock().unwrap_or_else(|p|p.into_inner()).take();
+         if let Some(owners)=self.owners.upgrade() {
+             owners.remove_if(&self.stream,|_,owner|std::ptr::eq(self,Arc::as_ptr(owner)));
+         }
+@@ -741,6 +743,10 @@
+         self.start_reserved_public_video(request).await
+     }
+ 
++    async fn adopt_public_video_bridge(&self, request: &direct_subscriptions::PublicVideoWarmStart<'_>) -> ControlResult<()> {
++        self.adopt_reserved_pre_cut_video(request)
++    }
++
+     async fn request_initial_video_picture(
+         &self, request:&direct_subscriptions::InitialVideoPictureRequest<'_>,
+     )->ControlResult<()> {
+@@ -814,7 +820,7 @@
+         }
+         let reserved_public=self.physical.reserved_video.as_ref().map(|p|p.role(&b.negotiated.requested)).transpose()?.flatten()==Some(super::reserved_video::VideoRole::PublicReserved);
+         let reserved_video=if reserved_public {
+-            let owner=Arc::new(ReservedVideoOutput {video:Mutex::new(None),stream:b.transport_id.clone(),owners:Arc::downgrade(&self.reserved_video_outputs)});
++            let owner=Arc::new(ReservedVideoOutput {video:Mutex::new(None),warm_adoption:Mutex::new(None),stream:b.transport_id.clone(),owners:Arc::downgrade(&self.reserved_video_outputs)});
+             let weak=Arc::downgrade(&owner);
+             match self.reserved_video_outputs.entry(b.transport_id.clone()) {
+                 dashmap::mapref::entry::Entry::Vacant(slot)=>{slot.insert(owner);},
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video_metadata.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video_metadata.rs
+@@ -43,4 +43,34 @@
+         if !current() || route.session!=binding.session_id || !controller.active_bindings().iter().any(|b|b.transport_id==binding.transport_stream_id && b.generation==binding.stream_generation && b.connection_generation==binding.connection_generation && b.negotiated.requested.logical_id==native.logical_stream_id) {return Err(E::NotReady);}
+         Ok(binding)
+     }
++
++    /// Open only the exact previously negotiated and reserved private writer.
++    /// The opaque Core bridge owns the route and the Service owns its lifecycle.
++    pub async fn start_pre_cut_public_video(
++        &self,
++        peer: &Arc<PeerAdmission>,
++        scope: &Arc<rvoip_core::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeScope>,
++    ) -> ControlResult<Arc<crate::media::core_video::ReceiverReleaseObservation>> {
++        let id = &scope.original_intent().replacement;
++        let route = self.routes.get(id).map(|r| r.value().clone()).ok_or(E::NotReady)?;
++        let current = || {
++            scope.is_current()
++                && !route.cancel.is_cancelled()
++                && &route.session == scope.session()
++                && Weak::ptr_eq(&route.peer, &Arc::downgrade(peer))
++                && route.binding.current(peer, id)
++                && self.routes.get(id).is_some_and(|r| Arc::ptr_eq(r.value(), &route))
++        };
++        if !current() {
++            return Err(E::Cancelled);
++        }
++        let backend = route.installation.try_lock().map_err(|_| E::MetadataBusy)?
++            .as_ref().map(|installation| installation.backend.clone()).ok_or(E::NotReady)?;
++        let receipt = backend.start_reserved_pre_cut_video(scope).await?;
++        if !current() {
++            return Err(E::Cancelled);
++        }
++        Ok(receipt)
++    }
++
+ }
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video/bridge_adoption.rs
+@@ -0,0 +1,101 @@
++//! Retain the exact original reserved writer through the bridge cut.
++use super::{public_warm::WarmVideo, CoreVideoEgress, ReceiverReleaseObservation};
++use rvoip_core::staged_streams::{
++    direct_subscriptions::{PreCutPublicVideoBridgeScope, PublicVideoWarmStart},
++    physical_video_exposure::PhysicalVideoExposure,
++    ControlResult, StreamControlError,
++};
++use std::sync::{Arc, Weak};
++use tokio::sync::oneshot;
++
++pub(crate) struct BridgeWarmAdoption {
++    original: Weak<PreCutPublicVideoBridgeScope>,
++    release: Weak<ReceiverReleaseObservation>,
++    exposure: Arc<PhysicalVideoExposure>,
++    ssrc: u32,
++    payload_type: u8,
++    sender: oneshot::Sender<WarmVideo>,
++}
++
++pub(super) struct PendingBridgeAdoption {
++    pub(super) original: Weak<PreCutPublicVideoBridgeScope>,
++    pub(super) receiver: oneshot::Receiver<WarmVideo>,
++}
++
++impl CoreVideoEgress {
++    pub(crate) fn prepare_bridge_warm_adoption(
++        &mut self,
++        original: &Arc<PreCutPublicVideoBridgeScope>,
++        release: &Arc<ReceiverReleaseObservation>,
++    ) -> ControlResult<BridgeWarmAdoption> {
++        if !original.is_current()
++            || self.bridge_adoption.is_some()
++            || release.target() != original.target()
++            || release.primary_ssrc() != self.ssrc
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let (sender, receiver) = oneshot::channel();
++        self.bridge_adoption = Some(PendingBridgeAdoption {
++            original: Arc::downgrade(original),
++            receiver,
++        });
++        Ok(BridgeWarmAdoption {
++            original: Arc::downgrade(original),
++            release: Arc::downgrade(release),
++            exposure: self.exposure.clone(),
++            ssrc: self.ssrc,
++            payload_type: self.payload_type,
++            sender,
++        })
++    }
++}
++
++impl BridgeWarmAdoption {
++    pub(crate) fn matches(&self, original: &PreCutPublicVideoBridgeScope) -> bool {
++        std::ptr::eq(self.original.as_ptr(), original)
++    }
++
++    pub(crate) fn adopt(self, request: &PublicVideoWarmStart<'_>) -> ControlResult<()> {
++        let original = request
++            .pre_cut_bridge()
++            .ok_or(StreamControlError::Authority)?;
++        let scope = request.scope();
++        let frontier = scope.frontier_owner();
++        let observed = self
++            .exposure
++            .observer()
++            .snapshot()
++            .ok_or(StreamControlError::NotReady)?;
++        let release = self
++            .release
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        if !request.is_current()
++            || !self.matches(original)
++            || self.sender.is_closed()
++            || !observed.coverage_complete
++            || observed.physical_family != scope.target().physical_writer_incarnation
++            || observed.realm_incarnation != Some(frontier.realm_incarnation())
++            || release.target() != scope.target()
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let recorder = request.keyframe_submission_recorder(self.ssrc, self.payload_type)?;
++        if !recorder.matches_writer(
++            scope.as_ref(),
++            observed.physical_family,
++            self.ssrc,
++            self.payload_type,
++        ) {
++            return Err(StreamControlError::Authority);
++        }
++        release.bind_cut(frontier)?;
++        // Future retirements must include this original OLD frontier even if
++        // the adopted worker fails before seeing the first post-cut frame.
++        self.exposure.inherit_frontier(frontier);
++        self.sender
++            .send(WarmVideo::new(scope.clone(), recorder))
++            .map_err(|_| StreamControlError::Cancelled)
++    }
++}
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video/public_warm.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video/public_warm.rs
+@@ -173,10 +173,7 @@
+         let data=input.payload.get(size..).ok_or_else(|| {
+             diagnostic.header_refusals=diagnostic.header_refusals.saturating_add(1);StreamControlError::Unsupported
+         })?;
+-        // RFC6386 key-frame tag, sync code and nonzero visible dimensions.
+-        if data.len()<10 || data[0]&1!=0 || data[3..6]!=[0x9d,0x01,0x2a]
+-            || u16::from_le_bytes([data[6],data[7]])&0x3fff==0
+-            || u16::from_le_bytes([data[8],data[9]])&0x3fff==0 {
++        if !valid_keyframe_header(data) {
+             diagnostic.unusable_starts=diagnostic.unusable_starts.saturating_add(1);
+             return Err(StreamControlError::NotReady);
+         }
+@@ -191,6 +188,15 @@
+     Ok(if input.header.marker {Bootstrap::Open {source:source.clone()}}
+         else {Bootstrap::Collecting {source:source.clone(),ordinal,timestamp:input.header.timestamp,next:input.header.sequence_number.wrapping_add(1)}})
+ }
++// RFC 6386 key-frame tag, sync code and nonzero visible dimensions.
++pub(super) fn valid_keyframe_header(data: &[u8]) -> bool {
++    data.len() >= 10
++        && data[0] & 1 == 0
++        && data[3..6] == [0x9d, 0x01, 0x2a]
++        && u16::from_le_bytes([data[6], data[7]]) & 0x3fff != 0
++        && u16::from_le_bytes([data[8], data[9]]) & 0x3fff != 0
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video/receiver_release.rs
+@@ -0,0 +1,220 @@
++//! One exact whole-frame observation on the retained WebRTC writer.
++use super::{public_warm::valid_keyframe_header, Mapping, Source};
++use arc_swap::ArcSwapOption;
++use rtc::rtp;
++use rvoip_core::{
++    ids::StreamId,
++    participant_transitions::ParticipantReplacementMutation,
++    staged_streams::{
++        direct_subscriptions::PublicVideoWarmTarget, old_video_freeze::FrozenOldVideoFrontier,
++        ControlResult, OriginalVideoFrame, SourceFrameRealmPoint, StreamControlError,
++    },
++};
++use std::sync::{Arc, OnceLock, Weak};
++use tokio_util::sync::CancellationToken;
++
++pub struct ReceiverReleaseFrame {
++    point: SourceFrameRealmPoint,
++    timestamp: u32,
++}
++impl ReceiverReleaseFrame {
++    pub fn original_point(&self) -> SourceFrameRealmPoint {
++        self.point
++    }
++    pub fn rtp_timestamp(&self) -> u32 {
++        self.timestamp
++    }
++}
++
++/// Historical observation only. The caller still holds the exact current
++/// handoff, writer and signed authorization at the public release boundary.
++pub struct ReceiverReleaseObservation {
++    original: ParticipantReplacementMutation,
++    target: PublicVideoWarmTarget,
++    realm: u128,
++    ssrc: u32,
++    cancel: CancellationToken,
++    cut: OnceLock<Arc<FrozenOldVideoFrontier>>,
++    first: OnceLock<ReceiverReleaseFrame>,
++    first_pre_cut_keyframe: OnceLock<Arc<ReceiverReleaseFrame>>,
++    pre_cut_keyframe: ArcSwapOption<ReceiverReleaseFrame>,
++}
++impl ReceiverReleaseObservation {
++    pub(super) fn new(
++        original: ParticipantReplacementMutation,
++        target: PublicVideoWarmTarget,
++        realm: u128,
++        ssrc: u32,
++        cancel: CancellationToken,
++    ) -> Self {
++        Self {
++            original,
++            target,
++            realm,
++            ssrc,
++            cancel,
++            cut: OnceLock::new(),
++            first: OnceLock::new(),
++            first_pre_cut_keyframe: OnceLock::new(),
++            pre_cut_keyframe: ArcSwapOption::empty(),
++        }
++    }
++
++    pub fn bind_cut(&self, frontier: &Arc<FrozenOldVideoFrontier>) -> ControlResult<()> {
++        if self.cancel.is_cancelled()
++            || self.original.operation_id != frontier.operation_id()
++            || &self.original.source != frontier.source_connection()
++            || &self.original.replacement != frontier.target_connection()
++            || self.realm != frontier.realm_incarnation()
++        {
++            return Err(StreamControlError::Authority);
++        }
++        match self.cut.set(frontier.clone()) {
++            Ok(()) => Ok(()),
++            Err(same)
++                if self
++                    .cut
++                    .get()
++                    .is_some_and(|value| Arc::ptr_eq(value, &same)) =>
++            {
++                Ok(())
++            }
++            Err(_) => Err(StreamControlError::Authority),
++        }
++    }
++
++    /// Match an initial or recent complete, successfully submitted VP8 keyframe while
++    /// the bridge's candidate decoder was private. The signed browser
++    /// observation must separately establish decoding on this original writer.
++    pub fn pre_cut_keyframe(&self, rtp_timestamp: u32) -> Option<Arc<ReceiverReleaseFrame>> {
++        if self.cancel.is_cancelled() || self.cut.get().is_some() {
++            return None;
++        }
++        self.first_pre_cut_keyframe.get().filter(|frame| frame.rtp_timestamp() == rtp_timestamp).cloned().or_else(|| {
++            self.pre_cut_keyframe.load_full().filter(|frame| frame.rtp_timestamp() == rtp_timestamp)
++        })
++    }
++
++    pub fn first_complete(&self) -> Option<&ReceiverReleaseFrame> {
++        if self.cancel.is_cancelled() {
++            return None;
++        }
++        self.first.get()
++    }
++
++    pub fn stream(&self) -> &StreamId {
++        &self.target.logical_id
++    }
++
++    pub fn primary_ssrc(&self) -> u32 {
++        self.ssrc
++    }
++
++    pub fn target(&self) -> &PublicVideoWarmTarget {
++        &self.target
++    }
++}
++
++struct Partial {
++    original: Arc<OriginalVideoFrame>,
++    source: Source,
++    output_timestamp: u32,
++    before_cut: bool,
++    next_input_sequence: u16,
++    next_output_sequence: u16,
++}
++
++/// This cursor is exclusively serialized by the existing writer Timeline.
++/// It retains only one bounded fragment cursor and no packet payloads.
++pub(super) struct ReleaseProgress {
++    observer: Weak<ReceiverReleaseObservation>,
++    partial: Option<Partial>,
++}
++impl ReleaseProgress {
++    pub(super) fn new(observer: &Arc<ReceiverReleaseObservation>) -> Self {
++        Self {
++            observer: Arc::downgrade(observer),
++            partial: None,
++        }
++    }
++
++    pub(super) fn successful_packet(
++        &mut self,
++        original: Option<&Arc<OriginalVideoFrame>>,
++        source: &Source,
++        input: &rtp::Packet,
++        output: Mapping,
++    ) {
++        let Some(observer) = self.observer.upgrade() else {
++            self.partial = None;
++            return;
++        };
++        let cut = observer.cut.get();
++        let before_cut = cut.is_none();
++        if observer.first.get().is_some() || observer.cancel.is_cancelled() {
++            self.partial = None;
++            return;
++        }
++        let Some((original, point)) = original
++            .and_then(|frame| frame.frame_realm().map(|point| (frame, point)))
++            .filter(|(frame, point)| {
++                point.incarnation() == observer.realm
++                    && cut.is_none_or(|cut| point.ordinal() > cut.ordinal())
++                    && frame.ssrc() == input.header.ssrc
++                    && frame.timestamp() == input.header.timestamp
++            })
++        else {
++            self.partial = None;
++            return;
++        };
++        let starts = input
++            .payload
++            .first()
++            .is_some_and(|byte| byte & 0x10 != 0 && byte & 0x0f == 0);
++        if before_cut
++            && starts
++            && !super::super::video_normalize::vp8_descriptor_len(&input.payload)
++                .and_then(|size| input.payload.get(size..))
++                .is_some_and(valid_keyframe_header)
++        {
++            self.partial = None;
++            return;
++        }
++        if !starts
++            && self.partial.as_ref().is_none_or(|previous| {
++                !Arc::ptr_eq(&previous.original, original)
++                    || &previous.source != source
++                    || previous.output_timestamp != output.timestamp
++                    || previous.before_cut != before_cut
++                    || previous.next_input_sequence != input.header.sequence_number
++                    || previous.next_output_sequence != output.sequence
++            })
++        {
++            self.partial = None;
++            return;
++        }
++        if input.header.marker {
++            self.partial = None;
++            let frame = ReceiverReleaseFrame {
++                point,
++                timestamp: output.timestamp,
++            };
++            if before_cut {
++                let frame = Arc::new(frame);
++                let _ = observer.first_pre_cut_keyframe.set(frame.clone());
++                observer.pre_cut_keyframe.store(Some(frame));
++            } else {
++                let _ = observer.first.set(frame);
++            }
++        } else {
++            self.partial = Some(Partial {
++                original: original.clone(),
++                source: source.clone(),
++                output_timestamp: output.timestamp,
++                before_cut,
++                next_input_sequence: input.header.sequence_number.wrapping_add(1),
++                next_output_sequence: output.sequence.wrapping_add(1),
++            });
++        }
++    }
++}
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+@@ -1,8 +1,12 @@
+ //! Exact Core VP8 delivery and explicit repair through the owned RTC driver.
+ //! This consumes one real Core port queue. It does not assert readiness or own
+ //! peer/port cleanup; the staged adapter must retain and drain original writes.
++mod bridge_adoption;
++pub(crate) use bridge_adoption::BridgeWarmAdoption;
+ mod mapping_witness;
+ mod public_warm;
++mod receiver_release;
++pub use receiver_release::{ReceiverReleaseFrame, ReceiverReleaseObservation};
+ use mapping_witness::{History, Target};
+ 
+ use rtc::{
+@@ -35,7 +39,9 @@
+ };
+ 
+ pub struct CoreVideoEgress {
++    binding: rvoip_core::stream_lifecycle::ReadyMediaBinding,
+     output: mpsc::Receiver<QueuedMedia>,
++    bridge_adoption: Option<bridge_adoption::PendingBridgeAdoption>,
+     track: Arc<TrackLocalStaticRTP>,
+     timeline: Arc<AsyncMutex<Timeline>>,
+     exposure: Arc<rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposure>,
+@@ -112,7 +118,9 @@
+         let timeline = timeline.timeline.clone();
+         let output = port.take_egress()?;
+         Ok(Self {
++            binding: binding.clone(),
+             output,
++            bridge_adoption: None,
+             track,
+             timeline,
+             exposure,
+@@ -162,6 +170,34 @@
+         timeline.warm=Some(public_warm::WarmVideo::new(scope,recorder));
+         Ok(())
+     }
++    /// Reserve a metadata-only receipt on the same otherwise unchanged
++    /// candidate writer, before its queue is fed. The original bridge owner
++    /// retains the observer; the writer has only a weak reference.
++    pub fn reserve_receiver_release(
++        &mut self,
++        original: rvoip_core::participant_transitions::ParticipantReplacementMutation,
++        target: rvoip_core::staged_streams::direct_subscriptions::PublicVideoWarmTarget,
++        cancel: tokio_util::sync::CancellationToken,
++    ) -> ControlResult<Arc<ReceiverReleaseObservation>> {
++        let observed = self.exposure.observer().snapshot().ok_or(StreamControlError::NotReady)?;
++        let binding = &self.binding;
++        if self.physical_peer.is_none() || cancel.is_cancelled()
++            || !observed.coverage_complete || observed.physical_family != target.physical_writer_incarnation
++            || observed.maximum_potential_ordinal != 0 || observed.inherited_potential_ordinal != 0
++            || binding.negotiated.requested.logical_id != target.logical_id
++            || binding.transport_id != target.transport_id || binding.generation != target.stream_generation
++            || binding.connection_generation != target.connection_generation {
++            return Err(StreamControlError::Authority);
++        }
++        let realm = observed.realm_incarnation.ok_or(StreamControlError::NotReady)?;
++        let mut timeline = self.timeline.try_lock().map_err(|_| StreamControlError::MetadataBusy)?;
++        if timeline.release.is_some() || timeline.warm.is_some() || timeline.last_output_timestamp.is_some() {
++            return Err(StreamControlError::Authority);
++        }
++        let observer = Arc::new(ReceiverReleaseObservation::new(original, target, realm, self.ssrc, cancel));
++        timeline.release = Some(receiver_release::ReleaseProgress::new(&observer));
++        Ok(observer)
++    }
+     /// Waiting and sequence ownership hold no Core permission reader. Retain
+     /// the returned original owner until its actual driver receipt is drained.
+     pub async fn submit_next(&mut self, deadline: Instant) -> ControlResult<Option<OwnedRtpWrite>> {
+@@ -191,9 +227,31 @@
+             return Ok(None);
+         };
+         let deadline = budget.for_packet(&queued)?;
+-        let timeline = tokio::time::timeout_at(deadline.into(), self.timeline.clone().lock_owned())
++        let mut timeline = tokio::time::timeout_at(deadline.into(), self.timeline.clone().lock_owned())
+             .await
+             .map_err(|_| StreamControlError::Deadline)?;
++        if let Some(adoption) = self.bridge_adoption.as_mut() {
++            use tokio::sync::oneshot::error::TryRecvError;
++            match adoption.receiver.try_recv() {
++                Ok(warm) => {
++                    if timeline.warm.is_some() {
++                        return Err(StreamControlError::Authority);
++                    }
++                    // Core will refuse any dequeued old bridge stamp. Only a
++                    // newly authorized post-cut item may reach the same writer.
++                    timeline.warm = Some(warm);
++                    self.bridge_adoption = None;
++                }
++                Err(TryRecvError::Empty) => {
++                    if adoption.original.upgrade().is_none_or(|bridge| !bridge.is_current()) {
++                        // The bridge is suspended while Core installs the new
++                        // class. No post-cut write may precede its armed scope.
++                        return Err(StreamControlError::Deadline);
++                    }
++                }
++                Err(TryRecvError::Closed) => return Err(StreamControlError::Cancelled),
++            }
++        }
+         let warm_scope=timeline.warm.as_ref().map(|warm|warm.scope.clone());
+         let producer = Producer {
+             warm_scope,
+@@ -222,6 +280,7 @@
+     ssrc: u32,
+ }
+ struct Timeline {
++    release: Option<receiver_release::ReleaseProgress>,
+     warm:Option<public_warm::WarmVideo>,
+     source: Option<Source>,
+     last_input: Option<u16>,
+@@ -234,6 +293,7 @@
+ impl Default for Timeline {
+     fn default() -> Self {
+         Self {
++            release: None,
+             warm:None,
+             source: None,
+             last_input: None,
+@@ -445,6 +505,16 @@
+         if hint {
+             self.source_changed.notify_one();
+         }
++    }
++    /// One private B bootstrap hint. It cannot be issued until this same
++    /// writer publishes feedback for an actual original successful send.
++    pub(crate) fn arm_bridge_initial_picture(&self) -> ControlResult<()> {
++        let mut state = self.state.try_lock().map_err(|_| StreamControlError::MetadataBusy)?;
++        if state.actual_source.is_some() || state.latest.is_some() || state.source_change_pending {
++            return Err(StreamControlError::Authority);
++        }
++        state.source_change_pending = true;
++        Ok(())
+     }
+     pub(crate) async fn source_changed(&self) {
+         self.source_changed.notified().await;
+@@ -765,6 +835,11 @@
+                                 context,
+                             );
+                         })?;
++                    if let Some(release) = &mut timeline.release {
++                        if !previously_written && io.attempted() && io.written() {
++                            release.successful_packet(original_frame.as_ref(), &source, &source_packet, mapping);
++                        }
++                    }
+                     // A bootstrap fragment advances ONLY after actual successful
+                     // original IO. Failed/unknown IO cannot open a P-frame path.
+                     if let Some(next)=bootstrap {

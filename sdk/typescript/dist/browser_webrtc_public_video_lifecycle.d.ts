@@ -9,7 +9,8 @@ type TrackTask = <T>(work: Promise<T>, cleanup?: boolean) => Promise<T>;
  * renderer close may pause it, but cannot detach/reset its decoder or replace
  * the original B track. Connection retirement owns its final release. */
 export interface WebRtcPublicVideoLoan extends WebRtcPreparedVideo {
-    presented(value: number): void;
+    eligible(metadata: VideoFrameCallbackMetadata): boolean;
+    presented(value: number, rtpTimestamp?: number): void;
     release(): void;
 }
 /** One original reserved B workflow. Verified operation.get observations are
@@ -26,6 +27,8 @@ export declare class BrowserWebRtcPublicVideoLifecycle {
     private readonly signal;
     private running?;
     private observation?;
+    private prearmed?;
+    private provisional?;
     private completed?;
     private stopped;
     constructor(original: BrowserWebRtcReplacement, peer: RTCPeerConnection | undefined, roles: WebRtcReceiveRoles | undefined, scope: WebRtcReceiveReservationScope, budget: BrowserDeadline, signal: AbortSignal, trackTask: TrackTask);

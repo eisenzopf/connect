@@ -1,10 +1,12 @@
+import { ReceiverVideoReleaseOwner, type ReceiverVideoReleaseLoan, type ReceiverVideoRelease } from "./browser_receiver_video_release.js";
+import { bridgeCanonical, parseWebRtcReceiverPostCut, receiverScope, type WebRtcReceiverPostCut, type WebRtcBridgeReadyMarker } from "./browser_webrtc_public_video_bridge.js";
 import { BrowserDeadline } from "./browser_deadline.js";
 import type { BrowserReplacementReceipt } from "./browser_replacement.js";
 import { ConnectError } from "./errors.js";
 import { jsonObject, type JsonObject } from "./uctp_json.js";
 import { BrowserWebRtcReplacement, recoverableReadinessFailure, type WebRtcDecodedReadiness } from "./browser_webrtc_replacement.js";
 import { WebRtcPublicVideoPhaseOwner, type WebRtcPublicVideoPhase } from "./browser_webrtc_public_video_phase.js";
-import { observeWebRtcPublicVideoReadiness, type WebRtcPreparedPublicVideo } from "./browser_webrtc_public_video_readiness.js";
+import { observeWebRtcPublicVideoReadiness, prearmWebRtcPublicVideoBridge, type WebRtcPreCutPublicVideo, type WebRtcPreparedPublicVideo } from "./browser_webrtc_public_video_readiness.js";
 import { WebRtcReceiveRoles } from "./browser_webrtc_receive_roles.js";
 import type { WebRtcReceiveReservationScope } from "./browser_webrtc_receive_reservation.js";
 import type { WebRtcPreparedVideo } from "./browser_webrtc_readiness.js";
@@ -17,7 +19,8 @@ const cancelled = () => new ConnectError("cancelled", "Original reserved public 
  * renderer close may pause it, but cannot detach/reset its decoder or replace
  * the original B track. Connection retirement owns its final release. */
 export interface WebRtcPublicVideoLoan extends WebRtcPreparedVideo {
-    presented(value: number): void;
+    eligible(metadata:VideoFrameCallbackMetadata):boolean;
+    presented(value: number,rtpTimestamp?:number): void;
     release(): void;
 }
 class CompletedPublicVideo {
@@ -25,22 +28,23 @@ class CompletedPublicVideo {
     private track?: MediaStreamTrack;
     private loan?: object;
     private floor: number;
-    constructor(picture: WebRtcPreparedVideo, track: MediaStreamTrack) {
+    constructor(picture: WebRtcPreparedVideo, track: MediaStreamTrack,private releaseOwner?:ReceiverVideoReleaseOwner) {
         this.picture=picture;this.track=track;this.floor=picture.presentedFloor;
     }
     borrow(track: MediaStreamTrack): WebRtcPublicVideoLoan {
         if (!this.picture || !this.track || this.track!==track || track.readyState!=="live" || this.loan) throw invalid();
-        const picture=this.picture,token={};this.loan=token;
+        const picture=this.picture,token={};const released=this.releaseOwner?.borrow();this.loan=token;
         return Object.freeze({element:picture.element,presentedFloor:this.floor,
-            presented:(value:number)=>{
+            eligible:(metadata:VideoFrameCallbackMetadata)=>this.loan===token&&(!released||released.eligibleRtp({rtpTimestamp:(metadata as VideoFrameCallbackMetadata&{rtpTimestamp?:number}).rtpTimestamp!,presentedFrames:metadata.presentedFrames})),
+            presented:(value:number,rtpTimestamp?:number)=>{
                 if (this.loan!==token || !Number.isSafeInteger(value) || value<=this.floor) throw invalid();
-                this.floor=value;
+                released?.presentedRtp({rtpTimestamp:rtpTimestamp!,presentedFrames:value});this.floor=value;
             },
-            release:()=>{if(this.loan===token)this.loan=undefined;},
+            release:()=>{if(this.loan===token){released?.release();this.loan=undefined;}},
         });
     }
     release(): Promise<void> {
-        const picture=this.picture;this.picture=undefined;this.track=undefined;this.loan=undefined;
+        const picture=this.picture;this.picture=undefined;this.track=undefined;this.loan=undefined;this.releaseOwner?.close();this.releaseOwner=undefined;
         if (!picture) return Promise.resolve();
         let failure:unknown;
         try{picture.element.pause();}catch(error){failure=error;}
@@ -58,6 +62,8 @@ export class BrowserWebRtcPublicVideoLifecycle {
     private readonly signal: AbortSignal;
     private running?: Promise<BrowserReplacementReceipt>;
     private observation?: WebRtcPreparedPublicVideo;
+    private prearmed?:WebRtcPreCutPublicVideo;
+    private provisional?:Readonly<WebRtcReceiverPostCut>;
     private completed?: CompletedPublicVideo;
     private stopped=false;
     constructor(private readonly original: BrowserWebRtcReplacement,
@@ -69,7 +75,7 @@ export class BrowserWebRtcPublicVideoLifecycle {
         private readonly trackTask: TrackTask) {
         const context=original.reservedContext();
         this.phaseOwner=new WebRtcPublicVideoPhaseOwner(context.root,scope,context.reservation,
-            context.challenge.target_generation,context.challenge.nonce);
+            context.challenge.target_generation,context.challenge.nonce,context.bridgeOptIn);
         this.signal=AbortSignal.any([signal,this.cancel.signal]);
     }
     private check(): void {
@@ -99,6 +105,7 @@ export class BrowserWebRtcPublicVideoLifecycle {
         const context=this.original.reservedContext();
         const phase=this.phaseOwner.observe(raw,{recordId:context.root.recordId,operationId:context.root.operationId,
             targetConnectionId:context.root.targetConnectionId,targetGeneration:context.challenge.target_generation,rootCompleted:receipt!==undefined});
+        if(this.phaseOwner.bridgeEnabled())this.phaseOwner.observeBridge(value.webrtc_public_video_bridge);
         if (phase.phase==="discarded") throw new ConnectError("refused","Original reserved public video was discarded");
         return phase;
     }
@@ -118,7 +125,9 @@ export class BrowserWebRtcPublicVideoLifecycle {
                 if(phase){if(phase.phase!=="negotiated-never-fed")throw invalid();break;}
                 await this.delay();
             }
-            const evidence=await this.run(observePrivate);this.check();
+            if(this.phaseOwner.bridgeEnabled())this.prearmed=await prearmWebRtcPublicVideoBridge(this.phaseOwner,this.peer!,this.roles!,this.budget,this.signal,this.trackTask);
+            this.prearmed?.assertPreCutCurrent();
+            const evidence=await this.run(observePrivate);this.check();this.prearmed?.assertPreCutCurrent();
             if(!privateCurrent())throw invalid();
             let attempts=0,replay=false,next=0;
             const sendPrivate=async(original?:JsonObject)=>{
@@ -127,16 +136,33 @@ export class BrowserWebRtcPublicVideoLifecycle {
                 catch(error){if(!recoverableReadinessFailure(error))throw error;replay=true;next=performance.now()+Math.min(1000,50*2**(attempts-1));}
             };
             await sendPrivate();
+            let bridgeMarker:Readonly<WebRtcBridgeReadyMarker>|undefined,bridgeAttempts=0,bridgeReplay=false,bridgeNext=0;
+            const sendBridge=async(original?:JsonObject)=>{
+                this.check();bridgeAttempts++;
+                try{await this.run(()=>this.original.reservedBridgeReady(bridgeMarker!,this.options(),original));bridgeReplay=false;}
+                catch(error){if(!recoverableReadinessFailure(error))throw error;bridgeReplay=true;bridgeNext=performance.now()+Math.min(1000,50*2**(bridgeAttempts-1));}
+            };
             for(;;){
                 try{current=await this.read();}catch(error){if(!recoverableReadinessFailure(error))throw error;await this.delay();continue;}
                 phase=this.phase(current,true)!;
-                if(phase.phase==="cut-bound-post-f")break;
+                if(this.prearmed) {
+                    const bridge=this.phaseOwner.observeBridge(current.webrtc_public_video_bridge);
+                    if(bridge.feeding&&!bridgeMarker){bridgeMarker=await this.prearmed.bridgeReady(bridge.feeding);await sendBridge();}
+                    if(bridgeReplay&&bridgeAttempts<8&&performance.now()>=bridgeNext&&current.state==="preparing"&&phase.phase==="negotiated-never-fed")await sendBridge(current);
+                    if(phase.phase==="cut-bound-post-f") {
+                        if(!bridgeMarker||!bridge.decoded_ready||bridgeCanonical(bridgeMarker)!==bridgeCanonical(bridge.decoded_ready))throw invalid();
+                        const raw=this.original.reservedReceiverWitness(current,false);
+                        if(raw!==undefined){this.provisional=parseWebRtcReceiverPostCut(raw,this.original.reservedContext().root,phase);break;}
+                        await this.delay();continue;
+                    }
+                } else if(phase.phase==="cut-bound-post-f")break;
                 if(phase.phase!=="negotiated-never-fed")throw invalid();
                 if(replay&&attempts<8&&performance.now()>=next&&current.state==="preparing"&&current.native_replacement_prepared===true)
                     await sendPrivate(current);
                 else await this.delay();
             }
-            this.observation=await observeWebRtcPublicVideoReadiness(this.phaseOwner,this.peer!,this.roles!,this.budget,this.signal,this.trackTask);
+            this.observation=this.prearmed?await this.prearmed.postCut(this.provisional!):await observeWebRtcPublicVideoReadiness(this.phaseOwner,this.peer!,this.roles!,this.budget,this.signal,this.trackTask);
+            this.prearmed=undefined;
             this.check();const marker=this.observation.readiness;
             attempts=0;replay=false;next=0;let decodedReady=false;
             const sendPublic=async(original?:JsonObject)=>{
@@ -148,12 +174,29 @@ export class BrowserWebRtcPublicVideoLifecycle {
             for(;;){
                 try{current=await this.read();}catch(error){if(!recoverableReadinessFailure(error))throw error;await this.delay();continue;}
                 phase=this.phase(current,true)!;
+                if(this.provisional&&phase.phase!=="activated") {
+                    const raw=this.original.reservedReceiverWitness(current,false);
+                    if(raw===undefined||bridgeCanonical(parseWebRtcReceiverPostCut(raw,this.original.reservedContext().root,phase))!==bridgeCanonical(this.provisional))throw invalid();
+                }
                 if(phase.phase==="activated"){
                     if(current.state!=="completed")throw invalid();
                     const receipt=this.original.reservedCompleted(current);
+                    let releaseOwner:ReceiverVideoReleaseOwner|undefined;
+                    if(this.provisional) {
+                        const raw=this.original.reservedReceiverWitness(current,true);
+                        if(raw===undefined){await this.delay();continue;}
+                        const expected={...this.provisional,profile:"connect-receiver-video-release-v1"};
+                        if(bridgeCanonical(raw)!==bridgeCanonical(expected))throw invalid();
+                        const peer=new WeakRef(this.peer!),roles=new WeakRef(this.roles!),binding=this.roles!.binding("public");if(!binding)throw invalid();
+                        const track=new WeakRef(binding.track),receiver=new WeakRef(binding.receiver),owner=this.phaseOwner,mid=phase.binding.mid;
+                        releaseOwner=new ReceiverVideoReleaseOwner(receiverScope(this.original.reservedContext().root,phase),{carrier:"webrtc-rtp",physical_writer_incarnation:phase.binding.physical_writer_incarnation,primary_ssrc:phase.binding.primary_ssrc},()=>{
+                            const p=peer.deref(),r=roles.deref()?.binding("public");return !!p&&owner.exactLocalPeer(p)&&!!r&&r.track===track.deref()&&r.receiver===receiver.deref()&&r.mid===mid&&r.track.readyState==="live"&&!['closed','failed'].includes(p.connectionState);
+                        });
+                        releaseOwner.observe(raw,{operationRecordId:phase.operation_record_id,operationId:phase.operation_id,targetConnectionId:phase.target_connection_id,releaseAuthorized:true});
+                    }
                     this.check();const binding=this.roles!.binding("public");if(!binding)throw invalid();
                     const picture=this.observation.take(phase,binding.track);if(!picture)throw invalid();
-                    this.completed=new CompletedPublicVideo(picture,binding.track);adopted=true;this.observation=undefined;
+                    this.completed=new CompletedPublicVideo(picture,binding.track,releaseOwner);adopted=true;this.observation=undefined;
                     this.peer=undefined;this.roles=undefined;return receipt;
                 }
                 if(current.state==="completed")throw invalid();
@@ -165,7 +208,7 @@ export class BrowserWebRtcPublicVideoLifecycle {
             }
         }catch(error){terminal=error;throw error;}finally{
             if(!adopted){
-                const observation=this.observation;this.observation=undefined;this.phaseOwner.close();
+                const observation=this.observation??this.prearmed;this.observation=undefined;this.prearmed=undefined;this.phaseOwner.close();
                 if(observation)try{await this.trackTask(observation.release(),true);}catch(error){if(terminal===undefined)throw error;}
                 this.peer=undefined;this.roles=undefined;
             }
@@ -182,7 +225,7 @@ export class BrowserWebRtcPublicVideoLifecycle {
     }
     close():Promise<void> {
         if(this.stopped)return Promise.resolve();this.stopped=true;this.cancel.abort();this.phaseOwner.close();
-        const pending=this.observation,completed=this.completed;this.observation=undefined;this.completed=undefined;
+        const pending=this.observation??this.prearmed,completed=this.completed;this.observation=undefined;this.prearmed=undefined;this.completed=undefined;
         this.peer=undefined;this.roles=undefined;
         return Promise.all([pending?.release(),completed?.release()]).then(()=>{});
     }

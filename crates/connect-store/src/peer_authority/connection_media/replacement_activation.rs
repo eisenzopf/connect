@@ -49,6 +49,14 @@ pub trait NativeReplacementInstallationGuard {
     ) -> Result<()> {
         Err(Error::forbidden())
     }
+    /// Original measured B/Pending F boundary, available only when the same
+    /// publication guard retains the actual active ordinary successor.
+    fn released_receiver_video(
+        &self,
+    ) -> Result<Option<connect_protocol::replacement_receiver_video_release::ReceiverVideoRelease>>
+    {
+        Ok(None)
+    }
     /// Recheck and order native retirement around the final synchronous commit.
     /// The callback is already prepared local SQL work, never native IO or an
     /// authorization acquisition. Failure before it runs must leave no Ready.

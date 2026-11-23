@@ -510,6 +510,43 @@
           "qualification": "Schema/source reference only. Actual native/Host/Core/B decoder/media integration and matrix qualification remain separately recorded; this description is not readiness or source-exclusion evidence.",
           "reference": "contracts/webrtc-public-video.md"
         },
+        "x-webrtc-public-video-precut-bridge": {
+          "opt-in": "Explicit immutable original connection.replace receiver_video_bridge extension, then exact webrtc_public_video_bridge_opt_in echo in the SAME signed WebRTC target offer. No late opt-in or default fallback.",
+          "opt-in-schema": {
+            "$ref": "#/components/schemas/WebRtcPublicVideoBridgeOptIn"
+          },
+          "operation.get": {
+            "field": "webrtc_public_video_bridge",
+            "schema": {
+              "$ref": "#/components/schemas/WebRtcPublicVideoBridgeSnapshot"
+            },
+            "authority": "Current original operation read only. Missing opt-in omits this field; no row grants IO."
+          },
+          "post-cut-observation": {
+            "field": "receiver_video_post_cut",
+            "schema": {
+              "$ref": "#/components/schemas/WebRtcReceiverVideoPostCut"
+            },
+            "scope": "Exact first complete B writer frame after the original OLD frontier. The decoder observation stays private."
+          },
+          "presentation-release": {
+            "field": "receiver_video_release",
+            "schema": {
+              "$ref": "#/components/schemas/WebRtcReceiverVideoRelease"
+            },
+            "scope": "The same original coordinate appears separately only with durable Completed and actual Activated publication."
+          },
+          "feeding": "Same original negotiated B tuple and one server challenge. Absolute expiry is selected once at first Feeding commit, at most five seconds and no later than original/current source expiry. Replays retain it.",
+          "ready": {
+            "schema": {
+              "$ref": "#/components/schemas/WebRtcPublicVideoBridgeReadyMarker"
+            },
+            "command": "connection.offer",
+            "transport": "SAME original signed WebSocket/WebRTC target only; HTTP connection.offer stays501. Exact immutable original offer/key/device, B binding and challenge must match; receiver decoded_rtp_timestamp must join an independently observed complete contiguous VP8 keyframe actually written on SAME B."
+          },
+          "limits": "No F/source_cut_id, post-F Ready, Activated, public render, OLD retirement, native route or Commit is created by bridge wire/journal metadata. Default v1 remains unchanged. Activation/closure remain separately guarded runtime work.",
+          "reference": "contracts/webrtc-public-video-precut-bridge.md"
+        },
         "x-transition-receipt-identity": {
           "fields": [
             "operation_id",
@@ -1338,6 +1375,9 @@
           "webrtc_video_receive_reservation": {
             "$ref": "#/components/schemas/WireWebRtcPublicVideoIntent"
           },
+          "webrtc_public_video_bridge_opt_in": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeOptIn"
+          },
           "replacement_preparation": {
             "oneOf": [
               {
@@ -1380,6 +1420,9 @@
               },
               {
                 "$ref": "#/components/schemas/WireWebRtcPublicVideoReadyMarker"
+              },
+              {
+                "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeReadyMarker"
               }
             ]
           }
@@ -1530,6 +1573,48 @@
             "then": {
               "required": [
                 "webrtc_video_receive_reservation"
+              ]
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "webrtc_public_video_bridge_opt_in"
+              ]
+            },
+            "then": {
+              "required": [
+                "webrtc_video_receive_reservation"
+              ],
+              "properties": {
+                "substrate": {
+                  "const": "websocket+webrtc"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "replacement_preparation"
+              ],
+              "properties": {
+                "replacement_preparation": {
+                  "required": [
+                    "profile"
+                  ],
+                  "properties": {
+                    "profile": {
+                      "const": "connect-replacement-public-video-bridge-ready-v1"
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "webrtc_video_receive_reservation",
+                "webrtc_public_video_bridge_opt_in"
               ]
             }
           }
@@ -3555,6 +3640,15 @@
           },
           "webrtc_public_video_phase": {
             "$ref": "#/components/schemas/WireWebRtcPublicVideoPhase"
+          },
+          "webrtc_public_video_bridge": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeSnapshot"
+          },
+          "receiver_video_post_cut": {
+            "$ref": "#/components/schemas/WireWebRtcReceiverVideoPostCut"
+          },
+          "receiver_video_release": {
+            "$ref": "#/components/schemas/WireWebRtcReceiverVideoRelease"
           }
         },
         "required": [
@@ -3676,6 +3770,82 @@
               "required": [
                 "webrtc_video_receive_reservation"
               ]
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "webrtc_public_video_bridge"
+              ]
+            },
+            "then": {
+              "required": [
+                "webrtc_video_receive_reservation",
+                "command_type",
+                "record_id",
+                "expected_revision"
+              ],
+              "properties": {
+                "command_type": {
+                  "const": "connection.replace"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "receiver_video_post_cut"
+              ]
+            },
+            "then": {
+              "required": [
+                "webrtc_public_video_bridge",
+                "webrtc_public_video_phase"
+              ],
+              "properties": {
+                "state": {
+                  "const": "preparing"
+                },
+                "webrtc_public_video_phase": {
+                  "required": [
+                    "phase"
+                  ],
+                  "properties": {
+                    "phase": {
+                      "const": "cut-bound-post-f"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "receiver_video_release"
+              ]
+            },
+            "then": {
+              "required": [
+                "webrtc_public_video_bridge",
+                "webrtc_public_video_phase"
+              ],
+              "properties": {
+                "state": {
+                  "const": "completed"
+                },
+                "webrtc_public_video_phase": {
+                  "required": [
+                    "phase"
+                  ],
+                  "properties": {
+                    "phase": {
+                      "const": "activated"
+                    }
+                  }
+                }
+              }
             }
           },
           {
@@ -4207,6 +4377,252 @@
         "additionalProperties": false,
         "description": "Closed marker inside SAME original signed connection.offer. Preserve every other original offer/credential/key/device field. No audio readiness is supplied here. Host must match whole frozen original marker on replay; shape/signature/counters alone confer no media permission or physical proof."
       },
+      "WireWebRtcPublicVideoBridgeId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9._~-]+$"
+      },
+      "WireWebRtcPublicVideoBridgeOpaque": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256,
+        "pattern": "^[!-~]+$"
+      },
+      "WireWebRtcPublicVideoBridgePositiveCount": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "WireWebRtcPublicVideoBridgeBinding": {
+        "type": "object",
+        "properties": {
+          "stream_id": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeId"
+          },
+          "preview_stream_id": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeId"
+          },
+          "mid": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeOpaque"
+          },
+          "stream_generation": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgePositiveCount"
+          },
+          "physical_writer_incarnation": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeOpaque"
+          },
+          "connection_generation": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgePositiveCount"
+          },
+          "primary_ssrc": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "payload_type": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 127
+          },
+          "clock_rate_hz": {
+            "const": 90000
+          },
+          "codec": {
+            "const": "vp8"
+          }
+        },
+        "required": [
+          "stream_id",
+          "preview_stream_id",
+          "mid",
+          "stream_generation",
+          "physical_writer_incarnation",
+          "connection_generation",
+          "primary_ssrc",
+          "payload_type",
+          "clock_rate_hz",
+          "codec"
+        ],
+        "additionalProperties": false,
+        "description": "Actual original B native tuple. SSRC zero is valid. Generations are independent namespaces; runtime matches distinct stream IDs/native pointers/current original owners, never infers identity from these data alone."
+      },
+      "WireWebRtcPublicVideoBridgeOptIn": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect/webrtc-public-video-precut-bridge/1"
+          },
+          "carrier": {
+            "const": "webrtc-rtp"
+          },
+          "presentation": {
+            "const": "exclusive-public"
+          },
+          "feed": {
+            "const": "public-programme-private-decode"
+          }
+        },
+        "required": [
+          "profile",
+          "carrier",
+          "presentation",
+          "feed"
+        ],
+        "additionalProperties": false
+      },
+      "WireWebRtcPublicVideoBridgeChallenge": {
+        "type": "object",
+        "properties": {
+          "nonce": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeId"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgePositiveCount"
+          },
+          "decoder_startup": {
+            "const": "fresh-b-receiver-precut-keyframe"
+          }
+        },
+        "required": [
+          "nonce",
+          "expires_at",
+          "decoder_startup"
+        ],
+        "additionalProperties": false
+      },
+      "WireWebRtcPublicVideoBridgeFeeding": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect/webrtc-public-video-precut-bridge/1"
+          },
+          "phase": {
+            "const": "feeding"
+          },
+          "reservation_id": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeId"
+          },
+          "operation_record_id": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeId"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeId"
+          },
+          "target_connection_id": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeId"
+          },
+          "target_generation": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgePositiveCount"
+          },
+          "binding": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeBinding"
+          },
+          "bridge_readiness": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeChallenge"
+          }
+        },
+        "required": [
+          "profile",
+          "phase",
+          "reservation_id",
+          "operation_record_id",
+          "operation_id",
+          "target_connection_id",
+          "target_generation",
+          "binding",
+          "bridge_readiness"
+        ],
+        "additionalProperties": false
+      },
+      "WireWebRtcPublicVideoBridgeDecodedObservation": {
+        "type": "object",
+        "properties": {
+          "reservation_id": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeId"
+          },
+          "nonce": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeId"
+          },
+          "binding": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeBinding"
+          },
+          "decoded_rtp_timestamp": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "decoded_frames": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgePositiveCount"
+          },
+          "decoder_startup": {
+            "const": "fresh-b-receiver-precut-keyframe"
+          }
+        },
+        "required": [
+          "reservation_id",
+          "nonce",
+          "binding",
+          "decoded_rtp_timestamp",
+          "decoded_frames",
+          "decoder_startup"
+        ],
+        "additionalProperties": false
+      },
+      "WireWebRtcPublicVideoBridgeReadyMarker": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect-replacement-public-video-bridge-ready-v1"
+          },
+          "operation_record_id": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeId"
+          },
+          "bridge_readiness": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeDecodedObservation"
+          }
+        },
+        "required": [
+          "profile",
+          "operation_record_id",
+          "bridge_readiness"
+        ],
+        "additionalProperties": false
+      },
+      "WireWebRtcPublicVideoBridgeSnapshot": {
+        "type": "object",
+        "properties": {
+          "opt_in": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeOptIn"
+          },
+          "feeding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeFeeding"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decoded_ready": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeReadyMarker"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "opt_in",
+          "feeding",
+          "decoded_ready"
+        ],
+        "additionalProperties": false
+      },
       "WireReplacementReadinessChallenge": {
         "type": "object",
         "properties": {
@@ -4390,6 +4806,230 @@
           "readiness"
         ],
         "additionalProperties": false
+      },
+      "WireWebRtcReceiverVideoPostCut": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "connect-receiver-video-post-cut-v1"
+          },
+          "operation_record_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "reservation_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "source_connection_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "target_connection_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "stream_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "source_cut_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "stream_generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "connection_generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "target_generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "original_frame": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "realm": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}$"
+              },
+              "last_old_ordinal": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,19})$"
+              },
+              "ordinal": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,19})$"
+              }
+            },
+            "required": [
+              "realm",
+              "last_old_ordinal",
+              "ordinal"
+            ]
+          },
+          "floor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "carrier": {
+                "const": "webrtc-rtp"
+              },
+              "physical_writer_incarnation": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}$"
+              },
+              "primary_ssrc": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              "first_public_rtp_timestamp": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              }
+            },
+            "required": [
+              "carrier",
+              "physical_writer_incarnation",
+              "primary_ssrc",
+              "first_public_rtp_timestamp"
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "operation_record_id",
+          "operation_id",
+          "reservation_id",
+          "source_connection_id",
+          "target_connection_id",
+          "stream_id",
+          "source_cut_id",
+          "stream_generation",
+          "connection_generation",
+          "target_generation",
+          "original_frame",
+          "floor"
+        ]
+      },
+      "WireWebRtcReceiverVideoRelease": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "connect-receiver-video-release-v1"
+          },
+          "operation_record_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "reservation_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "source_connection_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "target_connection_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "stream_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "source_cut_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "stream_generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "connection_generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "target_generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "original_frame": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "realm": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}$"
+              },
+              "last_old_ordinal": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,19})$"
+              },
+              "ordinal": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,19})$"
+              }
+            },
+            "required": [
+              "realm",
+              "last_old_ordinal",
+              "ordinal"
+            ]
+          },
+          "floor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "carrier": {
+                "const": "webrtc-rtp"
+              },
+              "physical_writer_incarnation": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}$"
+              },
+              "primary_ssrc": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              "first_public_rtp_timestamp": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              }
+            },
+            "required": [
+              "carrier",
+              "physical_writer_incarnation",
+              "primary_ssrc",
+              "first_public_rtp_timestamp"
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "operation_record_id",
+          "operation_id",
+          "reservation_id",
+          "source_connection_id",
+          "target_connection_id",
+          "stream_id",
+          "source_cut_id",
+          "stream_generation",
+          "connection_generation",
+          "target_generation",
+          "original_frame",
+          "floor"
+        ]
       },
       "WireReconciliationHint": {
         "type": "object",
@@ -4708,12 +5348,43 @@
           },
           "video": {
             "$ref": "#/components/schemas/WireReplacementVideo"
+          },
+          "receiver_video_bridge": {
+            "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeOptIn"
           }
         },
         "required": [
           "retained_connid"
         ],
         "additionalProperties": true,
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "receiver_video_bridge"
+              ]
+            },
+            "then": {
+              "required": [
+                "video"
+              ],
+              "properties": {
+                "video": {
+                  "properties": {
+                    "publications": {
+                      "minItems": 1,
+                      "maxItems": 1
+                    },
+                    "receivers": {
+                      "minItems": 1,
+                      "maxItems": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
         "oneOf": [
           {
             "required": [
@@ -7166,6 +7837,33 @@
       },
       "WebRtcPublicVideoDecodedObservation": {
         "$ref": "#/components/schemas/WireWebRtcPublicVideoDecodedObservation"
+      },
+      "WebRtcPublicVideoBridgeOptIn": {
+        "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeOptIn"
+      },
+      "WebRtcPublicVideoBridgeBinding": {
+        "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeBinding"
+      },
+      "WebRtcPublicVideoBridgeChallenge": {
+        "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeChallenge"
+      },
+      "WebRtcPublicVideoBridgeFeeding": {
+        "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeFeeding"
+      },
+      "WebRtcPublicVideoBridgeReadyMarker": {
+        "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeReadyMarker"
+      },
+      "WebRtcPublicVideoBridgeDecodedObservation": {
+        "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeDecodedObservation"
+      },
+      "WebRtcPublicVideoBridgeSnapshot": {
+        "$ref": "#/components/schemas/WireWebRtcPublicVideoBridgeSnapshot"
+      },
+      "WebRtcReceiverVideoPostCut": {
+        "$ref": "#/components/schemas/WireWebRtcReceiverVideoPostCut"
+      },
+      "WebRtcReceiverVideoRelease": {
+        "$ref": "#/components/schemas/WireWebRtcReceiverVideoRelease"
       },
       "NativeDataAcceptance": {
         "type": "object",

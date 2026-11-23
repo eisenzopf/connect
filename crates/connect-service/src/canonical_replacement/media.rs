@@ -21,6 +21,11 @@ use std::{
     sync::{OnceLock, Weak},
 };
 
+enum PendingVideo<'a> {
+    Warm(&'a rvoip_core::staged_streams::direct_subscriptions::PostCutPublicVideoScope),
+    PreCut(&'a rvoip_core::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeScope),
+}
+
 pub(crate) struct TargetPolicy {
     pub base: Arc<crate::canonical_media::Policy>,
     pub pending: PreparedParticipantReplacement,
@@ -807,14 +812,25 @@ impl TargetPolicy {
         let MediaPurpose::Receive { source } = scope.purpose else {
             return Err(StreamControlError::Authority);
         };
-        self.receive_under(scope, source, None, Some(warm))
+        self.receive_under(scope, source, None, Some(PendingVideo::Warm(warm)))
     }
+    pub(crate) fn pre_cut_public_video_bridge(
+        &self,
+        scope: &MediaScope<'_>,
+        bridge: &rvoip_core::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeScope,
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        let MediaPurpose::Receive { source } = scope.purpose else {
+            return Err(StreamControlError::Authority);
+        };
+        self.receive_under(scope, source, None, Some(PendingVideo::PreCut(bridge)))
+    }
+
     fn receive_under(
         &self,
         scope: &MediaScope<'_>,
         source: &MediaSource,
         held: Option<&connect_store::NativeMediaRead>,
-        warm: Option<&rvoip_core::staged_streams::direct_subscriptions::PostCutPublicVideoScope>,
+        pending_public: Option<PendingVideo<'_>>,
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         self.receive_diagnostics.begin_receive(held.is_some());
         let mut leaf = 0;
@@ -824,7 +840,7 @@ impl TargetPolicy {
             self.scope(scope)?;
             leaf = 1;
             leaf = 2;
-            if let Some(warm) = warm {
+            if let Some(PendingVideo::Warm(warm)) = &pending_public {
                 let root = self.root.upgrade().ok_or(StreamControlError::Authority)?;
                 if !warm.is_current()
                     || warm.is_published()
@@ -834,6 +850,18 @@ impl TargetPolicy {
                     || scope.conversation != warm.conversation()
                     || scope.session != warm.session()
                     || !super::continuation::same_public_video_source(source, warm.source())
+                {
+                    return Err(StreamControlError::Authority);
+                }
+            } else if let Some(PendingVideo::PreCut(bridge)) = &pending_public {
+                let root = self.root.upgrade().ok_or(StreamControlError::Authority)?;
+                if !bridge.is_current()
+                    || !root.public_video.bridge_matches(bridge)
+                    || bridge.original_intent() != root.handle.intent()
+                    || scope.connection != &root.handle.intent().replacement
+                    || scope.conversation != bridge.conversation()
+                    || scope.session != bridge.session()
+                    || !super::continuation::same_public_video_source(source, bridge.source())
                 {
                     return Err(StreamControlError::Authority);
                 }

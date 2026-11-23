@@ -2,14 +2,19 @@
 use super::*;
 use connect_store::NativeReplacementPublicVideoReservation;
 use std::sync::OnceLock;
+mod bridge;
+mod bridge_activation;
+pub(super) mod bridge_journal;
 pub(super) mod installation;
 mod negotiation;
 mod observation;
 mod pipeline;
+mod post_cut_observation;
 mod ready;
 mod reservation;
 #[cfg(feature = "test-support")]
 mod test_support;
+use bridge::Bridge;
 use connect_protocol::webrtc_public_video_phase as wire;
 use pipeline::Cut;
 
@@ -19,6 +24,7 @@ pub(super) struct Preparation {
     #[cfg(feature = "test-support")]
     decoded_metadata_probe: std::sync::Mutex<Option<std::sync::Weak<test_support::Probe>>>,
     required: bool,
+    bridge_journal: bridge_journal::Journal,
     private_nonce: OnceLock<String>,
     cut: OnceLock<Cut>,
     // Retain the exact plan/freeze slot BEFORE Core can freeze OLD. A late
@@ -29,6 +35,10 @@ pub(super) struct Preparation {
     // only. It cannot supply a Cut, Warm owner, public phase or native receipt.
     cleanup_frontier:
         OnceLock<Arc<rvoip_core::staged_streams::old_video_freeze::FrozenOldVideoFrontier>>,
+    bridge: Bridge,
+    bridge_scope: OnceLock<
+        Arc<rvoip_core::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeScope>,
+    >,
     ready: OnceLock<wire::ReadyMarker>,
     // Release publication belongs ONLY to the original capture winner, after
     // that handler drops its actual admitted signed Readers. No media grant.
@@ -58,10 +68,13 @@ impl Preparation {
             #[cfg(feature = "test-support")]
             decoded_metadata_probe: Default::default(),
             required,
+            bridge_journal: bridge_journal::Journal::new(),
             private_nonce: OnceLock::new(),
             cut: OnceLock::new(),
             original_freeze_plan: OnceLock::new(),
             cleanup_frontier: OnceLock::new(),
+            bridge: Bridge::default(),
+            bridge_scope: OnceLock::new(),
             ready: OnceLock::new(),
             ready_readers_released: AtomicBool::new(false),
             ready_signal: tokio::sync::Notify::new(),
@@ -220,6 +233,41 @@ impl Preparation {
             .set(Arc::new(warm))
             .map_err(|_| Error::forbidden())
     }
+    /// Own the exact Core route before the original candidate writer starts.
+    /// A transport name or caller's readiness cannot register a route.
+    pub(super) fn own_bridge_scope(
+        &self,
+        root: &PreparedReplacement,
+        scope: Arc<rvoip_core::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeScope>,
+    ) -> Result<()> {
+        if !self.required
+            || scope.original_intent() != root.handle.intent()
+            || scope.target() != self.reserved()?.target()
+            || scope.conversation().as_str() != root.origin.request().conversation_id
+            || scope.session().as_str() != root.origin.request().session_id
+        {
+            scope.close();
+            return Err(Error::forbidden());
+        }
+        match self.bridge_scope.set(scope) {
+            Ok(()) => Ok(()),
+            Err(same) if self.bridge_matches(same.as_ref()) => Ok(()),
+            Err(other) => {
+                other.close();
+                Err(Error::forbidden())
+            }
+        }
+    }
+
+    pub(super) fn bridge_matches(
+        &self,
+        scope: &rvoip_core::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeScope,
+    ) -> bool {
+        self.bridge_scope
+            .get()
+            .is_some_and(|original| std::ptr::eq(original.as_ref(), scope))
+    }
+
     pub(super) fn warm_matches(
         &self,
         scope: &rvoip_core::staged_streams::direct_subscriptions::PostCutPublicVideoScope,

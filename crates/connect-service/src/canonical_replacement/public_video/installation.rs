@@ -70,6 +70,14 @@ impl NativeReplacementInstallationGuard for Guard<'_> {
         )?;
         Ok(())
     }
+    fn released_receiver_video(
+        &self,
+    ) -> Result<Option<connect_protocol::replacement_receiver_video_release::ReceiverVideoRelease>>
+    {
+        let p = &self.root.public_video;
+        p.require_published_current(self.root)?;
+        Ok(p.receiver_video_boundary(self.root, true))
+    }
     fn publish(&self, commit: Box<dyn FnOnce() -> Result<()> + '_>) -> Result<()> {
         self.inner.publish(Box::new(|| {
             if self.root.public_video.required() {

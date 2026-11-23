@@ -6,6 +6,12 @@ use connect_protocol::{
 };
 use std::sync::Arc;
 mod atomic_prepare;
+pub(in crate::transitions::native_replacements) mod bridge;
+pub use bridge::{
+    NativeReplacementPublicVideoBridgeExpected, NativeReplacementPublicVideoBridgeGuard,
+    NativeReplacementPublicVideoBridgeMetadata, NativeReplacementPublicVideoBridgeObservation,
+    NativeReplacementPublicVideoBridgeStage,
+};
 mod closed_observation;
 mod not_submitted_read;
 mod runtime_observation;
@@ -48,6 +54,7 @@ pub struct PublicVideoOperationSnapshot {
     pub operation: OperationRecord,
     pub intent: Option<reservation::Intent>,
     pub phase: Option<wire::Phase>,
+    pub bridge: Option<connect_protocol::webrtc_public_video_bridge::Snapshot>,
 }
 /// Cleanup-only historical custody. It neither renews expired target authority
 /// nor authorizes publication, media, readiness or restoration of OLD.
@@ -365,10 +372,12 @@ fn snapshot(
     let (intent, phase) = project(c, &row.record)?;
     let operation = rows::view(c, &actor, row)?;
     actor_from_connection(c, credential)?;
+    let bridge = bridge::project(c, &operation)?;
     Ok(PublicVideoOperationSnapshot {
         operation,
         intent,
         phase,
+        bridge,
     })
 }
 
@@ -382,6 +391,27 @@ pub(super) fn check_offer(
     offer: &serde_json::Value,
 ) -> Result<()> {
     let old = stored_intent(c, p, saved)?;
+    // The actual signed target negotiates the SAME explicit original choice.
+    // A request extension alone cannot opt an unprepared receiver into feed.
+    let requested = connect_protocol::webrtc_public_video_bridge::OptIn::from_request(
+        p.selection.origin.request(),
+    )?;
+    match (requested, offer.get("webrtc_public_video_bridge_opt_in")) {
+        (None, None) => {}
+        (Some(expected), Some(value)) if old.is_some() => {
+            let actual: connect_protocol::webrtc_public_video_bridge::OptIn =
+                serde_json::from_value(value.clone()).map_err(|_| invalid())?;
+            actual.validate()?;
+            if actual != expected {
+                return Err(conflict());
+            }
+            let row = rows::by_record(c, &p.record)?;
+            if bridge::project(c, &row.record)?.is_none() {
+                return Err(conflict());
+            }
+        }
+        _ => return Err(conflict()),
+    }
     match (old, offer.get("webrtc_video_receive_reservation")) {
         (None, None) => Ok(()),
         (Some((original, _)), Some(value)) if !terminal(c, &p.record)? => {
@@ -601,6 +631,20 @@ fn append_phase_with_unpublished(
         || terminal(c, &p.record)?
     {
         return Err(Error::forbidden());
+    }
+    if connect_protocol::webrtc_public_video_bridge::OptIn::from_request(
+        p.selection.origin.request(),
+    )?
+    .is_some()
+    {
+        if let Some(nonce) = value["public_readiness"]["nonce"].as_str() {
+            if bridge::project(c, &rows::by_record(c, &p.record)?.record)?
+                .and_then(|bridge| bridge.feeding)
+                .is_some_and(|feeding| feeding.bridge_readiness.nonce == nonce)
+            {
+                return Err(conflict());
+            }
+        }
     }
     let encoded = canonical(&value)?;
     if let Some((old,nonce))=c.query_row("SELECT phase_json,private_readiness_nonce FROM native_replacement_public_video_phases WHERE operation_record_id=?1 AND phase=?2",params![p.record,name],|row|Ok((row.get::<_,String>(0)?,row.get::<_,String>(1)?))).optional().map_err(|_|Error::storage())? {

@@ -226,6 +226,7 @@ impl Runtime {
             drop(read);
         }
         if matches!(&*owned, OwnedDiscard::Context { .. }) {
+            root.public_video.close_bridge();
             let OwnedDiscard::Context {
                 context,
                 physical,

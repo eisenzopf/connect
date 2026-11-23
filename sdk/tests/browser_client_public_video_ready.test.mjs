@@ -100,3 +100,28 @@ test('real BrowserClient public B continuation refuses malformed mixed foreign-r
         assert.equal(f.sent.filter(frame=>frame.type==='connection.offer').length,0);
     },{transport:'webtransport'});
 });
+
+
+const bridgeOffer=()=>{
+    const p=offer(),r=p.replacement_preparation.public_video_readiness;
+    p.webrtc_public_video_bridge_opt_in={profile:'connect/webrtc-public-video-precut-bridge/1',carrier:'webrtc-rtp',presentation:'exclusive-public',feed:'public-programme-private-decode'};
+    p.replacement_preparation={profile:'connect-replacement-public-video-bridge-ready-v1',operation_record_id:'record',bridge_readiness:{reservation_id:r.reservation_id,nonce:'bridge-nonce',binding:{...r.binding},decoded_rtp_timestamp:0,decoded_frames:1,decoder_startup:'fresh-b-receiver-precut-keyframe'}};return p;
+};
+test('real signed BrowserClient bridge Ready carries exact original opt-in and first RTP zero without mixed legacy readiness',async()=>{
+    for(const algorithm of ['EdDSA','ES256'])await boundary(async({client,f})=>{
+        const body=bridgeOffer(),frozen=structuredClone(body),pending=client.requestReplacementContinuation('connection.offer',body,scope(),{timeoutMs:200});
+        body.replacement_preparation.bridge_readiness.decoded_rtp_timestamp=88;await pending;
+        const sent=f.sent.filter(v=>v.type==='connection.offer');assert.equal(sent.length,1);assert.equal(canonicalJson(sent[0].payload),canonicalJson(frozen));
+        assert.equal(sent[0].payload.replacement_preparation.bridge_readiness.decoded_rtp_timestamp,0);assert.equal(sent[0].operation_id,'move');assert.equal(client.closed,false);
+    },{algorithm});
+});
+test('real signed BrowserClient bridge boundary rejects absent opt-in mixed cut invented counters roles and alternate transport',async()=>{
+    await boundary(async({client,f})=>{
+        for(const change of [p=>{delete p.webrtc_public_video_bridge_opt_in;},p=>{p.webrtc_public_video_bridge_opt_in.feed='private-preview';},p=>{p.replacement_preparation.public_video_readiness={};},p=>{p.replacement_preparation.bridge_readiness.source_cut_id='fake';},p=>{p.replacement_preparation.bridge_readiness.decoded_rtp_timestamp=-1;},p=>{p.replacement_preparation.bridge_readiness.decoded_rtp_timestamp=0x100000000;},p=>{p.replacement_preparation.bridge_readiness.decoded_frames=0;},p=>{p.replacement_preparation.bridge_readiness.binding.stream_id='camera-a';},p=>{p.replacement_preparation.bridge_readiness.decoder_startup='fresh-peer-first-decoded-frame';},p=>{p.streams_offered[2].direction='sendrecv';}]) {
+            const body=bridgeOffer();change(body);assert.throws(()=>client.requestReplacementContinuation('connection.offer',body,scope(),{timeoutMs:200}),{code:'invalid-request'});
+        }
+        assert.equal(f.sent.filter(v=>v.type==='connection.offer').length,0);
+        const body=bridgeOffer();body.replacement_preparation.operation_record_id='foreign-record';await assert.rejects(client.requestReplacementContinuation('connection.offer',body,scope(),{timeoutMs:200}),e=>e.code==='refused'&&e.problem?.code===403);
+    });
+    await boundary(async({client,f})=>{assert.throws(()=>client.requestReplacementContinuation('connection.offer',bridgeOffer(),scope(),{timeoutMs:200}),{code:'invalid-request'});assert.equal(f.sent.filter(v=>v.type==='connection.offer').length,0);},{transport:'webtransport'});
+});

@@ -18,6 +18,7 @@ pub(crate) enum Phase {
     Attach,
     ReserveVideo,
     WarmVideo(ManagedAudioDeviceReplacementPlan),
+    BridgeVideo(ManagedAudioDeviceReplacementPlan),
     Activate(AudioAudiencePlan),
     AudioPreroll(u64),
     Preroll(
@@ -54,6 +55,7 @@ impl Invocation {
             Phase::Attach => "attach",
             Phase::ReserveVideo => "reserve-video",
             Phase::WarmVideo(_) => "warm-video",
+            Phase::BridgeVideo(_) => "bridge-video",
             Phase::Activate(_) => "activate",
             Phase::Preroll(_, _) => "preroll",
             Phase::AudioPreroll(_) => "audio-preroll",
@@ -276,7 +278,10 @@ impl Invocation {
                     && *request == expected
             }
             (
-                Phase::Commit(expected) | Phase::FreezeVideo(expected) | Phase::WarmVideo(expected),
+                Phase::Commit(expected)
+                | Phase::FreezeVideo(expected)
+                | Phase::WarmVideo(expected)
+                | Phase::BridgeVideo(expected),
                 MediaControlIntent::DeviceReplacement { plan },
             ) => expected.media().audience().same_intent(plan),
             _ => false,
@@ -323,7 +328,8 @@ impl Invocation {
                 (
                     Phase::Commit(expected)
                     | Phase::FreezeVideo(expected)
-                    | Phase::WarmVideo(expected),
+                    | Phase::WarmVideo(expected)
+                    | Phase::BridgeVideo(expected),
                     Some(plan),
                 ) => expected.media().audience().same_intent(plan.audience()),
                 (
@@ -343,6 +349,7 @@ impl Invocation {
                     | (Phase::Attach, ReplacementPhase::Attach)
                     | (Phase::ReserveVideo, ReplacementPhase::ReserveVideo)
                     | (Phase::WarmVideo(_), ReplacementPhase::WarmVideo)
+                    | (Phase::BridgeVideo(_), ReplacementPhase::BridgeVideo)
                     | (Phase::Activate(_), ReplacementPhase::Activate)
                     | (Phase::Commit(_), ReplacementPhase::Commit)
                     | (Phase::FreezeVideo(_), ReplacementPhase::FreezeVideo)
@@ -603,6 +610,46 @@ impl Invocation {
             invocation: self.clone(),
             target: scope.connection.clone(),
             owner,
+        };
+        let owner = *held.control_receive(source)?;
+        Ok(Box::new(Held { owner, ..held }))
+    }
+
+    pub(crate) fn pre_cut_public_video_bridge(
+        &self,
+        scope: &MediaScope<'_>,
+        bridge: &rvoip_core::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeScope,
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        self.check()?;
+        let Phase::BridgeVideo(plan) = &self.phase else {
+            return Err(StreamControlError::Authority);
+        };
+        let MediaPurpose::Receive { source } = scope.purpose else {
+            return Err(StreamControlError::Authority);
+        };
+        if !bridge.is_current()
+            || !self.root.public_video.bridge_resource_matches(bridge)
+            || bridge.original_intent() != self.root.handle.intent()
+            || bridge.target()
+                != self
+                    .root
+                    .public_video
+                    .reserved()
+                    .map_err(|_| StreamControlError::Authority)?
+                    .target()
+            || plan.media().request().operation_id != self.root.handle.intent().operation_id
+            || scope.connection != &self.root.handle.intent().replacement
+            || scope.conversation != bridge.conversation()
+            || scope.session != bridge.session()
+            || !same_public_video_source(source, bridge.source())
+            || !reliable_data::same_credential(scope.principal, &self.policy.principal)
+        {
+            return Err(StreamControlError::Authority);
+        }
+        let held = Held {
+            invocation: self.clone(),
+            target: scope.connection.clone(),
+            owner: self.owner(scope.connection)?,
         };
         let owner = *held.control_receive(source)?;
         Ok(Box::new(Held { owner, ..held }))

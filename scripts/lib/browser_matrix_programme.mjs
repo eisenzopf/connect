@@ -267,6 +267,7 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
             phase = 'source-connection-refresh';
             const sourceSnapshot=cleanupMoves?await before.connection.refresh(options()):undefined;
             const command={retain:current[retained.index].connection.id,target:{endpoint:target.endpointId},
+                ...(selectedTransport==='wss-webrtc'?{receiverVideoBridge:'webrtc-precut-private-decode'}:{}),
                 expectedTopologyRevision:snapshot.topologyRevision,video:{publications:[{previous:before.video,replacement:intent.video}],
                     receivers:[{previous:before.receiveVideo,replacement:intent.receiveVideo}]}};
             await journal({kind:'move-intent',name:`move-${route.index}-${intent.ordinal}`,operationId:intent.operation,

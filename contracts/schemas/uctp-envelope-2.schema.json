@@ -424,6 +424,9 @@
         "webrtc_video_receive_reservation": {
           "$ref": "#/$defs/WebRtcPublicVideoIntent"
         },
+        "webrtc_public_video_bridge_opt_in": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeOptIn"
+        },
         "replacement_preparation": {
           "oneOf": [
             {
@@ -466,6 +469,9 @@
             },
             {
               "$ref": "#/$defs/WebRtcPublicVideoReadyMarker"
+            },
+            {
+              "$ref": "#/$defs/WebRtcPublicVideoBridgeReadyMarker"
             }
           ]
         }
@@ -616,6 +622,48 @@
           "then": {
             "required": [
               "webrtc_video_receive_reservation"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "webrtc_public_video_bridge_opt_in"
+            ]
+          },
+          "then": {
+            "required": [
+              "webrtc_video_receive_reservation"
+            ],
+            "properties": {
+              "substrate": {
+                "const": "websocket+webrtc"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "replacement_preparation"
+            ],
+            "properties": {
+              "replacement_preparation": {
+                "required": [
+                  "profile"
+                ],
+                "properties": {
+                  "profile": {
+                    "const": "connect-replacement-public-video-bridge-ready-v1"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "webrtc_video_receive_reservation",
+              "webrtc_public_video_bridge_opt_in"
             ]
           }
         }
@@ -2641,6 +2689,15 @@
         },
         "webrtc_public_video_phase": {
           "$ref": "#/$defs/WebRtcPublicVideoPhase"
+        },
+        "webrtc_public_video_bridge": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeSnapshot"
+        },
+        "receiver_video_post_cut": {
+          "$ref": "#/$defs/WebRtcReceiverVideoPostCut"
+        },
+        "receiver_video_release": {
+          "$ref": "#/$defs/WebRtcReceiverVideoRelease"
         }
       },
       "required": [
@@ -2762,6 +2819,82 @@
             "required": [
               "webrtc_video_receive_reservation"
             ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "webrtc_public_video_bridge"
+            ]
+          },
+          "then": {
+            "required": [
+              "webrtc_video_receive_reservation",
+              "command_type",
+              "record_id",
+              "expected_revision"
+            ],
+            "properties": {
+              "command_type": {
+                "const": "connection.replace"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "receiver_video_post_cut"
+            ]
+          },
+          "then": {
+            "required": [
+              "webrtc_public_video_bridge",
+              "webrtc_public_video_phase"
+            ],
+            "properties": {
+              "state": {
+                "const": "preparing"
+              },
+              "webrtc_public_video_phase": {
+                "required": [
+                  "phase"
+                ],
+                "properties": {
+                  "phase": {
+                    "const": "cut-bound-post-f"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "receiver_video_release"
+            ]
+          },
+          "then": {
+            "required": [
+              "webrtc_public_video_bridge",
+              "webrtc_public_video_phase"
+            ],
+            "properties": {
+              "state": {
+                "const": "completed"
+              },
+              "webrtc_public_video_phase": {
+                "required": [
+                  "phase"
+                ],
+                "properties": {
+                  "phase": {
+                    "const": "activated"
+                  }
+                }
+              }
+            }
           }
         },
         {
@@ -3293,6 +3426,252 @@
       "additionalProperties": false,
       "description": "Closed marker inside SAME original signed connection.offer. Preserve every other original offer/credential/key/device field. No audio readiness is supplied here. Host must match whole frozen original marker on replay; shape/signature/counters alone confer no media permission or physical proof."
     },
+    "WebRtcPublicVideoBridgeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._~-]+$"
+    },
+    "WebRtcPublicVideoBridgeOpaque": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[!-~]+$"
+    },
+    "WebRtcPublicVideoBridgePositiveCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "WebRtcPublicVideoBridgeBinding": {
+      "type": "object",
+      "properties": {
+        "stream_id": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
+        },
+        "preview_stream_id": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
+        },
+        "mid": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeOpaque"
+        },
+        "stream_generation": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgePositiveCount"
+        },
+        "physical_writer_incarnation": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeOpaque"
+        },
+        "connection_generation": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgePositiveCount"
+        },
+        "primary_ssrc": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "payload_type": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127
+        },
+        "clock_rate_hz": {
+          "const": 90000
+        },
+        "codec": {
+          "const": "vp8"
+        }
+      },
+      "required": [
+        "stream_id",
+        "preview_stream_id",
+        "mid",
+        "stream_generation",
+        "physical_writer_incarnation",
+        "connection_generation",
+        "primary_ssrc",
+        "payload_type",
+        "clock_rate_hz",
+        "codec"
+      ],
+      "additionalProperties": false,
+      "description": "Actual original B native tuple. SSRC zero is valid. Generations are independent namespaces; runtime matches distinct stream IDs/native pointers/current original owners, never infers identity from these data alone."
+    },
+    "WebRtcPublicVideoBridgeOptIn": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "const": "connect/webrtc-public-video-precut-bridge/1"
+        },
+        "carrier": {
+          "const": "webrtc-rtp"
+        },
+        "presentation": {
+          "const": "exclusive-public"
+        },
+        "feed": {
+          "const": "public-programme-private-decode"
+        }
+      },
+      "required": [
+        "profile",
+        "carrier",
+        "presentation",
+        "feed"
+      ],
+      "additionalProperties": false
+    },
+    "WebRtcPublicVideoBridgeChallenge": {
+      "type": "object",
+      "properties": {
+        "nonce": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgePositiveCount"
+        },
+        "decoder_startup": {
+          "const": "fresh-b-receiver-precut-keyframe"
+        }
+      },
+      "required": [
+        "nonce",
+        "expires_at",
+        "decoder_startup"
+      ],
+      "additionalProperties": false
+    },
+    "WebRtcPublicVideoBridgeFeeding": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "const": "connect/webrtc-public-video-precut-bridge/1"
+        },
+        "phase": {
+          "const": "feeding"
+        },
+        "reservation_id": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
+        },
+        "operation_record_id": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
+        },
+        "target_connection_id": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
+        },
+        "target_generation": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgePositiveCount"
+        },
+        "binding": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeBinding"
+        },
+        "bridge_readiness": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeChallenge"
+        }
+      },
+      "required": [
+        "profile",
+        "phase",
+        "reservation_id",
+        "operation_record_id",
+        "operation_id",
+        "target_connection_id",
+        "target_generation",
+        "binding",
+        "bridge_readiness"
+      ],
+      "additionalProperties": false
+    },
+    "WebRtcPublicVideoBridgeDecodedObservation": {
+      "type": "object",
+      "properties": {
+        "reservation_id": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
+        },
+        "nonce": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
+        },
+        "binding": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeBinding"
+        },
+        "decoded_rtp_timestamp": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "decoded_frames": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgePositiveCount"
+        },
+        "decoder_startup": {
+          "const": "fresh-b-receiver-precut-keyframe"
+        }
+      },
+      "required": [
+        "reservation_id",
+        "nonce",
+        "binding",
+        "decoded_rtp_timestamp",
+        "decoded_frames",
+        "decoder_startup"
+      ],
+      "additionalProperties": false
+    },
+    "WebRtcPublicVideoBridgeReadyMarker": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "const": "connect-replacement-public-video-bridge-ready-v1"
+        },
+        "operation_record_id": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeId"
+        },
+        "bridge_readiness": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeDecodedObservation"
+        }
+      },
+      "required": [
+        "profile",
+        "operation_record_id",
+        "bridge_readiness"
+      ],
+      "additionalProperties": false
+    },
+    "WebRtcPublicVideoBridgeSnapshot": {
+      "type": "object",
+      "properties": {
+        "opt_in": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeOptIn"
+        },
+        "feeding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WebRtcPublicVideoBridgeFeeding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "decoded_ready": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WebRtcPublicVideoBridgeReadyMarker"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "opt_in",
+        "feeding",
+        "decoded_ready"
+      ],
+      "additionalProperties": false
+    },
     "ReplacementReadinessChallenge": {
       "type": "object",
       "properties": {
@@ -3476,6 +3855,230 @@
         "readiness"
       ],
       "additionalProperties": false
+    },
+    "WebRtcReceiverVideoPostCut": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "const": "connect-receiver-video-post-cut-v1"
+        },
+        "operation_record_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "reservation_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "source_connection_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "target_connection_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "stream_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "source_cut_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "stream_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "connection_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "target_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "original_frame": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "realm": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "last_old_ordinal": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,19})$"
+            },
+            "ordinal": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,19})$"
+            }
+          },
+          "required": [
+            "realm",
+            "last_old_ordinal",
+            "ordinal"
+          ]
+        },
+        "floor": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "carrier": {
+              "const": "webrtc-rtp"
+            },
+            "physical_writer_incarnation": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "primary_ssrc": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "first_public_rtp_timestamp": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            }
+          },
+          "required": [
+            "carrier",
+            "physical_writer_incarnation",
+            "primary_ssrc",
+            "first_public_rtp_timestamp"
+          ]
+        }
+      },
+      "required": [
+        "profile",
+        "operation_record_id",
+        "operation_id",
+        "reservation_id",
+        "source_connection_id",
+        "target_connection_id",
+        "stream_id",
+        "source_cut_id",
+        "stream_generation",
+        "connection_generation",
+        "target_generation",
+        "original_frame",
+        "floor"
+      ]
+    },
+    "WebRtcReceiverVideoRelease": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "const": "connect-receiver-video-release-v1"
+        },
+        "operation_record_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "reservation_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "source_connection_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "target_connection_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "stream_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "source_cut_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "stream_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "connection_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "target_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "original_frame": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "realm": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "last_old_ordinal": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,19})$"
+            },
+            "ordinal": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,19})$"
+            }
+          },
+          "required": [
+            "realm",
+            "last_old_ordinal",
+            "ordinal"
+          ]
+        },
+        "floor": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "carrier": {
+              "const": "webrtc-rtp"
+            },
+            "physical_writer_incarnation": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "primary_ssrc": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "first_public_rtp_timestamp": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            }
+          },
+          "required": [
+            "carrier",
+            "physical_writer_incarnation",
+            "primary_ssrc",
+            "first_public_rtp_timestamp"
+          ]
+        }
+      },
+      "required": [
+        "profile",
+        "operation_record_id",
+        "operation_id",
+        "reservation_id",
+        "source_connection_id",
+        "target_connection_id",
+        "stream_id",
+        "source_cut_id",
+        "stream_generation",
+        "connection_generation",
+        "target_generation",
+        "original_frame",
+        "floor"
+      ]
     },
     "ReconciliationHint": {
       "type": "object",
@@ -3794,12 +4397,43 @@
         },
         "video": {
           "$ref": "#/$defs/ReplacementVideo"
+        },
+        "receiver_video_bridge": {
+          "$ref": "#/$defs/WebRtcPublicVideoBridgeOptIn"
         }
       },
       "required": [
         "retained_connid"
       ],
       "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "receiver_video_bridge"
+            ]
+          },
+          "then": {
+            "required": [
+              "video"
+            ],
+            "properties": {
+              "video": {
+                "properties": {
+                  "publications": {
+                    "minItems": 1,
+                    "maxItems": 1
+                  },
+                  "receivers": {
+                    "minItems": 1,
+                    "maxItems": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
       "oneOf": [
         {
           "required": [

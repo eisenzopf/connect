@@ -1,3 +1,4 @@
+import { WEBRTC_BRIDGE_OPT_IN } from "./browser_webrtc_public_video_bridge.js";
 import {
     replacementVideo,
     type ReplacementVideo,
@@ -51,6 +52,8 @@ export type BrowserMoveTarget =
     | { readonly candidate: ConnectionId; readonly endpoint?: never };
 export interface BrowserMoveInput {
     readonly video?: ReplacementVideo;
+    /** Explicit original signed private-decode overlap; never a later media option. */
+    readonly receiverVideoBridge?:"webrtc-precut-private-decode";
     readonly retain: ConnectionId;
     readonly target: BrowserMoveTarget;
     readonly expectedTopologyRevision: SdkRevision<"topology">;
@@ -275,7 +278,7 @@ export function moveIntent(
 ) {
     fields(
         input,
-        ["retain", "target", "expectedTopologyRevision", "video"],
+        ["retain", "target", "expectedTopologyRevision", "video", "receiverVideoBridge"],
         bad,
     );
     if (
@@ -293,12 +296,15 @@ export function moveIntent(
         (!endpoint && (target === via || target === input.retain))
     )
         return bad();
+    const video=input.video===undefined?undefined:replacementVideo(input.video,bad);
+    if(input.receiverVideoBridge!==undefined) {
+        if(input.receiverVideoBridge!=="webrtc-precut-private-decode"||!video||!Array.isArray(video.publications)||!Array.isArray(video.receivers)||video.publications.length!==1||video.receivers.length!==1||!jsonObject(video.publications[0])||!jsonObject(video.receivers[0])||video.publications[0].replacement===video.receivers[0].replacement)return bad();
+    }
     return {
         body: {
+            ...(input.receiverVideoBridge?{receiver_video_bridge:{...WEBRTC_BRIDGE_OPT_IN}}:{}),
             retained_connid: input.retain,
-            ...(input.video === undefined
-                ? {}
-                : { video: replacementVideo(input.video, bad) }),
+            ...(video===undefined?{}:{video}),
             ...(endpoint
                 ? { endpoint_id: target }
                 : { candidate_connid: target }),

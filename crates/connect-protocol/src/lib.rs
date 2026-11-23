@@ -1188,5 +1188,7 @@ mod tests {
 
 pub mod record_retention;
 pub mod replacement_activation;
+pub mod replacement_receiver_video_release;
 
+pub mod webrtc_public_video_bridge;
 pub mod webrtc_public_video_phase;

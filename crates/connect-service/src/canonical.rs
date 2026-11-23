@@ -187,6 +187,18 @@ impl CanonicalHandler {
             let mut payload = json!({"operation_id":record.operation_id,"record_id":record.record_id,"command_type":record.command_type,"expected_revision":record.expected_revision,"state":record.state,"revision":record.revision});
             if matches!(request.payload(), Payload::OperationGet(_)) {
                 observation.project_public_video(&mut payload);
+                if payload.get("webrtc_public_video_bridge").is_some()
+                    && payload["webrtc_public_video_phase"]["phase"] == "cut-bound-post-f"
+                {
+                    if let Some(post_cut) = self
+                        .service
+                        .canonical_runtime
+                        .get()
+                        .and_then(|runtime| runtime.receiver_video_post_cut(record))
+                    {
+                        payload["receiver_video_post_cut"] = json!(post_cut);
+                    }
+                }
             }
             let record = observation.record;
             if matches!(request.payload(), Payload::OperationGet(_)) {
@@ -529,6 +541,7 @@ impl AuthenticatedHandler for CanonicalHandler {
                             | "connect-replacement-preparation-v1"
                             | "connect-replacement-ready-v1"
                             | "connect-replacement-public-video-ready-v1"
+                            | "connect-replacement-public-video-bridge-ready-v1"
                     )
                 ))
         {

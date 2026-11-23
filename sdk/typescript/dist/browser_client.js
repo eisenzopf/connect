@@ -9,7 +9,7 @@ import { encodeEnvelope, envelope, EnvelopeReader, identifier, } from "./uctp_wi
 // This closes only the new RTC readiness marker at the existing original-offer
 // boundary. The owning replacement still pins the signed Root, original offer,
 // phase, challenge and native lease; validation here creates none of them.
-function publicVideoReadyOffer(payload, scope) {
+function publicVideoReadyOffer(payload, scope, bridge = false) {
     const closed = (value, fields) => {
         if (value === null || typeof value !== "object" || Array.isArray(value))
             return false;
@@ -24,16 +24,21 @@ function publicVideoReadyOffer(payload, scope) {
     const marker = payload.replacement_preparation, intent = payload.webrtc_video_receive_reservation;
     if (scope.expected_revision !== 0 || payload.substrate !== "websocket+webrtc" || payload.handoff_preparation !== undefined || payload.private_consultation !== undefined ||
         !jsonObject(payload.substrate_setup) || payload.substrate_setup.kind !== "websocket+webrtc" || typeof payload.substrate_setup.sdp !== "string" ||
-        !closed(marker, ["profile", "operation_record_id", "public_video_readiness"]) || marker.profile !== "connect-replacement-public-video-ready-v1" || !id(marker.operation_record_id) ||
+        !closed(marker, ["profile", "operation_record_id", bridge ? "bridge_readiness" : "public_video_readiness"]) || marker.profile !== (bridge ? "connect-replacement-public-video-bridge-ready-v1" : "connect-replacement-public-video-ready-v1") || !id(marker.operation_record_id) ||
         !closed(intent, ["profile", "phase", "reservation_id", "nonce", "preview_stream_id", "preview_role", "public_stream_id"]) ||
         intent.profile !== "connect/webrtc-public-video-reservation/1" || intent.phase !== "intent" || intent.preview_role !== "receive" ||
         !id(intent.reservation_id) || !id(intent.nonce) || !id(intent.preview_stream_id) || !id(intent.public_stream_id) || intent.preview_stream_id === intent.public_stream_id)
         return false;
-    const ready = marker.public_video_readiness;
-    if (!closed(ready, ["reservation_id", "source_cut_id", "nonce", "binding", "decoded_frames", "decoded_keyframes", "decoder_startup"]) ||
-        ready.reservation_id !== intent.reservation_id || !opaque(ready.source_cut_id) || !id(ready.nonce) || ready.nonce === intent.nonce ||
-        !positive(ready.decoded_frames) || (ready.decoded_keyframes !== null && (!positive(ready.decoded_keyframes) || ready.decoded_keyframes > ready.decoded_frames)) ||
-        ready.decoder_startup !== "fresh-receiver-first-decoded-frame")
+    const ready = bridge ? marker.bridge_readiness : marker.public_video_readiness;
+    if (!closed(ready, bridge ? ["reservation_id", "nonce", "binding", "decoded_rtp_timestamp", "decoded_frames", "decoder_startup"] : ["reservation_id", "source_cut_id", "nonce", "binding", "decoded_frames", "decoded_keyframes", "decoder_startup"]) ||
+        ready.reservation_id !== intent.reservation_id || !id(ready.nonce) || ready.nonce === intent.nonce || !positive(ready.decoded_frames))
+        return false;
+    if (bridge) {
+        const opt = payload.webrtc_public_video_bridge_opt_in;
+        if (!closed(opt, ["profile", "carrier", "presentation", "feed"]) || opt.profile !== "connect/webrtc-public-video-precut-bridge/1" || opt.carrier !== "webrtc-rtp" || opt.presentation !== "exclusive-public" || opt.feed !== "public-programme-private-decode" || !uint(ready.decoded_rtp_timestamp, 0xffffffff) || ready.decoder_startup !== "fresh-b-receiver-precut-keyframe")
+            return false;
+    }
+    else if (!opaque(ready.source_cut_id) || (ready.decoded_keyframes !== null && (!positive(ready.decoded_keyframes) || ready.decoded_keyframes > ready.decoded_frames)) || ready.decoder_startup !== "fresh-receiver-first-decoded-frame")
         return false;
     const binding = ready.binding;
     if (!closed(binding, ["stream_id", "preview_stream_id", "mid", "stream_generation", "physical_writer_incarnation", "connection_generation", "primary_ssrc", "payload_type", "clock_rate_hz", "codec"]) ||
@@ -433,6 +438,7 @@ export class BrowserClient {
                         "connect-replacement-media-v1",
                         "connect-replacement-ready-v1",
                         "connect-replacement-public-video-ready-v1",
+                        "connect-replacement-public-video-bridge-ready-v1",
                     ].includes(String(marker.profile)) ||
                     typeof marker.operation_record_id !== "string" ||
                     !identifier(marker.operation_record_id) ||
@@ -440,6 +446,8 @@ export class BrowserClient {
                         !jsonObject(marker.readiness)) ||
                     (marker.profile === "connect-replacement-public-video-ready-v1" &&
                         (this.controlTransport !== "websocket" || !publicVideoReadyOffer(payload, scope))) ||
+                    (marker.profile === "connect-replacement-public-video-bridge-ready-v1" &&
+                        (this.controlTransport !== "websocket" || !publicVideoReadyOffer(payload, scope, true))) ||
                     (options.terminalType !== undefined &&
                         marker.profile !== "connect-replacement-media-v1") ||
                     typeof scope.operation_id !== "string" ||

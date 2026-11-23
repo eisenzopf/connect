@@ -13,7 +13,9 @@ pub(super) struct RuntimeObservation {
     pub started: Arc<StartedReplacement>,
 }
 impl RuntimeObservation {
-    fn metadata(&self, stage: Stage) -> Result<Metadata> {
+    pub(super) fn current_negotiated_binding(
+        &self,
+    ) -> Result<(NativeReplacementPublicVideoNativeBinding, String)> {
         let root = &self.root;
         let p = &root.public_video;
         if !p.required()
@@ -58,6 +60,20 @@ impl RuntimeObservation {
             clock_rate_hz: native.native.clock_rate_hz,
             codec: "vp8".into(),
         };
+        Ok((binding, private_readiness_nonce))
+    }
+
+    fn metadata(&self, stage: Stage) -> Result<Metadata> {
+        let (binding, private_readiness_nonce) = self.current_negotiated_binding()?;
+        let root = &self.root;
+        let p = &root.public_video;
+        let resource = p.reserved()?;
+        let gate = self
+            .started
+            .policy
+            .readiness
+            .as_ref()
+            .ok_or_else(Error::forbidden)?;
         match stage {
             Stage::NegotiatedNeverFed => {
                 if !resource.is_current()

@@ -117,10 +117,12 @@ impl Store {
             }
         }
         let (intent, phase) = project(&tx, &row.record)?;
+        let bridge = bridge::project(&tx, &row.record)?;
         let snapshot = PublicVideoOperationSnapshot {
             operation: row.record,
             intent,
             phase,
+            bridge,
         };
         let successful_commit = std::cell::Cell::new(false);
         guard.publish(Box::new(|| {

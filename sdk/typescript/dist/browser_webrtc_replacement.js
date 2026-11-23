@@ -1,3 +1,4 @@
+import { bridgeClosed, bridgeCanonical, parseWebRtcBridgeOptIn } from "./browser_webrtc_public_video_bridge.js";
 import { BrowserDeadline } from "./browser_deadline.js";
 import { replacementFrame, replacementReceipt, replacementRoot, } from "./browser_replacement.js";
 import { ConnectError, recoverableReadRefusal } from "./errors.js";
@@ -42,6 +43,8 @@ export class BrowserWebRtcReplacement {
     selected;
     readyOffer;
     publicReadyOffer;
+    bridgeReadyOffer;
+    bridgeOptIn;
     originalObservations = new WeakSet();
     constructor(client, root, receiveReservation) {
         this.client = client;
@@ -98,11 +101,19 @@ export class BrowserWebRtcReplacement {
         if (observed.state !== "preparing" ||
             observed.native_replacement_prepared !== true)
             throw new ConnectError("conflict", "Original replacement preparation is not current");
-        this.original = copy(payload);
+        if (payload.webrtc_public_video_bridge_opt_in !== undefined)
+            throw protocol("Bridge intent must come from the original signed operation");
+        if (observed.webrtc_public_video_bridge !== undefined) {
+            if (!this.receiveReservation)
+                throw protocol("Bridge requires the original explicit reserved B layout");
+            const snapshot = bridgeClosed(observed.webrtc_public_video_bridge, ["opt_in", "feeding", "decoded_ready"]);
+            this.bridgeOptIn = parseWebRtcBridgeOptIn(snapshot.opt_in);
+        }
+        this.original = { ...copy(payload), ...(this.bridgeOptIn ? { webrtc_public_video_bridge_opt_in: { ...this.bridgeOptIn } } : {}) };
         this.originalScope = { ...scope };
         attempted?.();
         const frames = await this.client.requestReplacementContinuation("connection.offer", {
-            ...copy(payload),
+            ...copy(this.original),
             replacement_preparation: {
                 profile: "connect-replacement-preparation-v1",
                 operation_record_id: root.recordId,
@@ -114,12 +125,14 @@ export class BrowserWebRtcReplacement {
         this.allocated = true;
     }
     mediaOffer(payload) {
+        if (payload.webrtc_public_video_bridge_opt_in !== undefined && (!this.bridgeOptIn || bridgeCanonical(payload.webrtc_public_video_bridge_opt_in) !== bridgeCanonical(this.bridgeOptIn)))
+            throw protocol("Original signed bridge echo changed");
         if (!this.allocated ||
             !this.original ||
-            canonicalJson(payload) !== canonicalJson(this.original))
+            canonicalJson({ ...payload, ...(this.bridgeOptIn ? { webrtc_public_video_bridge_opt_in: { ...this.bridgeOptIn } } : {}) }) !== canonicalJson(this.original))
             throw protocol("WebRTC replacement media changed the original immutable offer");
         return {
-            ...copy(payload),
+            ...copy(this.original),
             replacement_preparation: {
                 profile: "connect-replacement-media-v1",
                 operation_record_id: this.root.recordId,
@@ -174,7 +187,7 @@ export class BrowserWebRtcReplacement {
             throw new ConnectError("closed", "Original reserved control client retired");
         if (!this.receiveReservation || !this.allocated || !this.original || !this.originalScope || !this.selected)
             throw new ConnectError("unsupported-media-profile", "Original reserved B challenge is unavailable");
-        return Object.freeze({ root: this.root, reservation: this.receiveReservation, challenge: this.challenge });
+        return Object.freeze({ root: this.root, reservation: this.receiveReservation, challenge: this.challenge, bridgeOptIn: this.bridgeOptIn });
     }
     checkReservedStatus(value, phase) {
         this.reservedContext();
@@ -190,6 +203,13 @@ export class BrowserWebRtcReplacement {
             throw protocol("Original public video reservation changed");
         if (value.state === "preparing" && intent === undefined)
             throw protocol("Original public video reservation disappeared");
+        if (this.bridgeOptIn) {
+            const b = bridgeClosed(value.webrtc_public_video_bridge, ["opt_in", "feeding", "decoded_ready"]);
+            if (bridgeCanonical(parseWebRtcBridgeOptIn(b.opt_in)) !== bridgeCanonical(this.bridgeOptIn))
+                throw protocol("Original signed bridge opt-in changed");
+        }
+        else if (value.webrtc_public_video_bridge !== undefined)
+            throw protocol("Bridge cannot be enabled after original allocation");
         if (["failed", "cancelled"].includes(String(value.state)))
             this.refused = true;
         return value;
@@ -226,6 +246,33 @@ export class BrowserWebRtcReplacement {
         }
         const frames = await this.client.requestReplacementContinuation("connection.offer", copy(this.readyOffer), { ...this.originalScope }, options);
         this.observe(replacementFrame(this.root, frames, this.root.targetConnectionId));
+    }
+    async reservedBridgeReady(marker, options, original) {
+        const context = this.reservedContext();
+        if (!this.bridgeOptIn || !this.readyAttempted || marker.profile !== "connect-replacement-public-video-bridge-ready-v1" || marker.operation_record_id !== this.root.recordId || marker.bridge_readiness.reservation_id !== context.reservation.intent.reservation_id)
+            throw protocol("Original signed B bridge differs");
+        const value = copy(marker);
+        if (this.bridgeReadyOffer) {
+            if (!original || !this.originalObservations.has(original) || original.state !== "preparing" || original.native_replacement_prepared !== true || bridgeCanonical(this.bridgeReadyOffer.replacement_preparation) !== bridgeCanonical(value))
+                throw protocol("Original bridge readiness already attempted");
+            const snapshot = bridgeClosed(original.webrtc_public_video_bridge, ["opt_in", "feeding", "decoded_ready"]), feed = bridgeClosed(snapshot.feeding, ["profile", "phase", "reservation_id", "operation_record_id", "operation_id", "target_connection_id", "target_generation", "binding", "bridge_readiness"]);
+            if (feed.phase !== "feeding" || feed.operation_record_id !== this.root.recordId || feed.reservation_id !== marker.bridge_readiness.reservation_id)
+                throw protocol("Bridge replay lacks original feeding");
+        }
+        else
+            this.bridgeReadyOffer = { ...copy(this.original), replacement_preparation: value };
+        const frames = await this.client.requestReplacementContinuation("connection.offer", copy(this.bridgeReadyOffer), { ...this.originalScope }, options);
+        this.observe(replacementFrame(this.root, frames, this.root.targetConnectionId));
+    }
+    reservedReceiverWitness(value, final) {
+        this.reservedContext();
+        if (!this.bridgeOptIn || !this.originalObservations.has(value))
+            throw protocol("Receiver witness is not an original signed observation");
+        const phase = value.webrtc_public_video_phase;
+        if (!jsonObject(phase) || (final ? (value.state !== "completed" || phase.phase !== "activated") : (!["preparing", "ready", "committing", "unknown", "interrupted"].includes(String(value.state)) || !["cut-bound-post-f", "decoded-ready"].includes(String(phase.phase)))))
+            throw protocol("Receiver witness phase differs");
+        const raw = final ? value.receiver_video_release : value.receiver_video_post_cut;
+        return raw;
     }
     /** Frozen B marker uses the original signed offer continuation, never a new
      * business operation, challenge, private readiness or media observation. */

@@ -35,7 +35,7 @@ def generate():
         if '$ref' in node:
             assert node['$ref'].startswith('#/$defs/') and node['$ref'][8:] in schema['$defs']
         if 'pattern' in node:
-            assert node['pattern'] in ('^[A-Za-z0-9._~-]+$', '^(sip|sips|tel):[!-~]+$', '^[!-~]+$')
+            assert node['pattern'] in ('^[A-Za-z0-9._~-]+$', '^(sip|sips|tel):[!-~]+$', '^[!-~]+$', '^[0-9a-f]{32}$', '^(0|[1-9][0-9]{0,19})$')
         if 'format' in node:
             assert node['format'] == 'date-time'
         if 'type' in node:

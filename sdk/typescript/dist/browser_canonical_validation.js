@@ -17,6 +17,22 @@ const same = (left, right) => {
         ? left === right
         : canonicalWireJson(left) === canonicalWireJson(right);
 };
+function canonicalPattern(pattern, value) {
+    switch (pattern) {
+        case "^[A-Za-z0-9._~-]+$":
+            return value.length > 0 && !/[^A-Za-z0-9._~-]/.test(value);
+        case "^[!-~]+$":
+            return value.length > 0 && !/[^\x21-\x7e]/.test(value);
+        case "^(sip|sips|tel):[!-~]+$":
+            return /^(sip|sips|tel):[!-~]+$/.test(value) && !/[^\x21-\x7e]/.test(value);
+        case "^[0-9a-f]{32}$":
+            return value.length === 32 && !/[^0-9a-f]/.test(value);
+        case "^(0|[1-9][0-9]{0,19})$":
+            return value === "0" || (value.length <= 20 && /^[1-9]/.test(value) && !/[^0-9]/.test(value));
+        default:
+            return false;
+    }
+}
 function bounded(value, minimum, maximum) {
     return ((minimum === undefined || value >= minimum) &&
         (maximum === undefined || value <= maximum));
@@ -116,14 +132,7 @@ export function validateBrowserCanonical(value) {
                 count++;
             if (!bounded(count, rule.minLength, rule.maxLength))
                 return false;
-            if (rule.pattern &&
-                !(rule.pattern === "^[A-Za-z0-9._~-]+$"
-                    ? item.length > 0 && !/[^A-Za-z0-9._~-]/.test(item)
-                    : rule.pattern === "^[!-~]+$"
-                        ? item.length > 0 && !/[^\x21-\x7e]/.test(item)
-                        : rule.pattern === "^(sip|sips|tel):[!-~]+$" &&
-                            /^(sip|sips|tel):[!-~]+$/.test(item) &&
-                            !/[^\x21-\x7e]/.test(item)))
+            if (rule.pattern && !canonicalPattern(rule.pattern, item))
                 return false;
             if (rule.format === "date-time" &&
                 !Number.isFinite(canonicalTimestamp(item)))

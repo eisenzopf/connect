@@ -194,7 +194,9 @@ fn target_facts_for_profile(
         != Some(
             if matches!(
                 profile,
-                "connect-replacement-ready-v1" | "connect-replacement-public-video-ready-v1"
+                "connect-replacement-ready-v1"
+                    | "connect-replacement-public-video-ready-v1"
+                    | "connect-replacement-public-video-bridge-ready-v1"
             ) {
                 3
             } else {

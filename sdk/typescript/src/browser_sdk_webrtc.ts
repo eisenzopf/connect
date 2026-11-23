@@ -1307,13 +1307,14 @@ export class BrowserRtcConnection {
                     // painting. A slow canvas consumer must not delay registration.
                     output.callback = element.requestVideoFrameCallback(paint);
                     if (!paused && element.readyState >= 2) {
+                        if(output.publicLoan&&!output.publicLoan.eligible(metadata))return;
                         try {
                             out.drawImage(element, 0, 0, 640, 360);
                         } catch {
                             close(new ConnectError("media", "Video rendering failed"));
                             return;
                         }
-                        output.publicLoan?.presented(metadata.presentedFrames);
+                        output.publicLoan?.presented(metadata.presentedFrames,(metadata as VideoFrameCallbackMetadata&{rtpTimestamp?:number}).rtpTimestamp);
                         count++;
                         firstPainted = true;
                         if (replacement) this.replacementVideoPresented = true;

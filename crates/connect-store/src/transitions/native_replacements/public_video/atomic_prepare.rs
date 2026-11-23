@@ -52,6 +52,14 @@ impl Store {
         if !read.current() {
             return Err(Error::forbidden());
         }
+        if connect_protocol::webrtc_public_video_bridge::OptIn::from_request(
+            selection.origin.request(),
+        )?
+        .is_some()
+            && !eligible
+        {
+            return Err(unsupported());
+        }
         Ok(eligible)
     }
 
@@ -168,12 +176,14 @@ pub(super) fn reserve_intent_in(
         if !read.current() {
             return Err(Error::forbidden());
         }
-        return Ok(NativeReplacementPublicVideoReservation {
+        let reservation = NativeReplacementPublicVideoReservation {
             original: p,
             intent,
             saved,
             expires_at: expiry,
-        });
+        };
+        bridge::reserve_in(store, tx, held, &reservation)?;
+        return Ok(reservation);
     }
     before_offer(tx, &p)?;
     never_public_candidate(tx, &p, &saved)?;
@@ -227,12 +237,14 @@ pub(super) fn reserve_intent_in(
     }
     drop(permit);
     drop(read);
-    Ok(NativeReplacementPublicVideoReservation {
+    let reservation = NativeReplacementPublicVideoReservation {
         original: p,
         intent,
         saved,
         expires_at: expiry,
-    })
+    };
+    bridge::reserve_in(store, tx, held, &reservation)?;
+    Ok(reservation)
 }
 
 #[cfg(test)]

@@ -9,6 +9,7 @@ import {BrowserDeadline} from '../typescript/dist/browser_deadline.js';
 import {ConnectError} from '../typescript/dist/errors.js';
 import {canonicalJson} from '../typescript/dist/uctp_json.js';
 import {envelope} from '../typescript/dist/uctp_wire.js';
+import {WEBRTC_BRIDGE_OPT_IN} from '../typescript/dist/browser_webrtc_public_video_bridge.js';
 
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return{promise,resolve,reject};};
@@ -28,11 +29,17 @@ async function scenario(run,options={}){
     let now=10,revision=0,phaseName,committed=false,privateFrames=1,privateBFrames=0,publicFrames=0,statusState,
         phaseChange=options.phaseChange,publicCalls=0,privateCalls=0,statusCalls=0,wholeQueries=0,receiverQueries=0,blockedStats;
     const requests=[],canvasDraws=[];
+    const selectedBinding={...binding,physical_writer_incarnation:options.bridge?'a'.repeat(32):binding.physical_writer_incarnation};
+    const bridgeSeen=deferred();let bridgeFeeding=false,bridgeMarker,bridgeCalls=0;
+    const bridgeSnapshot=()=>({opt_in:{...WEBRTC_BRIDGE_OPT_IN},feeding:bridgeFeeding?{profile:WEBRTC_BRIDGE_OPT_IN.profile,phase:'feeding',reservation_id:intent.reservation_id,operation_record_id:root.recordId,operation_id:root.operationId,target_connection_id:root.targetConnectionId,target_generation:2,binding:{...selectedBinding},bridge_readiness:{nonce:'bridge-nonce',expires_at:Math.floor(Date.now()/1000)+5,decoder_startup:'fresh-b-receiver-precut-keyframe'}}:null,decoded_ready:bridgeMarker??null});
+    // Immutable original Store challenge, never renewed on a metadata read.
+    const bridgeExpiry=Math.floor(Date.now()/1000)+5;
+    const witness=profile=>({profile,operation_record_id:'record',operation_id:'move',reservation_id:'reservation',source_connection_id:'old',target_connection_id:'target',stream_id:'public-b',stream_generation:1,connection_generation:1,target_generation:2,source_cut_id:'cut',original_frame:{realm:'b'.repeat(32),ordinal:'8',last_old_ordinal:'7'},floor:{carrier:'webrtc-rtp',physical_writer_incarnation:selectedBinding.physical_writer_incarnation,primary_ssrc:44,first_public_rtp_timestamp:21000}});
     class Track{constructor(kind,index){this.kind=kind;this.id=`original-${index}`;this.readyState='live';this.stops=0;}stop(){this.stops++;this.readyState='ended';}}
     class Stream{constructor(tracks){this.tracks=tracks;}getTracks(){return this.tracks;}getAudioTracks(){return this.tracks.filter(t=>t.kind==='audio');}getVideoTracks(){return this.tracks.filter(t=>t.kind==='video');}}
     const receiverReport=()=>new Map([
-        ['vp8',{id:'vp8',type:'codec',mimeType:'video/VP8',payloadType:binding.payload_type,clockRate:90000}],
-        ['b',{id:'b',type:'inbound-rtp',kind:'video',mid:'2',trackIdentifier:'original-2',codecId:'vp8',ssrc:binding.primary_ssrc,framesDecoded:publicFrames,keyFramesDecoded:publicFrames>0?1:0}],
+        ['vp8',{id:'vp8',type:'codec',mimeType:'video/VP8',payloadType:selectedBinding.payload_type,clockRate:90000}],
+        ['b',{id:'b',type:'inbound-rtp',kind:'video',mid:'2',trackIdentifier:'original-2',codecId:'vp8',ssrc:selectedBinding.primary_ssrc,framesDecoded:publicFrames,keyFramesDecoded:options.omitBridgeKeys?undefined:(publicFrames>0?1:0)}],
     ]);
     class Peer extends EventTarget{
         connectionState='new';iceConnectionState='new';iceGatheringState='complete';signalingState='stable';localDescription=null;remoteDescription=null;transceivers=[];closes=0;
@@ -52,7 +59,7 @@ async function scenario(run,options={}){
         async getStats(){wholeQueries++;return new Map([
             ['audio',{type:'inbound-rtp',kind:'audio',mid:'0',trackIdentifier:options.omitTrackIdentifiers?undefined:'original-0',totalSamplesReceived:1920,concealedSamples:0}],
             ['a',{type:'inbound-rtp',kind:'video',mid:'1',trackIdentifier:options.omitTrackIdentifiers?undefined:'original-1',framesDecoded:privateFrames,keyFramesDecoded:privateFrames>0?1:0}],
-            ['b',{type:'inbound-rtp',kind:'video',mid:'2',trackIdentifier:options.omitTrackIdentifiers?undefined:'original-2',framesDecoded:privateBFrames,keyFramesDecoded:privateBFrames>0?1:0,packetsReceived:privateBFrames}],
+            ['b',{type:'inbound-rtp',kind:'video',mid:'2',trackIdentifier:options.omitTrackIdentifiers?undefined:'original-2',framesDecoded:options.bridge?publicFrames:privateBFrames,keyFramesDecoded:(options.bridge?publicFrames:privateBFrames)>0?1:0,packetsReceived:options.bridge?publicFrames:privateBFrames}],
         ]);}
         close(){this.closes++;this.connectionState='closed';this.dispatchEvent(new Event('connectionstatechange'));}
     }
@@ -64,8 +71,8 @@ async function scenario(run,options={}){
     class Worker{constructor(){workers.push(this);}terminate(){this.terminated=true;}}
     let nextCallback=0;
     class Element{constructor(kind){this.kind=kind;this.srcObject=null;this.muted=false;this.readyState=2;this.videoWidth=640;this.videoHeight=360;this.callbacks=new Map();this.presented=0;this.pauses=0;elements.push(this);}
-        play(){this.paused=false;return this.rejectPlay?Promise.reject(Error('controlled original play rejection')):Promise.resolve();}
-        pause(){this.paused=true;this.pauses++;}
+        play(){this.paused=false;if(options.bridgePlayPending&&this.srcObject?.getVideoTracks()[0]?.id==='original-2'){this.firstPlay??=deferred();this.firstPlayPending??=true;return this.firstPlay.promise;}return this.rejectPlay?Promise.reject(Error('controlled original play rejection')):Promise.resolve();}
+        pause(){this.paused=true;this.pauses++;if(this.firstPlayPending){this.firstPlayPending=false;this.firstPlay.reject(new DOMException('Original media play stopped','AbortError'));}}
         requestVideoFrameCallback(fn){const id=++nextCallback;this.callbacks.set(id,fn);
             const idTrack=this.srcObject?.getVideoTracks()[0]?.id;
             if(idTrack==='original-1')privateSink.resolve(this);if(idTrack==='original-2')publicSink.resolve(this);return id;}
@@ -73,12 +80,15 @@ async function scenario(run,options={}){
     const document=Object.assign(new EventTarget(),{visibilityState:'visible',createElement:kind=>new Element(kind)});
     const values={RTCPeerConnection:Peer,RTCRtpSender:{getCapabilities:kind=>({codecs:[{mimeType:kind==='audio'?'audio/opus':'video/VP8',clockRate:kind==='audio'?48000:90000,channels:kind==='audio'?2:0}]})},RTCRtpScriptTransform:class{},Worker,MediaStream:Stream,AudioContext:Context,AudioWorkletNode:Worklet,document,performance:{now:()=>now,timeOrigin:1794700000000}};
     const phase=()=>({profile:'connect/webrtc-public-video-phase/1',phase:phaseName,reservation_id:intent.reservation_id,
-        operation_record_id:root.recordId,operation_id:root.operationId,target_connection_id:root.targetConnectionId,target_generation:2,binding:{...binding},
+        operation_record_id:root.recordId,operation_id:root.operationId,target_connection_id:root.targetConnectionId,target_generation:2,binding:{...selectedBinding},
         ...(phaseName!=='negotiated-never-fed'?{source_cut_id:'cut',public_readiness:{nonce:'public-nonce',decoder_startup:'fresh-receiver-first-decoded-frame'}}:{})});
     const receipt=()=>{const ready={stream_revision:4,streams:['audio','camera-a','public-b'],participant_revision:2};return{activation_state:'ready',connection_id:'target',replaces:'old',generation:2,endpoint_id:'endpoint',device_id:'device',retained_connection_ids:['retained'],admitted_connection_ids:['target'],retired_connection_ids:['old'],readiness:ready,physical_readiness:{...ready}};};
     const record=(connection,state)=>{const observed=phaseName?(phaseChange?phaseChange(phase()):phase()):undefined;return envelope('operation.updated',{operation_id:'move',record_id:'record',command_type:'connection.replace',revision:options.sameRevision?1:++revision,state,native_replacement_prepared:true,
         ...(state==='preparing'?{webrtc_video_receive_reservation:{...intent}}:{}),
         ...(observed!==undefined?{webrtc_public_video_phase:observed}:{}),
+        ...(options.bridge?{webrtc_public_video_bridge:(()=>{const v=bridgeSnapshot();if(v.feeding)v.feeding.bridge_readiness.expires_at=bridgeExpiry;return v;})()}:{}),
+        ...(options.bridge&&['cut-bound-post-f','decoded-ready'].includes(phaseName)?{receiver_video_post_cut:witness('connect-receiver-video-post-cut-v1')}:{ }),
+        ...(options.bridge&&state==='completed'?{receiver_video_release:witness('connect-receiver-video-release-v1')}:{ }),
         ...(state==='completed'?{result:options.resultChange?.(receipt())??receipt()}:{}),
     },{cid:'room',sid:'session',connid:connection,operation_id:'move'});};
     const client={closed:false,controlTransport:'websocket',deviceId:'device',onClose(fn){closeListeners.add(fn);return()=>closeListeners.delete(fn);},onEvent(fn){eventListeners.add(fn);return()=>eventListeners.delete(fn);},
@@ -93,7 +103,8 @@ async function scenario(run,options={}){
                 },{cid:'room',sid:'session',connid:'target',operation_id:'move'})];}
             if(marker.profile==='connect-replacement-ready-v1'){
                 privateCalls++;assert.equal(marker.readiness.audio.stream_id,'audio');assert.equal(marker.readiness.video.stream_id,'camera-a');
-                phaseName='cut-bound-post-f';privateSeen.resolve();return[record('target','preparing')];}
+                if(options.bridge){assert.deepEqual({...body.webrtc_public_video_bridge_opt_in},WEBRTC_BRIDGE_OPT_IN);bridgeFeeding=true;}else phaseName='cut-bound-post-f';privateSeen.resolve();return[record('target','preparing')];}
+            if(marker.profile==='connect-replacement-public-video-bridge-ready-v1'){bridgeCalls++;bridgeMarker=structuredClone(marker);assert.equal(marker.bridge_readiness.decoded_rtp_timestamp,12000);phaseName='cut-bound-post-f';bridgeSeen.resolve();return[record('target','preparing')];}
             assert.equal(marker.profile,'connect-replacement-public-video-ready-v1');publicCalls++;publicAttempt.resolve();
             if(options.public503&&publicCalls===1)throw new ConnectError('refused','controlled preeffect storage refusal',{code:503,category:'storage',reason:'storage_unavailable'});
             phaseName='decoded-ready';publicCaptured.resolve();
@@ -107,16 +118,17 @@ async function scenario(run,options={}){
         const owner=new WebRtcReceiveReservationIntentOwner(scope),selected=owner.observe(intent,root),reservation={owner,intent:selected};
         begun=BrowserRtcConnection.beginReplacement(client,{conversationId:'room',sessionId:'session',connectionId:'target',operationId:'move',audio:'audio',video:'camera-a',receiveVideo:'public-b'},'participant',{},root,{timeoutMs:1000,signal:originalAbort.signal},reservation);
         const wait=promise=>Promise.race([promise,begun.completed.then(()=>{throw Error('completed before requested fixture stage');})]);
-        const frame=element=>{now++;const callbacks=[...element.callbacks.values()];element.callbacks.clear();assert(callbacks.length>0);element.presented++;for(const callback of callbacks)callback(now,{width:640,height:360,mediaTime:element.presented/30,presentedFrames:element.presented,presentationTime:now,rtpTimestamp:9000+element.presented*3000});};
+        const frame=element=>{if(element.firstPlayPending){element.firstPlayPending=false;element.firstPlay.resolve();}now++;const callbacks=[...element.callbacks.values()];element.callbacks.clear();assert(callbacks.length>0);element.presented++;for(const callback of callbacks)callback(now,{width:640,height:360,mediaTime:element.presented/30,presentedFrames:element.presented,presentationTime:now,rtpTimestamp:9000+element.presented*3000});};
         await run({begun,client,reservation,peers,elements,contexts,worklets,requests,canvasDraws,wait,frame,
             async privateInput(beforePump){const element=await wait(privateSink.promise);beforePump?.();worklets[0].port.onmessage({data:{epoch:0,timestampUs:1000,samples:new Float32Array(960)}});frame(element);return element;},
+            publicElement:()=>wait(publicSink.promise),
             async publicInput(){const element=await wait(publicSink.promise);publicFrames=1;frame(element);return element;},
-            privateSeen:()=>wait(privateSeen.promise),publicAttempt:()=>wait(publicAttempt.promise),publicCaptured:()=>wait(publicCaptured.promise),decodedObserved:()=>wait(decodedObserved.promise),receiverStarted:()=>wait(receiverStarted.promise),
+            bridgeSeen:()=>wait(bridgeSeen.promise),privateSeen:()=>wait(privateSeen.promise),publicAttempt:()=>wait(publicAttempt.promise),publicCaptured:()=>wait(publicCaptured.promise),decodedObserved:()=>wait(decodedObserved.promise),receiverStarted:()=>wait(receiverStarted.promise),
             advance(value){now+=value;},expire(){now=5000;},commit(){committed=true;phaseName='activated';},unknown(){statusState='unknown';},
             phaseChange(fn){phaseChange=fn;},setPrivateFrames(value){privateFrames=value;},setPrivateBFrames(value){privateBFrames=value;},blockReceiver(){blockedStats=deferred();},releaseReceiver(){blockedStats?.resolve(receiverReport());blockedStats=undefined;},
             abort(){originalAbort.abort();},closeClient(){client.closed=true;for(const fn of [...closeListeners])fn();},
             canvas:{getContext(){return{drawImage(source){canvasDraws.push(source);}};}},
-            counts:()=>({privateCalls,publicCalls,statusCalls,wholeQueries,receiverQueries}),
+            counts:()=>({privateCalls,publicCalls,statusCalls,wholeQueries,receiverQueries,bridgeCalls}),
             async renderFrame(work,element){for(;;){if(element.callbacks.size){frame(element);return;}await Promise.race([tick(),work.then(()=>{throw Error('render finished without actual frame');})]);}},
         });
     }catch(error){workError=error;}finally{
@@ -210,3 +222,30 @@ test('original client retirement after B readiness revokes pending lease and nev
     await assert.rejects(f.begun.owner.render({audio:false,video:{'public-b':f.canvas}},{timeoutMs:200}),{code:'closed'});
     assert.equal(f.counts().publicCalls,1);assert.equal(f.canvasDraws.length,0);
 }));
+
+
+test('explicit signed bridge prearms hidden B before private Ready and retains that decoder through exact post-F and final receiver release',()=>scenario(async f=>{
+    await f.begun.prepared;
+    const picture=await f.publicElement();assert.equal(f.counts().privateCalls,0);assert.equal(f.canvasDraws.length,0);assert.equal(picture.firstPlayPending,true);
+    assert.equal(f.elements.filter(e=>e.srcObject?.getVideoTracks()[0]?.id==='original-2').length,1);
+    await f.privateInput();await f.privateSeen();assert.equal(picture.firstPlayPending,true,'media-dependent B play cannot block original private Ready');
+    assert.equal(await f.publicInput(),picture);await f.bridgeSeen();await tick();
+    assert.equal(f.counts().bridgeCalls,1);assert.equal(f.counts().privateCalls,1);assert.equal(f.counts().publicCalls,0,'cached pre-F RTP 12000 cannot satisfy postcut floor21000');
+    f.frame(picture);await tick();assert.equal(f.counts().publicCalls,0); //15000 delayed private callback
+    f.frame(picture);await tick();assert.equal(f.counts().publicCalls,0); //18000 still beforefloor
+    f.frame(picture);await f.publicCaptured();assert.equal(f.counts().publicCalls,1);assert.equal(f.canvasDraws.length,0);
+    const privateB=f.requests.filter(r=>r.type==='connection.offer'&&r.body.replacement_preparation.profile==='connect-replacement-public-video-bridge-ready-v1');
+    assert.equal(privateB.length,1);assert.equal(privateB[0].body.replacement_preparation.bridge_readiness.decoded_rtp_timestamp,12000);
+    assert.equal(privateB[0].body.replacement_preparation.bridge_readiness.binding.primary_ssrc,44);
+    assert.ok(f.requests.filter(r=>r.type==='connection.offer').every(r=>canonicalJson(r.body.webrtc_public_video_bridge_opt_in)===canonicalJson(WEBRTC_BRIDGE_OPT_IN)));
+    f.commit();await f.begun.completed;
+    const renderer=f.begun.owner.render({audio:false,video:{'public-b':f.canvas}},{timeoutMs:500});await f.renderFrame(renderer,picture);const lease=await renderer;
+    assert.equal(f.canvasDraws[0],picture);assert.equal(f.elements.filter(e=>e.srcObject?.getVideoTracks()[0]?.id==='original-2').length,1);
+    assert.equal(f.counts().privateCalls,1);assert.equal(f.counts().bridgeCalls,1);assert.equal(f.counts().publicCalls,1);lease.close();await lease.closed;
+},{bridge:true,omitBridgeKeys:true,bridgePlayPending:true}));
+
+test('explicit bridge keeps pre-F B hidden and original cancellation closes decoder without private re-observation or public Ready',()=>scenario(async f=>{
+    await f.begun.prepared;const picture=await f.publicElement();await f.privateInput();await f.privateSeen();assert.equal(await f.publicInput(),picture);await f.bridgeSeen();await tick();
+    assert.equal(f.counts().publicCalls,0);assert.equal(f.canvasDraws.length,0);f.abort();await assert.rejects(f.begun.completed);
+    assert.equal(f.canvasDraws.length,0);assert.equal(f.counts().privateCalls,1);assert.equal(f.counts().bridgeCalls,1);assert.equal(picture.srcObject,null);
+},{bridge:true}));

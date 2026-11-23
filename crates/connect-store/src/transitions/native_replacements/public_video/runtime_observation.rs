@@ -214,10 +214,12 @@ impl Store {
         let (next, private_nonce) = derive_phase(&expected, guard.metadata()?)?;
         append_phase(self, &tx, held, r, &next, &private_nonce)?;
         let (intent, phase) = project(&tx, &row.record)?;
+        let bridge = bridge::project(&tx, &row.record)?;
         let snapshot = PublicVideoOperationSnapshot {
             operation: row.record,
             intent,
             phase,
+            bridge,
         };
         // The guard must hold original runtime owners against retirement through
         // the SAME commit. No native work/await/authority acquisition follows.
@@ -436,6 +438,28 @@ pub(in crate::transitions::native_replacements) fn append_activated_in_publicati
     // SAME installation guard must already own actual original BReady, native
     // binding/F and Core public-adoption custody; this method performs no IO.
     installation.require_public_video_ready(&expected)?;
+    let receiver_video_release =
+        if connect_protocol::webrtc_public_video_bridge::OptIn::from_request(
+            p.selection.origin.request(),
+        )?
+        .is_some()
+        {
+            let bridge = super::bridge::project(c, &row.record)?.ok_or_else(Error::forbidden)?;
+            if bridge.decoded_ready.is_none() {
+                return Err(Error::forbidden());
+            }
+            let release = installation
+                .released_receiver_video()?
+                .ok_or_else(Error::forbidden)?;
+            if Some(release.source_connection_id.as_str())
+                != p.selection.origin.request().connection_id.as_deref()
+            {
+                return Err(Error::forbidden());
+            }
+            Some(release)
+        } else {
+            None
+        };
     let activated = wire::Phase::Activated {
         profile,
         reservation_id,
@@ -446,6 +470,7 @@ pub(in crate::transitions::native_replacements) fn append_activated_in_publicati
         binding,
         source_cut_id,
         public_readiness,
+        receiver_video_release,
     };
     append_phase(store, c, held, &r, &activated, &private_nonce)
 }

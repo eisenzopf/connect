@@ -153,16 +153,35 @@ def build():
   if isinstance(value,str) and value.startswith('#/$defs/'):return '#/$defs/'+prefix+value[len('#/$defs/'):]
   return value
  definitions.update({'WebRtcPublicVideo'+k:prefixed(v,'WebRtcPublicVideo') for k,v in public_video['$defs'].items()})
+ bridge=json.loads((ROOT/'contracts/schemas/webrtc-public-video-bridge-1.schema.json').read_text())
+ definitions.update({'WebRtcPublicVideoBridge'+k:prefixed(v,'WebRtcPublicVideoBridge') for k,v in bridge['$defs'].items()})
  definitions.update({'ReplacementReadiness'+k:prefixed(v,'ReplacementReadiness') for k,v in readiness['$defs'].items()})
  definitions['OperationUpdated']['properties'].update(webrtc_video_receive_reservation=ref('WebRtcPublicVideoIntent'),webrtc_public_video_phase=ref('WebRtcPublicVideoPhase'))
+ definitions['OperationUpdated']['properties']['webrtc_public_video_bridge']=ref('WebRtcPublicVideoBridgeSnapshot')
+ # The provisional coordinate and final presentation release use distinct profiles.
+ hex_realm={'type':'string','pattern':'^[0-9a-f]{32}$'}
+ wide_ordinal={'type':'string','pattern':'^(0|[1-9][0-9]{0,19})$'}
+ gen={'type':'integer','minimum':1,'maximum':SAFE_INTEGER}
+ u32={'type':'integer','minimum':0,'maximum':4294967295}
+ def closed_receiver(fields):return dict(type='object',additionalProperties=False,properties=fields,required=list(fields))
+ receiver_boundary={key:ref('Identifier') for key in ('operation_record_id','operation_id','reservation_id','source_connection_id','target_connection_id','stream_id','source_cut_id')}
+ receiver_boundary.update({key:gen for key in ('stream_generation','connection_generation','target_generation')})
+ receiver_boundary['original_frame']=closed_receiver(dict(realm=hex_realm,last_old_ordinal=wide_ordinal,ordinal=wide_ordinal))
+ receiver_boundary['floor']=closed_receiver(dict(carrier={'const':'webrtc-rtp'},physical_writer_incarnation=hex_realm,primary_ssrc=u32,first_public_rtp_timestamp=u32))
+ for field,schema,profile in [('receiver_video_post_cut','WebRtcReceiverVideoPostCut','connect-receiver-video-post-cut-v1'),('receiver_video_release','WebRtcReceiverVideoRelease','connect-receiver-video-release-v1')]:
+  definitions[schema]=closed_receiver(dict(profile={'const':profile},**receiver_boundary))
+  definitions['OperationUpdated']['properties'][field]=ref(schema)
  basic=lambda profile:{**obj({'profile':{'const':profile},'operation_record_id':ref('Identifier')}),'additionalProperties':False}
  definitions['ConnectionOffer']['properties']['webrtc_video_receive_reservation']=ref('WebRtcPublicVideoIntent')
- definitions['ConnectionOffer']['properties']['replacement_preparation']={'oneOf':[basic('connect-replacement-preparation-v1'),basic('connect-replacement-media-v1'),ref('ReplacementReadinessChallengeMarker'),ref('ReplacementReadinessReadyMarker'),ref('WebRtcPublicVideoReadyMarker')]}
+ definitions['ConnectionOffer']['properties']['webrtc_public_video_bridge_opt_in']=ref('WebRtcPublicVideoBridgeOptIn')
+ definitions['ConnectionOffer']['properties']['replacement_preparation']={'oneOf':[basic('connect-replacement-preparation-v1'),basic('connect-replacement-media-v1'),ref('ReplacementReadinessChallengeMarker'),ref('ReplacementReadinessReadyMarker'),ref('WebRtcPublicVideoReadyMarker'),ref('WebRtcPublicVideoBridgeReadyMarker')]}
  roles=[]
  for kind,direction in [('audio','sendrecv'),('video','sendrecv'),('video','recvonly')]:
   roles.append({'contains':{'type':'object','required':['kind','direction'],'properties':{'kind':{'const':kind},'direction':{'const':direction}}},'minContains':1,'maxContains':1})
  definitions['ConnectionOffer'].setdefault('allOf',[]).append({'if':{'required':['webrtc_video_receive_reservation']},'then':{'required':['replacement_preparation'],'properties':{'substrate':{'const':'websocket+webrtc'},'streams_offered':{'minItems':3,'maxItems':3,'allOf':roles}}}})
  definitions['ConnectionOffer']['allOf'].append({'if':{'required':['replacement_preparation'],'properties':{'replacement_preparation':{'required':['profile'],'properties':{'profile':{'const':'connect-replacement-public-video-ready-v1'}}}}},'then':{'required':['webrtc_video_receive_reservation']}})
+ definitions['ConnectionOffer']['allOf'].append({'if':{'required':['webrtc_public_video_bridge_opt_in']},'then':{'required':['webrtc_video_receive_reservation'],'properties':{'substrate':{'const':'websocket+webrtc'}}}})
+ definitions['ConnectionOffer']['allOf'].append({'if':{'required':['replacement_preparation'],'properties':{'replacement_preparation':{'required':['profile'],'properties':{'profile':{'const':'connect-replacement-public-video-bridge-ready-v1'}}}}},'then':{'required':['webrtc_video_receive_reservation','webrtc_public_video_bridge_opt_in']}})
  definitions['OperationUpdated']['allOf']=[{'if':{'properties':{'state':{'not':{'const':'completed'}}}},'then':{'not':{'required':['result']}}}]
  definitions['OperationUpdated']['allOf'].append({'if':{'required':['command_type'],'properties':{'command_type':{'enum':['session.consult','session.consult.return','session.handoff','connection.replace']}}},'then':{'required':['record_id','expected_revision'],'properties':{'expected_revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER-1}}}})
  # A current-authorized server reconciliation status binds the callback to
@@ -170,6 +189,9 @@ def build():
  definitions['OperationUpdated']['allOf'].append({'if':{'required':['command_type'],'properties':{'command_type':{'const':'stream.reconcile'}}},'then':{'required':['record_id','subscription_record_id','expected_revision'],'properties':{'expected_revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER-1}}}})
  definitions['OperationUpdated']['allOf'].append({'if':{'anyOf':[{'required':['webrtc_video_receive_reservation']},{'required':['webrtc_public_video_phase']}]},'then':{'required':['command_type','record_id','expected_revision'],'properties':{'command_type':{'const':'connection.replace'}}}})
  definitions['OperationUpdated']['allOf'].append({'if':{'required':['webrtc_public_video_phase']},'then':{'required':['webrtc_video_receive_reservation']}})
+ definitions['OperationUpdated']['allOf'].append({'if':{'required':['webrtc_public_video_bridge']},'then':{'required':['webrtc_video_receive_reservation','command_type','record_id','expected_revision'],'properties':{'command_type':{'const':'connection.replace'}}}})
+ for field,state,phase in [('receiver_video_post_cut','preparing','cut-bound-post-f'),('receiver_video_release','completed','activated')]:
+  definitions['OperationUpdated']['allOf'].append({'if':{'required':[field]},'then':{'required':['webrtc_public_video_bridge','webrtc_public_video_phase'],'properties':{'state':{'const':state},'webrtc_public_video_phase':{'required':['phase'],'properties':{'phase':{'const':phase}}}}}})
  definitions['OperationUpdated']['allOf'].append({'if':{'required':['webrtc_public_video_phase'],'properties':{'webrtc_public_video_phase':{'required':['phase'],'properties':{'phase':{'const':'activated'}}}}},'then':{'required':['result'],'properties':{'state':{'const':'completed'},'result':{'type':'object','required':['activation_state'],'properties':{'activation_state':{'const':'ready'}}}}}})
  definitions['OperationUpdated']['allOf'].append({'if':{'required':['subscription_record_id']},'then':{'required':['command_type'],'properties':{'command_type':{'const':'stream.reconcile'}}}})
  definitions['ReconciliationHint']=obj({'operation_id':ref('Identifier'),'record_id':ref('Identifier'),'command_type':{'const':'stream.reconcile'},'expected_revision':{'type':'integer','minimum':1,'maximum':SAFE_INTEGER-1},'state':{'const':'completed'},'revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},'subscription_record_id':ref('Identifier'),'stream_revision':{'type':'integer','minimum':1,'maximum':SAFE_INTEGER},'journal_hint':{'const':True},'resources_changed':{'const':False}})
@@ -186,6 +208,8 @@ def build():
  definitions['ReplacementVideoStream']={'type': 'object', 'properties': {'previous': {'$ref': '#/$defs/Identifier'}, 'replacement': {'$ref': '#/$defs/Identifier'}}, 'required': ['previous', 'replacement'], 'additionalProperties': False}
  definitions['ReplacementVideo']={'type': 'object', 'properties': {'publications': {'type': 'array', 'items': {'$ref': '#/$defs/ReplacementVideoStream'}, 'maxItems': 32}, 'receivers': {'type': 'array', 'items': {'$ref': '#/$defs/ReplacementVideoStream'}, 'maxItems': 32}}, 'required': ['publications', 'receivers'], 'additionalProperties': False, 'anyOf': [{'properties': {'publications': {'minItems': 1}}}, {'properties': {'receivers': {'minItems': 1}}}], 'description': 'At most 32 mappings in total. Previous IDs unique within each list; replacement IDs unique across both lists. Transfers existing selections only; exact negotiated resources and current authorization required.'}
  definitions['ConnectionReplace']=obj({'endpoint_id':ref('Identifier'),'candidate_connid':ref('Identifier'),'retained_connid':ref('Identifier'),'video':ref('ReplacementVideo')},['retained_connid'])
+ definitions['ConnectionReplace']['properties']['receiver_video_bridge']=ref('WebRtcPublicVideoBridgeOptIn')
+ definitions['ConnectionReplace']['allOf']=[{'if':{'required':['receiver_video_bridge']},'then':{'required':['video'],'properties':{'video':{'properties':{'publications':{'minItems':1,'maxItems':1},'receivers':{'minItems':1,'maxItems':1}}}}}}]
  definitions['ConnectionReplace']['oneOf']=[{'required':['endpoint_id'],'not':{'required':['candidate_connid']}},{'required':['candidate_connid'],'not':{'required':['endpoint_id']}}]
  definitions['OperationGet']=obj({'operation_id':ref('Identifier')})
  definitions['OperationCancel']=obj({'operation_id':ref('Identifier'),'reason':{'type':'string','maxLength':512}},['operation_id'])

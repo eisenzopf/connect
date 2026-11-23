@@ -65,6 +65,7 @@ pub(crate) struct OperationObservation {
     pub record: OperationRecord,
     intent: Option<connect_protocol::webrtc_video_receive_reservation::Intent>,
     phase: Option<connect_protocol::webrtc_public_video_phase::Phase>,
+    bridge: Option<connect_protocol::webrtc_public_video_bridge::Snapshot>,
 }
 impl OperationObservation {
     pub(crate) fn project_public_video(&self, payload: &mut serde_json::Value) {
@@ -72,7 +73,17 @@ impl OperationObservation {
             payload["webrtc_video_receive_reservation"] = serde_json::json!(intent);
         }
         if let Some(phase) = &self.phase {
-            payload["webrtc_public_video_phase"] = serde_json::json!(phase);
+            let mut value = serde_json::json!(phase);
+            if let Some(release) = value
+                .as_object_mut()
+                .and_then(|object| object.remove("receiver_video_release"))
+            {
+                payload["receiver_video_release"] = release;
+            }
+            payload["webrtc_public_video_phase"] = value;
+        }
+        if let Some(bridge) = &self.bridge {
+            payload["webrtc_public_video_bridge"] = serde_json::json!(bridge);
         }
     }
 }
@@ -99,6 +110,7 @@ impl Service {
                     record,
                     intent: None,
                     phase: None,
+                    bridge: None,
                 });
             }
             // This is a control-plane projection only. Under signed dispatch,
@@ -123,6 +135,7 @@ impl Service {
                 record: snapshot.operation,
                 intent: snapshot.intent,
                 phase: snapshot.phase,
+                bridge: snapshot.bridge,
             })
         })
         .await

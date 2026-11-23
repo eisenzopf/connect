@@ -1572,6 +1572,16 @@
         "observation_json"
       ]
     },
+    "native_replacement_public_video_bridge": {
+      "columns": [
+        "operation_record_id",
+        "phase",
+        "ordinal",
+        "private_readiness_nonce",
+        "created_at",
+        "phase_json"
+      ]
+    },
     "native_replacement_public_video_phases": {
       "columns": [
         "operation_record_id",

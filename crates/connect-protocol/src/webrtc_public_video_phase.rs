@@ -1,6 +1,11 @@
 //! Closed public B phase metadata within one authenticated original operation.
 //! Wire metadata alone grants no authority, native custody, source cut or readiness.
-use crate::{transitions::id, webrtc_video_receive_reservation::Intent, Error, Result};
+use crate::{
+    replacement_receiver_video_release::{PresentationFloor, ReceiverVideoRelease},
+    transitions::id,
+    webrtc_video_receive_reservation::Intent,
+    Error, Result,
+};
 use serde::{Deserialize, Serialize};
 
 pub const PROFILE: &str = "connect/webrtc-public-video-phase/1";
@@ -132,6 +137,8 @@ pub enum Phase {
         binding: Binding,
         source_cut_id: String,
         public_readiness: Challenge,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        receiver_video_release: Option<ReceiverVideoRelease>,
     },
     #[serde(rename = "discarded")]
     Discarded {
@@ -253,6 +260,7 @@ impl Phase {
                 binding,
                 source_cut_id,
                 public_readiness,
+                receiver_video_release,
             } => {
                 if profile != PROFILE
                     || reservation_id != &context.intent.reservation_id
@@ -268,6 +276,24 @@ impl Phase {
                 public_readiness.validate(context.intent, context.private_readiness_nonce)?;
                 if !context.completed {
                     return Err(invalid());
+                }
+                if let Some(release) = receiver_video_release {
+                    release.validate()?;
+                    if &release.reservation_id != reservation_id
+                        || &release.operation_record_id != operation_record_id
+                        || &release.operation_id != operation_id
+                        || &release.target_connection_id != target_connection_id
+                        || release.target_generation != *target_generation
+                        || &release.source_cut_id != source_cut_id
+                        || release.stream_id != binding.stream_id
+                        || release.stream_generation != binding.stream_generation
+                        || release.connection_generation != binding.connection_generation
+                        || !matches!(&release.floor, PresentationFloor::WebrtcRtp {
+                            physical_writer_incarnation, primary_ssrc, ..
+                        } if physical_writer_incarnation == &binding.physical_writer_incarnation && *primary_ssrc == binding.primary_ssrc)
+                    {
+                        return Err(invalid());
+                    }
                 }
             }
             Self::Discarded {

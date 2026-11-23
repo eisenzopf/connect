@@ -333,6 +333,7 @@ impl TransitionRequest {
         {
             return Err(invalid());
         }
+        crate::webrtc_public_video_bridge::OptIn::from_request(self)?;
         Ok(())
     }
 }

@@ -965,6 +965,8 @@ impl Runtime {
             tracing::debug!(target:"connect_service::canonical_replacement",?observed,"Replacement actual private duplex readiness captured");
             *diagnostic_stage = "public-video-cut";
 
+            self.activate_pre_cut_webrtc_bridge(root, started, peer)
+                .await?;
             self.prepare_public_video_cut(root, started).await?;
             *diagnostic_stage = "managed-movement";
 

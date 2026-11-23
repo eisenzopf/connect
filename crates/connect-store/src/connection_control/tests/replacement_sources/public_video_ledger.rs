@@ -224,6 +224,18 @@ fn setup_origin(
     crate::NativeReplacementOrigin,
     Vec<Arc<crate::NativeMediaOrigin>>,
 ) {
+    setup_origin_with_bridge(count, false)
+}
+fn setup_origin_with_bridge(
+    count: usize,
+    bridge: bool,
+) -> (
+    Fixture,
+    String,
+    TransitionCommand,
+    crate::NativeReplacementOrigin,
+    Vec<Arc<crate::NativeMediaOrigin>>,
+) {
     let (f, key, _, mut command, sources) =
         fixture_with_source_capabilities(vec!["audio".into(), "video".into()]);
     let identity = f.store.revalidate(&f.keys[0]).unwrap().identity_id;
@@ -281,6 +293,14 @@ fn setup_origin(
             replacement: "public-b".into(),
         }],
     });
+    if bridge {
+        command.payload_extensions.insert(
+            connect_protocol::webrtc_public_video_bridge::EXTENSION.into(),
+            json!({"profile":connect_protocol::webrtc_public_video_bridge::PROFILE,
+                "carrier":"webrtc-rtp","presentation":"exclusive-public",
+                "feed":"public-programme-private-decode"}),
+        );
+    }
     f.store
         .admit_transition_command(&key, command.clone())
         .unwrap();
@@ -949,3 +969,6 @@ fn public_video_known_unpublished_cleanup_refuses_actual_original_commit_unknown
 
 #[path = "public_video_ledger/runtime_issuer.rs"]
 mod runtime_issuer;
+
+#[path = "public_video_ledger/bridge_journal.rs"]
+mod bridge_journal;

@@ -1,4 +1,6 @@
+import { postCutRtpEligible, type WebRtcBridgeFeeding, type WebRtcBridgeReadyMarker, type WebRtcReceiverPostCut } from "./browser_webrtc_public_video_bridge.js";
 import { BrowserDeadline } from "./browser_deadline.js";
+import type { ReceiverRtpOutput } from "./browser_receiver_video_release.js";
 import { ConnectError } from "./errors.js";
 import type { WebRtcPreparedVideo } from "./browser_webrtc_readiness.js";
 import { WebRtcReceiveRoles, type WebRtcReceiveRoleBinding } from "./browser_webrtc_receive_roles.js";
@@ -21,9 +23,31 @@ export interface WebRtcPublicVideoReadyMarker {
 export interface WebRtcPreparedPublicVideo {
     readonly readiness: WebRtcPublicVideoReadyMarker;
     assertCurrent(): void;
+    /** SAME exact receiver callback. Absence cannot be replaced by stats or a clock. */
+    lastDecodedRtpOutput(): Readonly<ReceiverRtpOutput> | undefined;
     take(activated: Readonly<WebRtcPublicVideoPhase>, track: MediaStreamTrack): WebRtcPreparedVideo | undefined;
     release(): Promise<void>;
 }
+export interface WebRtcPreCutPublicVideo extends WebRtcPreparedPublicVideo {
+    assertPreCutCurrent():void;
+    bridgeReady(feeding:Readonly<WebRtcBridgeFeeding>):Promise<Readonly<WebRtcBridgeReadyMarker>>;
+    postCut(witness:Readonly<WebRtcReceiverPostCut>):Promise<WebRtcPreparedPublicVideo>;
+}
+interface PreCutAttempt {peer:WeakRef<RTCPeerConnection>;roles:WeakRef<WebRtcReceiveRoles>;signal:WeakRef<AbortSignal>;budget:BrowserDeadline;promise:Promise<WebRtcPreCutPublicVideo>;}
+const preCutAttempts=new WeakMap<WebRtcPublicVideoPhaseOwner,PreCutAttempt>();
+/** Attach the SAME hidden B before private A/audio Ready. No decode/public
+ * evidence is fabricated by attachment and the element is never appended. */
+export function prearmWebRtcPublicVideoBridge(owner:WebRtcPublicVideoPhaseOwner,peer:RTCPeerConnection,roles:WebRtcReceiveRoles,budget:BrowserDeadline,signal:AbortSignal,trackTask:TrackTask):Promise<WebRtcPreCutPublicVideo> {
+    try {
+        owner.check();if(!owner.bridgeEnabled()||!owner.exactLocalPeer(peer))throw changed();
+        const previous=preCutAttempts.get(owner);
+        if(previous) {if(previous.peer.deref()!==peer||previous.roles.deref()!==roles||previous.signal.deref()!==signal||previous.budget!==budget)throw changed();return previous.promise;}
+        const phase=owner.negotiated();let resolve!:(v:WebRtcPreCutPublicVideo)=>void,reject!:(e:unknown)=>void;
+        const promise=new Promise<WebRtcPreCutPublicVideo>((yes,no)=>{resolve=yes;reject=no;});preCutAttempts.set(owner,{peer:new WeakRef(peer),roles:new WeakRef(roles),signal:new WeakRef(signal),budget,promise});
+        void new OriginalVideoObservation(owner,peer,roles,phase,budget,signal,trackTask,true).prearm().then(resolve,reject);return promise;
+    }catch(error){return Promise.reject(error);}
+}
+
 interface OriginalAttempt {
     peer: WeakRef<RTCPeerConnection>;
     roles: WeakRef<WebRtcReceiveRoles>;
@@ -49,6 +73,7 @@ export function observeWebRtcPublicVideoReadiness(
 ): Promise<WebRtcPreparedPublicVideo> {
     try {
         owner.check();
+        if(owner.bridgeEnabled())throw unsupported(); // never attach a second post-F decoder for prearmed B
         const previous = attempts.get(owner);
         if (previous) {
             if (previous.peer.deref() !== peer || previous.roles.deref() !== roles || previous.signal.deref() !== signal || previous.budget !== budget || !owner.accepts(previous.phase)) throw changed();
@@ -68,38 +93,48 @@ export function observeWebRtcPublicVideoReadiness(
     } catch (error) { return Promise.reject(error); }
 }
 
-class OriginalVideoObservation implements WebRtcPreparedPublicVideo {
+class OriginalVideoObservation implements WebRtcPreCutPublicVideo {
     private picture?: HTMLVideoElement;
     private callback?: number;
     private original?: Readonly<WebRtcReceiveRoleBinding>;
     private marker?: WebRtcPublicVideoReadyMarker;
+    private firstRtp?:Readonly<ReceiverRtpOutput>;
+    private bridgePromise?:Promise<Readonly<WebRtcBridgeReadyMarker>>;
+    private postCutPromise?:Promise<WebRtcPreparedPublicVideo>;
+    private witness?:Readonly<WebRtcReceiverPostCut>;
     private failure?: Error;
     private stopped = false;
     private adopted = false;
     private presented = 0;
+    private rtpOutput?: Readonly<ReceiverRtpOutput>;
     private frameCount = 0;
     private detachOwner?: () => void;
     constructor(
         private owner: WebRtcPublicVideoPhaseOwner | undefined,
         private peer: RTCPeerConnection | undefined,
         private roles: WebRtcReceiveRoles | undefined,
-        private readonly phase: Readonly<WebRtcPublicVideoPhase>,
+        private phase: Readonly<WebRtcPublicVideoPhase>,
         private readonly budget: BrowserDeadline,
         private signal: AbortSignal | undefined,
         private trackTask: TrackTask | undefined,
+        private preCut=false,
     ) {}
     get readiness(): WebRtcPublicVideoReadyMarker {
         if (!this.marker) throw new ConnectError("conflict", "Original B has not decoded a current frame");
         return this.marker;
     }
+    lastDecodedRtpOutput(): Readonly<ReceiverRtpOutput> | undefined {
+        this.assertCurrent();return this.rtpOutput;
+    }
     assertCurrent(): void {
         if (!this.marker || this.adopted || !this.picture) throw changed();
         this.check();
+        if(this.witness&&!postCutRtpEligible(this.witness,this.rtpOutput))throw changed();
     }
     private check(): void {
         if (this.failure) throw this.failure;
         if (this.signal?.aborted) throw new ConnectError("cancelled", "Original reserved B observation cancelled");
-        if (this.stopped || !this.owner || !this.peer || !this.roles || !this.owner.accepts(this.phase) || !this.owner.exactLocalPeer(this.peer) || ["closed", "failed"].includes(this.peer.connectionState)) throw new ConnectError("closed", "Original reserved B owner retired");
+        if (this.stopped || !this.owner || !this.peer || !this.roles || !(this.preCut?this.owner.acceptsPreCutBinding(this.phase):this.owner.accepts(this.phase)) || !this.owner.exactLocalPeer(this.peer) || ["closed", "failed"].includes(this.peer.connectionState)) throw new ConnectError("closed", "Original reserved B owner retired");
         this.owner.check();
         // The original deadline also owns the retained, unadopted picture.
         // Resolving readiness never creates a new activation/transfer budget.
@@ -136,6 +171,16 @@ class OriginalVideoObservation implements WebRtcPreparedPublicVideo {
             this.check();
             if (metadata.width > 0 && metadata.height > 0 && Number.isFinite(metadata.mediaTime) && Number.isSafeInteger(metadata.presentedFrames) && metadata.presentedFrames > this.presented) {
                 this.presented = metadata.presentedFrames;
+                // VideoFrameCallbackMetadata.rtpTimestamp is optional across
+                // engines. The release profile MUST fail closed when absent;
+                // mediaTime/presentedFrames are not RTP timestamp substitutes.
+                const rtpTimestamp = (metadata as VideoFrameCallbackMetadata & {rtpTimestamp?: number}).rtpTimestamp;
+                this.rtpOutput = Number.isSafeInteger(rtpTimestamp) && Number(rtpTimestamp) >= 0 && Number(rtpTimestamp) <= 0xffffffff
+                    ? Object.freeze({rtpTimestamp: rtpTimestamp!, presentedFrames: this.presented}) : undefined;
+                if(this.preCut) {
+                    if(!this.rtpOutput)throw unsupported();
+                    this.firstRtp??=this.rtpOutput;
+                }
                 if (!this.marker) this.frameCount++;
             } else if (this.presented > 0) throw new ConnectError("media", "Original B presentation counter became unavailable");
             this.callback = this.picture.requestVideoFrameCallback(this.frame);
@@ -171,8 +216,8 @@ class OriginalVideoObservation implements WebRtcPreparedPublicVideo {
         if (keys !== null && (keys < 1 || keys > frames)) return undefined;
         return {frames, keys};
     }
-    async start(): Promise<WebRtcPreparedPublicVideo> {
-        try {
+    private async attach(waitForPlay=true):Promise<void> {
+        if(this.picture)return;
             this.check();
             if (typeof document === "undefined" || typeof MediaStream !== "function") throw unsupported();
             this.detachOwner = this.owner!.onRetire(this.stopFromOwner);
@@ -183,13 +228,53 @@ class OriginalVideoObservation implements WebRtcPreparedPublicVideo {
             this.picture.playsInline = true;
             this.picture.srcObject = new MediaStream([this.original!.track]);
             this.callback = this.picture.requestVideoFrameCallback(this.frame);
-            await this.run(() => this.picture!.play());
+            const playing=this.run(() => this.picture!.play());
+            if(waitForPlay)await playing;
+            else void playing.catch(error=>{
+                if(this.stopped||this.adopted)return;
+                this.failure=error instanceof Error?error:unsupported();this.stopFromOwner();
+            });
+    }
+    async prearm():Promise<WebRtcPreCutPublicVideo> {
+        try{await this.attach(false);return this;}catch(error){const task=this.trackTask,cleanup=this.release();if(task)void task(cleanup,true).catch(()=>{});else void cleanup.catch(()=>{});throw error;}
+    }
+    assertPreCutCurrent():void {if(!this.preCut||!this.picture)throw changed();this.check();}
+    bridgeReady(feeding:Readonly<WebRtcBridgeFeeding>):Promise<Readonly<WebRtcBridgeReadyMarker>> {
+        if(this.bridgePromise)return this.bridgePromise;
+        let resolve!:(v:Readonly<WebRtcBridgeReadyMarker>)=>void,reject!:(e:unknown)=>void;
+        const promise=new Promise<Readonly<WebRtcBridgeReadyMarker>>((yes,no)=>{resolve=yes;reject=no;});this.bridgePromise=promise;
+        void(async()=>{
+            if(!this.preCut||!this.owner?.acceptsBridgeFeeding(feeding))throw changed();
+            for(;;){
+                this.check();if(Date.now()>=feeding.bridge_readiness.expires_at*1000)throw new ConnectError("timeout","Original B bridge challenge expired");
+                const report=await this.run(()=>this.original!.receiver.getStats());this.check();const output=this.decoded(report);
+                if(output&&this.firstRtp) {
+                    // Freeze the FIRST actual fresh-B callback coordinate. A
+                    // later callback, stats counter or mediaTime cannot replace
+                    // it; the server matches its actual same-writer keyframe.
+                    const marker:Readonly<WebRtcBridgeReadyMarker>=Object.freeze({profile:"connect-replacement-public-video-bridge-ready-v1",operation_record_id:feeding.operation_record_id,
+                        bridge_readiness:Object.freeze({reservation_id:feeding.reservation_id,nonce:feeding.bridge_readiness.nonce,binding:feeding.binding,decoded_rtp_timestamp:this.firstRtp.rtpTimestamp,decoded_frames:output.frames,decoder_startup:"fresh-b-receiver-precut-keyframe"})});
+                    this.owner!.expectBridgeMarker(marker);return marker;
+                }
+                await this.run(()=>new Promise<void>(yes=>setTimeout(yes,Math.min(20,this.budget.remaining()))));
+            }
+        })().then(resolve,error=>{this.failure=error instanceof Error?error:unsupported();this.stopFromOwner();reject(error);});return promise;
+    }
+    postCut(witness:Readonly<WebRtcReceiverPostCut>):Promise<WebRtcPreparedPublicVideo> {
+        if(this.postCutPromise) {if(this.witness!==witness)throw changed();return this.postCutPromise;}
+        if(!this.preCut||!this.bridgePromise||!this.owner)throw changed();
+        this.phase=this.owner.cutBound();this.witness=witness;this.preCut=false;
+        this.postCutPromise=this.start();return this.postCutPromise;
+    }
+    async start(): Promise<WebRtcPreparedPublicVideo> {
+        try {
+            await this.attach();
             for (;;) {
                 this.check();
                 const report = await this.run(() => this.original!.receiver.getStats());
                 this.check();
                 const output = this.decoded(report);
-                if (output) {
+                if (output&&(!this.witness||postCutRtpEligible(this.witness,this.rtpOutput))) {
                     this.marker = Object.freeze({profile: "connect-replacement-public-video-ready-v1",
                         operation_record_id: this.phase.operation_record_id,
                         public_video_readiness: Object.freeze({reservation_id: this.phase.reservation_id,
@@ -210,7 +295,7 @@ class OriginalVideoObservation implements WebRtcPreparedPublicVideo {
     }
     take(activated: Readonly<WebRtcPublicVideoPhase>, track: MediaStreamTrack): WebRtcPreparedVideo | undefined {
         if (!this.marker || this.adopted || !this.owner?.activated(activated)) return undefined;
-        this.check();
+        this.assertCurrent();
         if (this.original!.track !== track || !this.picture || this.presented < 1) return undefined;
         const element = this.picture;
         if (this.callback !== undefined) element.cancelVideoFrameCallback(this.callback);
@@ -234,7 +319,7 @@ class OriginalVideoObservation implements WebRtcPreparedPublicVideo {
             try { element.pause(); } catch (error) { failure ??= error; }
             try { element.srcObject = null; } catch (error) { failure ??= error; }
         }
-        this.peer = undefined;this.roles = undefined;this.original = undefined;
+        this.peer = undefined;this.roles = undefined;this.original = undefined;this.rtpOutput = undefined;this.firstRtp=undefined;
         this.owner = undefined;this.signal = undefined;this.trackTask = undefined;
         return failure === undefined ? Promise.resolve() : Promise.reject(failure);
     }
