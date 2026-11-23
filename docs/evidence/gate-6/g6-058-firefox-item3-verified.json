@@ -1,0 +1,49 @@
+{
+  "format": "connect/g6-058-local-firefox-component-evidence/1",
+  "source_revision": "ee1bf11624bd227cc47999bbc30e40bbb621f061",
+  "date": "2026-11-23",
+  "scope": "Local macOS ARM64 Firefox WSS/WebRTC item 3, three EdDSA cycles with original packet capture",
+  "component_passed": true,
+  "full_matrix_cell_qualified": false,
+  "cycles": 3,
+  "handoffs_completed": 12,
+  "rtc_stats_joins_by_cycle": [
+    63,
+    63,
+    63
+  ],
+  "audio_identity_failed_blocks_by_cycle": [
+    0,
+    0,
+    0
+  ],
+  "longest_moving_video_gap_ms_by_cycle": [
+    866,
+    867,
+    866
+  ],
+  "original_source_frame_adjudication": {
+    "passed": true,
+    "proved_distinct_source_frame_pairs": 4
+  },
+  "idle_checks_passed": true,
+  "packet_capture": {
+    "records": 296845,
+    "kernel_drops": 0
+  },
+  "residual_wire_observation": {
+    "cycle": 3,
+    "route": 5,
+    "window_start_programme_seconds": 17.295467,
+    "window_end_programme_seconds": 17.335023,
+    "rtp_timestamp_delta": 2880,
+    "nominal_rtp_frame_step": 960,
+    "later_snapshot_alias_observed": true,
+    "correlated_control_activity": "Final Writer admission. Capture timestamps correlate with authority-refresh refusals. Individual packet attribution is unresolved."
+  },
+  "private_evidence_sha256": {
+    "joined_run": "955acfceb27031d7cafaad762474e2e1a030011277b06ce261cd57954c0fb500",
+    "component": "4e0cd67597db74f9794eddbaad5e0bdb70446899619ed5a5a8d377f9f5f748ec",
+    "wire_comparison": "ff65376b8565560340b48fc7ed9940db80e9d2e723a58ee83012ad99aebb6d8e"
+  }
+}
