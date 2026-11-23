@@ -190,6 +190,16 @@ class MatrixIdle:
             raise ValueError("Original declared monotonic observation required")
         return when
 
+    def reject_baseline(self, failure, failures):
+        """Publish a failed observation so the original browser can unwind."""
+        self.result = dict(format="connect/matrix-idle-observation/1", policy=self.policy,
+            clock_basis=self.clock_basis, passed=False, failure=failure,
+            failure_phase="baseline", final_failures=list(failures),
+            baseline=self.baseline, baseline_samples=self.baselines, samples=self.samples,
+            cell_qualified=False)
+        self.respond("baseline", dict(passed=False, failure=failure))
+        self.done = True
+
     def poll(self):
         if self.done:
             return
@@ -204,18 +214,29 @@ class MatrixIdle:
             elif now - self.pending_baseline >= 1:
                 self.baselines.append(self.take("baseline"))
                 first, last = self.baselines
-                if first.get("error") or last.get("error") or self.restore(first, first) or self.restore(last, last):
-                    raise ValueError("Original baseline observations unavailable")
+                failures = (["unavailable-observation"] if first.get("error") or last.get("error")
+                    else self.restore(first, first) or self.restore(last, last))
+                if failures:
+                    unavailable = {"unavailable-observation", "invalid-resource-usage",
+                        "unavailable-original-process-observation", "incomplete-resource-observation"}
+                    failure = ("original-baseline-observations-unavailable" if any(
+                        value in unavailable or value.endswith(":unavailable-original-owner") for value in failures)
+                        else "original-owned-resources-not-restored")
+                    self.reject_baseline(failure, failures)
+                    return
                 # Fixed pre-workload high water, never fitted to a later leak.
                 self.baseline = json.loads(json.dumps(last))
                 for role in ("server", "browser"):
                     for field in ("live_processes", "sampled_threads", "sampled_open_descriptors", "sampled_rss_bytes"):
                         self.baseline["groups"][role][field] = max(s["groups"][role][field] for s in self.baselines)
                 if first["usage"] != last["usage"]:
-                    raise ValueError("Live resource baseline is not stable")
+                    self.reject_baseline("original-resource-baseline-unstable", ["changed-baseline-usage"])
+                    return
                 if self.reference_baseline is not None:
-                    if cycle_restoration(self.reference_baseline, self.baseline):
-                        raise ValueError("Original Session baseline changed between cycles")
+                    failures = cycle_restoration(self.reference_baseline, self.baseline)
+                    if failures:
+                        self.reject_baseline("original-owned-resources-not-restored", failures)
+                        return
                 self.respond("baseline", dict(passed=True, policy=self.policy))
             return
         if self.terminal is None:

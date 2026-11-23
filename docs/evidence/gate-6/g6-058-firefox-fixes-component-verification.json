@@ -1,0 +1,59 @@
+{
+  "checkpoint": 176,
+  "dependency_generation": 570,
+  "status": "component_verified_readiness_pending",
+  "rust_controls": {
+    "passed": 23,
+    "failed": 0,
+    "ignored": 0,
+    "result": {
+      "path": ".local/gate-6/g873-targeted570-controls-root/result.json",
+      "sha256": "d788109e2420de9bf20b6e97df157064bb0cc926b74a555e2f7dc96b54bf47df"
+    },
+    "original_join": {
+      "path": ".local/gate-6/g873-targeted570-controls-root/root-original-join.json",
+      "sha256": "975ecaf04e7c06331fb788d849b2636bbce25616fb312d1c24a1070b4708a2bc"
+    },
+    "tested_source": {
+      "path": ".local/gate-6/g873-targeted570-controls-root/source-before.json",
+      "sha256": "38c0e4c517f39018e93c5725f59a770676f10a753c25faf786822a41bb84231f"
+    },
+    "independent_execution_audit": {
+      "path": ".local/gate-6/g873-targeted570-independent-actual-execution-audit/receipt.json",
+      "sha256": "8e072fef84bc63715079b1e1665c85a5d586bc29ead03ade4df5067ed9811b67"
+    }
+  },
+  "harness_controls": {
+    "passed": 12,
+    "failed": 0,
+    "scope": "Source 568 harness files. Both subsequent corrections are to Rust test fixtures.",
+    "audit": {
+      "path": ".local/gate-6/g869-harness-units-independent-actual-audit/receipt.json",
+      "sha256": "1bad250b886aa11f4f59fc030f98c1fcf1b30163f3d622f64d5d9023e2d86ceb"
+    }
+  },
+  "failed_firefox_rehearsal": {
+    "path": ".local/gate-6/g868-firefox-actual-failed-component-independent-audit/receipt.json",
+    "sha256": "336784f388aa7356e45366da578d27b666d90adf3ca4e0d7a536c5f9d77be29e"
+  },
+  "historical_failed_23_control_run": {
+    "path": ".local/gate-6/g872-targeted569-controls-root/result.json",
+    "sha256": "4163128b416e401b9d3121fdfe3f69248d752a5acda6177eb05d9f29472c2930"
+  },
+  "repairs": [
+    "Accept the valid initial BUNDLE-only video offer while requiring a positive accepted answer port.",
+    "Settle exact retired uncertain Start history before public candidate cleanup.",
+    "Give a refused resource baseline to the original browser owner for cooperative cleanup.",
+    "Request a fresh keyframe for a bounded, authenticated gap between known sends from the current source."
+  ],
+  "remaining": "Run all original final-source readiness scopes. Exact internal cause of the earlier video packet drop remains unproven.",
+  "matrix": {
+    "last_run": "v218",
+    "passed_cells": 1,
+    "total_cells": 32,
+    "passed_checks": 399,
+    "total_checks": 432,
+    "ready": false
+  },
+  "local_progress_document": ".local/gate-6/g6-058-workplan.html"
+}

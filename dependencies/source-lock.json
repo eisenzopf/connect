@@ -3016,6 +3016,26 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-freeze-cold-receipt-member-view.patch",
       "sha256": "c75d6e0e43a736de68277a59c1575fc0fb6c72e99e8a99ab83892ab50f9f777f"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-reserved-video-initial-bundle-only.patch",
+      "sha256": "8221f2cf5aaa26f97ea3b4dba2133f31d4614185be3ce8dc6770bbf87709122e"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-current-source-nack-hole-feedback.patch",
+      "sha256": "148ebc97f488e9737e8acfafd75bb07b3943d37f6c6f017fe67cb684af66ab78"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-reserved-video-native-test-session-description.patch",
+      "sha256": "758e0aec80e27fe2b91fdc39a6caf6974b743400bba422c92eeb095c1f55e17d"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-reserved-video-native-wire-offer-test.patch",
+      "sha256": "2e690b09b71bbfe17c58092b761060828a833fb3e46b04b63c512dfeb2f4cc1b"
     }
   ]
 }

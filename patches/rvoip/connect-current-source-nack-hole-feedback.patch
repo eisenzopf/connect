@@ -1,0 +1,286 @@
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
+@@ -739,11 +739,14 @@
+         self.next_timestamp = u32::from(self.next_sequence) * 3000;
+     }
+     async fn send_key(&mut self) -> (u32, Vec<u16>) {
++        self.send_key_with_unforwarded_fragment(None).await
++    }
++    async fn send_key_with_unforwarded_fragment(&mut self, unforwarded: Option<usize>) -> (u32, Vec<u16>) {
+         let timestamp = self.next_timestamp;
+         self.next_timestamp = self.next_timestamp.wrapping_add(3000);
+         let source_ssrc = self.remote[0].local_video_ssrc().unwrap();
+         let mut sequences = vec![];
+-        for fragment in crate::media::packetize::vp8::packetize_vp8(KEY, 120) {
++        for (index, fragment) in crate::media::packetize::vp8::packetize_vp8(KEY, 120).into_iter().enumerate() {
+             let sequence = self.next_sequence;
+             self.next_sequence = self.next_sequence.wrapping_add(1);
+             sequences.push(sequence);
+@@ -768,9 +771,15 @@
+                 .await
+                 .unwrap()
+                 .unwrap();
+-            packet
+-                .try_forward_to(&self.controllers[1], &desired(Medium::Video).logical_id)
+-                .unwrap();
++            if unforwarded != Some(index) {
++                packet
++                    .try_forward_to(&self.controllers[1], &desired(Medium::Video).logical_id)
++                    .unwrap();
++            } else {
++                // Actual source RTP reached ingress, but this original fragment
++                // never enters the target queue/physical writer/repair cache.
++                drop(packet);
++            }
+         }
+         assert!(sequences.len() >= 3);
+         (timestamp, sequences)
+@@ -1939,3 +1948,45 @@
+     let physical = outcome.unwrap();
+     assert!(clean && !physical.is_current());
+ }
++
++#[tokio::test]
++async fn canonical_never_sent_vp8_fragment_nack_requests_current_source_and_fresh_decode() {
++    let mut h = Harness::new();
++    let result = std::panic::AssertUnwindSafe(async {
++        h.setup().await;
++        h.baseline().await;
++        let output_ssrc = h.physical[1].peer(until()).await.unwrap().local_video_ssrc().unwrap();
++        let missing = h.next_sequence.wrapping_add(1);
++        let source_notice = h.remote[0].video_keyframe_requests();
++        let notice = source_notice.notified();
++        tokio::pin!(notice); notice.as_mut().enable();
++        let (old_ts, old_seq) = h.send_key_with_unforwarded_fragment(Some(1)).await;
++        assert_eq!(old_seq[1], missing);
++        let old = h.collect(old_ts, &old_seq,
++            tokio::time::Instant::now() + Duration::from_millis(100)).await;
++        let neighbors = old.iter().any(|packet| packet.header.sequence_number == missing.wrapping_sub(1))
++            && old.iter().any(|packet| packet.header.sequence_number == missing.wrapping_add(1));
++        h.actual_nack(output_ssrc, missing).await;
++        let pli = tokio::time::timeout_at(until(), notice).await.is_ok();
++        let _late_old = h.collect(old_ts, &old_seq,
++            tokio::time::Instant::now() + Duration::from_millis(20)).await;
++        let replayed = h.observed.contains(&(old_ts, missing));
++        let fresh_at = Instant::now();
++        let (fresh_ts, fresh_seq) = h.send_key().await;
++        let fresh = h.collect(fresh_ts, &fresh_seq, until()).await;
++        (neighbors, pli, replayed, assemble(&old), assemble(&fresh), fresh_ts != old_ts, fresh_at.elapsed())
++    }).catch_unwind().await;
++    let clean = h.close().await;
++    if let Err(panic) = result { std::panic::resume_unwind(panic); }
++    let (neighbors, pli, replayed, old, fresh, new_timestamp, fresh_age) = result.unwrap();
++    let (codec_joined, codec) = match &fresh {
++        Some(bytes) => decoded_key(bytes).await,
++        None => (true, false),
++    };
++    assert!(clean && codec_joined);
++    assert!(neighbors && old.is_none() && !replayed,
++        "Actual successful neighbors must bracket never-sent original; no synthetic/replayed RTP");
++    assert!(pli, "Never-sent hole produced no current-source SRTCP PLI through production feedback");
++    assert!(new_timestamp && fresh_age < Duration::from_millis(200) && fresh.as_deref() == Some(KEY) && codec,
++        "Fresh guarded source keyframe did not recover actual selected receiver and decode");
++}
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+@@ -336,6 +336,43 @@
+     actual_source: Option<Source>,
+     source_change_pending: bool,
+ }
++impl PictureState {
++    fn recognizes_nack(&self, key: &(u32, u16)) -> bool {
++        // Preserve the original exact successful-send identity path.
++        if self.sent.contains(key) {
++            return true;
++        }
++        let Some((_, current)) = self.latest.as_ref() else {
++            return false;
++        };
++        if self.actual_source.as_ref() != Some(current) {
++            return false;
++        }
++        let mut history = self.sent.iter().rev();
++        let Some(mut right) = history.next() else {
++            return false;
++        };
++        let mut distance = 0usize;
++        for left in history {
++            if left.0 != key.0 || right.0 != key.0 {
++                break;
++            }
++            let span = usize::from(right.1.wrapping_sub(left.1));
++            // Packet-count custody is not a sequence-distance bound. Walk only
++            // the latest unambiguous forward serial suffix, including wrap.
++            if span == 0 || span > 512 || distance + span > 512 {
++                break;
++            }
++            let offset = usize::from(key.1.wrapping_sub(left.1));
++            if 0 < offset && offset < span {
++                return true;
++            }
++            distance += span;
++            right = left;
++        }
++        false
++    }
++}
+ pub(crate) struct PictureRequest {
+     source: Source,
+     key: (u32, u16),
+@@ -425,7 +462,7 @@
+         let (_, current) = state.latest.as_ref()?;
+         hints
+             .iter()
+-            .find(|key| state.sent.contains(key))
++            .find(|key| state.recognizes_nack(key))
+             .map(|key| PictureRequest {
+                 source: current.clone(),
+                 key: *key,
+@@ -481,7 +518,7 @@
+                         .latest
+                         .as_ref()
+                         .is_none_or(|(_, current)| current != &source)
+-                        || !state.sent.contains(&key)
++                        || !state.recognizes_nack(&key)
+                     {
+                         return Err(StreamControlError::Authority);
+                     }
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs
+@@ -159,6 +159,7 @@
+     attempts: AtomicUsize,
+     original_attempts: AtomicUsize,
+     grant_until: Mutex<Option<chrono::DateTime<Utc>>>,
++    before_feedback_admit: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+ }
+ struct Lease {
+     owner: MediaOwner,
+@@ -180,6 +181,11 @@
+         original: bool,
+     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+         if scope.connection.as_str() == "alice" && matches!(scope.purpose, MediaPurpose::Publish) {
++            if !original {
++                // Test-only after selection/snapshot, inside fresh admission.
++                let hook = self.before_feedback_admit.lock().unwrap().take();
++                if let Some(hook) = hook { hook(); }
++            }
+             self.attempts.fetch_add(1, Ordering::SeqCst);
+             if original {
+                 self.original_attempts.fetch_add(1, Ordering::SeqCst);
+@@ -295,6 +301,7 @@
+             attempts: AtomicUsize::new(0),
+             original_attempts: AtomicUsize::new(0),
+             grant_until: Mutex::new(None),
++            before_feedback_admit: Mutex::new(None),
+         });
+         let aa = Arc::new(Adapter::default());
+         let ba = Arc::new(Adapter::default());
+@@ -1064,6 +1071,7 @@
+             attempts: AtomicUsize::new(0),
+             original_attempts: AtomicUsize::new(0),
+             grant_until: Mutex::new(None),
++            before_feedback_admit: Mutex::new(None),
+         });
+         let handles = Arc::new(StreamHandleAllocator::default());
+         let adapters = names
+@@ -1546,6 +1554,7 @@
+             attempts: AtomicUsize::new(0),
+             original_attempts: AtomicUsize::new(0),
+             grant_until: Mutex::new(None),
++            before_feedback_admit: Mutex::new(None),
+         });
+         let aa = Arc::new(Adapter::default());
+         let ba = Arc::new(Adapter::default());
+@@ -1974,3 +1983,92 @@
+ 
+ #[cfg(test)]
+ mod exposure_tests;
++
++#[tokio::test]
++async fn bounded_nack_holes_keep_current_serial_suffix_and_recheck_fresh_admission() {
++    let peers = Peers::new().await;
++    let mut f = Fixture::new(Medium::Video).await;
++    use futures::FutureExt;
++    let result = std::panic::AssertUnwindSafe(async {
++    let (output, primary) = peers.primary(&mut f, 1200).await;
++    let pictures = output.picture_requests();
++    let (route, source, ssrc) = {
++        let state = pictures.state.lock().unwrap();
++        let (route, source) = state.latest.clone().unwrap();
++        (route, source, state.sent.back().unwrap().0)
++    };
++    // Scalar vectors only; canonical control separately proves actual writes.
++    let cases: &[(&[u16], u16, bool)] = &[
++        (&[100, 102], 101, true), (&[65534, 0], 65535, true),
++        (&[0, 2, 512], 1, true), (&[100], 101, false), (&[102], 101, false),
++        (&[100, 102], 99, false), (&[100, 102], 103, false),
++        (&[100, 613], 101, false), (&[100, 32868], 101, false),
++        (&[100, 104, 102], 101, false), (&[100, 102, 615], 101, false),
++        (&[100, 102, 32869, 100], 101, false), (&[0, 2, 513], 1, false),
++    ];
++    let mut vectors = Vec::new();
++    for (history, missing, expected) in cases {
++        let mut state = pictures.state.lock().unwrap();
++        state.sent = history.iter().map(|sequence| (ssrc, *sequence)).collect();
++        vectors.push((history.to_vec(), *missing, state.recognizes_nack(&(ssrc, *missing)), *expected));
++        assert!(!state.recognizes_nack(&(ssrc ^ 1, *missing)));
++    }
++    {
++        let mut state = pictures.state.lock().unwrap();
++        state.sent = [(ssrc ^ 1, 0), (ssrc, 2)].into();
++        assert!(!state.recognizes_nack(&(ssrc, 1)), "Both neighbors require exact output SSRC");
++        state.sent = [(ssrc, 0), (ssrc, 2)].into();
++    }
++    let request = pictures.request_for_nack(&[(ssrc, 1)]).unwrap();
++    let invoked = Arc::new(AtomicBool::new(false));
++    f.policy.mode.store(3, Ordering::SeqCst);
++    let did = invoked.clone();
++    let revoked = pictures.forward_for_request(deadline(), Some(&request), move |_, _| async move {
++        did.store(true, Ordering::SeqCst); Ok(())
++    }).await;
++    f.policy.mode.store(0, Ordering::SeqCst);
++    let state = pictures.state.clone();
++    *f.policy.before_feedback_admit.lock().unwrap() = Some(Box::new(move || {
++        // Same source; left witness retires AFTER forward snapshots its route.
++        state.lock().unwrap().sent.pop_front();
++    }));
++    let did = invoked.clone();
++    let raced = pictures.forward_for_request(deadline(), Some(&request), move |_, _| async move {
++        did.store(true, Ordering::SeqCst); Ok(())
++    }).await;
++    let hook_consumed = f.policy.before_feedback_admit.lock().unwrap().is_none();
++    let evicted = pictures.request_for_nack(&[(ssrc, 1)]).is_none();
++    {
++        let mut state = pictures.state.lock().unwrap();
++        state.sent = (2..514).map(|sequence| (ssrc, sequence)).collect();
++        assert!(!state.recognizes_nack(&(ssrc, 1)), "A512-entry count cannot recreate retired left anchor");
++    }
++    let mut successor = source.clone(); successor.ssrc ^= 1;
++    pictures.record(None, successor.clone(), ssrc, 3);
++    let changed_without_feedback = pictures.request_for_nack(&[(ssrc, 1)]).is_none();
++    let did = invoked.clone();
++    let stale_without_feedback = pictures.forward_for_request(deadline(), Some(&request), move |_, _| async move {
++        did.store(true, Ordering::SeqCst); Ok(())
++    }).await;
++    pictures.record(Some(route), successor, ssrc, 3);
++    let did = invoked.clone();
++    let stale = pictures.forward_for_request(deadline(), Some(&request), move |_, _| async move {
++        did.store(true, Ordering::SeqCst); Ok(())
++    }).await;
++    drop(output);
++    (primary, vectors, hook_consumed, evicted, changed_without_feedback,
++        invoked.load(Ordering::SeqCst), revoked, raced, stale_without_feedback, stale)
++    }).catch_unwind().await;
++    let core_joined = f.close().await;
++    let peers_joined = peers.close().await;
++    if let Err(panic) = result { std::panic::resume_unwind(panic); }
++    let (primary, vectors, hook_consumed, evicted, changed_without_feedback,
++        invoked, revoked, raced, stale_without_feedback, stale) = result.unwrap();
++    assert!(primary && core_joined && peers_joined);
++    assert!(vectors.iter().all(|(_, _, actual, expected)| actual == expected), "{vectors:?}");
++    assert!(hook_consumed && evicted && changed_without_feedback && !invoked);
++    assert!(matches!(revoked, PictureAttempt::MetadataRefused));
++    assert!(matches!(raced, PictureAttempt::MetadataRefused), "Hole proof not rechecked inside admitted callback");
++    assert!(matches!(stale_without_feedback, PictureAttempt::MetadataRefused));
++    assert!(matches!(stale, PictureAttempt::MetadataRefused));
++}

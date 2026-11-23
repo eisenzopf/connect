@@ -87,7 +87,9 @@ fn selected_shape(
     {
         if offered.media != selected.media
             || offered.protocol != selected.protocol
-            || offered.port == 0
+            // The original offer shape already validated an active initial
+            // bundle-only zero section. Accepted answers remain positive under
+            // RFC 9143 section 7.3; no zero-answer compatibility is enabled.
             || selected.port == 0
             || media_mid(offered)? != media_mid(selected)?
             || direction(selected, &a) != (if index == 2 { "sendonly" } else { "sendrecv" })

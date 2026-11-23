@@ -76,4 +76,46 @@ fn reserved_server_rejects_foreign_or_private_slot_shapes_without_weakening_ordi
     let mut wrong = original.clone();
     wrong["substrate_setup"]["sdp"] = json!(sdp(false).replace("a=recvonly", "a=sendrecv"));
     assert!(validate_shape(&wrong, &profile()).is_err());
+    initial_bundle_only_server_vectors();
+}
+
+fn initial_bundle_only_server_vectors() {
+    let mut original = offer();
+    let initial = sdp(false).replace(
+        "m=video 9 UDP/TLS/RTP/SAVPF 121 125\r\n",
+        "m=video 0 UDP/TLS/RTP/SAVPF 121 125\r\na=bundle-only\r\n",
+    );
+    original["substrate_setup"]["sdp"] = json!(initial.clone());
+    validate_shape(&original, &profile()).unwrap();
+    let answer = selected_shape("original-participant", &original, &sdp(true), &profile()).unwrap();
+    let selected = serde_json::to_value(answer).unwrap();
+    assert_eq!(selected["streams_answered"][2]["id"], "public-b");
+    assert_eq!(selected["streams_answered"][2]["direction"], "sendonly");
+    assert_eq!(
+        selected["streams_answered"][2]["codec"]["params"]["payload_type"],
+        121
+    );
+    for bad in [
+        initial.replace("a=bundle-only\r\n", ""),
+        initial.replace("a=group:BUNDLE au a b", "a=group:BUNDLE au a"),
+        initial.replace("a=group:BUNDLE au a b", "a=group:BUNDLE b au a"),
+        initial.replace("m=audio 9 ", "m=audio 0 "),
+        initial.replace("a=mid:b", "a=mid:a"),
+        initial.replace("a=recvonly", "a=sendrecv"),
+    ] {
+        let mut refused = original.clone();
+        refused["substrate_setup"]["sdp"] = json!(bad);
+        assert!(validate_shape(&refused, &profile()).is_err());
+    }
+    for bad in [
+        sdp(true).replace(
+            "m=video 9 UDP/TLS/RTP/SAVPF 121 125",
+            "m=video 0 UDP/TLS/RTP/SAVPF 121 125\r\na=bundle-only",
+        ),
+        sdp(true).replace("a=group:BUNDLE au a b", "a=group:BUNDLE au a"),
+        sdp(true).replace("a=mid:b", "a=mid:foreign"),
+        sdp(true).replace("a=fmtp:125 apt=121", "a=fmtp:125 apt=120"),
+    ] {
+        assert!(selected_shape("original-participant", &original, &bad, &profile()).is_err());
+    }
 }

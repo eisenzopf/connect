@@ -17,6 +17,22 @@ test('resource bridge retains original terminal time instead of restarting the i
         assert.equal(recorded.monotonic_seconds,terminal);
         assert.equal(recorded.clock_basis,process.platform==='darwin'?'macos-mach-continuous':'linux-clock-monotonic');
         await assert.rejects(send('terminal',terminal),/phase order/);
+        const refusedFolder=await fs.mkdtemp(path.join(directory,'refused-'));
+        await fs.writeFile(path.join(refusedFolder,'resources-baseline-response.json'),
+            JSON.stringify({passed:false,failure:'original-owned-resources-not-restored'}));
+        const refused=matrixResourceBridge(refusedFolder);
+        let authenticated=0,closed=0;
+        const originalOwner=async()=>{try{
+            // Same awaited Node bridge as browser_matrix_admission before auth.
+            await refused('baseline');authenticated++;
+        }finally{closed++;}};
+        await assert.rejects(originalOwner(),/Original resource baseline refused/);
+        assert.equal(authenticated,0);assert.equal(closed,1);
+        const baselineRequest=JSON.parse(await fs.readFile(path.join(refusedFolder,'resources-baseline.json'),'utf8'));
+        assert.equal(baselineRequest.phase,'baseline');
+        await assert.rejects(fs.stat(path.join(refusedFolder,'resources-terminal.json')),error=>error.code==='ENOENT');
+        await assert.rejects(fs.stat(path.join(refusedFolder,'resources-retired.json')),error=>error.code==='ENOENT');
+        await assert.rejects(refused('baseline'),/phase order/);
     }finally{await fs.rm(directory,{recursive:true,force:true});}
 });
 

@@ -1,0 +1,11 @@
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video/tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video/tests.rs
+@@ -35,7 +35,7 @@
+                         sdp.push_str(&fields.join(" ")); sdp.push_str("\r\na=bundle-only\r\n");
+                     } else { sdp.push_str(line); sdp.push_str("\r\n"); }
+                 }
+-                let offer = webrtc::peer_connection::sdp::session_description::RTCSessionDescription::offer(sdp).unwrap();
++                let offer = rtc::peer_connection::sdp::RTCSessionDescription::offer(sdp).unwrap();
+                 client.pc.set_local_description(offer).await.unwrap();
+                 client.begin_outbound_dtmf_renegotiation();
+                 client.wait_gather().await.unwrap();

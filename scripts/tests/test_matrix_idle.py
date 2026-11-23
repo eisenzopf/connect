@@ -287,5 +287,47 @@ class MatrixCycleIdleTests(unittest.TestCase):
                 current = sample(131, "idle"); current["usage"]["owned_tasks"] = 1
                 self.assertIn("owned_tasks", idle.restore(original, current))
 
+        # Real collector requests/responses: complete but retained ownership is
+        # distinct from unavailable samples. Neither may admit another workload.
+        for reason in ("owned_tasks", "unavailable", "unstable"):
+            with self.subTest(baseline_refusal=reason), tempfile.TemporaryDirectory() as folder:
+                clock = [100.0]
+                first_usage = dict(original["usage"])
+                last_usage = dict(original["usage"])
+                if reason == "owned_tasks":
+                    first_usage["owned_tasks"] = last_usage["owned_tasks"] = 2
+                if reason == "unstable":
+                    last_usage["owned_tasks"] = 1
+                readings = [OSError("original health unavailable"), last_usage] if reason == "unavailable" else [first_usage, last_usage]
+                with patch("lib.matrix_idle.resource_monotonic", side_effect=lambda: clock[0]), \
+                     patch("lib.matrix_idle.owned_usage", side_effect=readings), \
+                     patch("lib.matrix_idle.urllib.request.build_opener") as opener, \
+                     patch("lib.matrix_idle.idle_owner_diagnostics", return_value={"diagnostic": True}):
+                    opener.return_value.open.return_value.__enter__.return_value.read.return_value = b'{"result":{"Ok":{"kind":"health","data":{}}}}'
+                    idle = MatrixIdle(folder, 101, 202, "http://fixture", "credential", sampler=Sampler(),
+                        **(dict(cycle_mode=True, original_baseline=original) if reason != "unstable" else {}))
+                    Path(folder, "resources-baseline.json").write_text(json.dumps(dict(
+                        phase="baseline", monotonic_seconds=100, clock_basis=idle.clock_basis)))
+                    idle.poll(); clock[0] = 101; idle.poll()
+                    self.assertTrue(idle.done)
+                    observed = idle.finish()
+                    self.assertFalse(observed["passed"])
+                    self.assertEqual(observed["failure_phase"], "baseline")
+                    expected = {"owned_tasks": "original-owned-resources-not-restored",
+                        "unavailable": "original-baseline-observations-unavailable",
+                        "unstable": "original-resource-baseline-unstable"}[reason]
+                    self.assertEqual(observed["failure"], expected)
+                    response = json.loads(Path(folder, "resources-baseline-response.json").read_text())
+                    self.assertEqual(response, dict(passed=False, failure=expected))
+                    if reason == "owned_tasks":
+                        self.assertEqual(observed["final_failures"], ["owned_tasks"])
+                        self.assertEqual([s["usage"]["owned_tasks"] for s in observed["baseline_samples"]], [2, 2])
+                        self.assertTrue(all(not s.get("error") for s in observed["baseline_samples"]))
+                    self.assertFalse(idle_verdict(observed))
+                    self.assertIsNone(idle.terminal)
+                    count = len(idle.samples); clock[0] = 200; idle.poll()
+                    self.assertEqual(len(idle.samples), count, "No renewed observation after original refusal")
+                    self.assertFalse(Path(folder, "resources-terminal-response.json").exists())
+
 
 if __name__ == "__main__": unittest.main()

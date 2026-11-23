@@ -367,6 +367,71 @@ class CaptureCleanup(unittest.TestCase):
         self.assertTrue(receipt["original_joined"])
         self.assertTrue(receipt["interrupted"])
 
+        # A published negative baseline gives the SAME original Popen a chance
+        # to execute its finally. No process restart, inferred child or signal.
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            response, closed = directory / "resources-baseline-response.json", directory / "closed"
+            program = "\n".join([
+                "import json,sys,time", "from pathlib import Path",
+                "response,closed=map(Path,sys.argv[1:])", "print('ready',flush=True)",
+                "try:", " while not response.exists(): time.sleep(.01)",
+                " if json.loads(response.read_text())['passed'] is not False: raise AssertionError('failed baseline required')",
+                " raise RuntimeError('original resource baseline refused')",
+                "finally:", " closed.write_text('original-finally-joined')"])
+            child = subprocess.Popen([sys.executable, "-c", program, str(response), str(closed)],
+                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                start_new_session=True, text=True)
+            try:
+                self.assertEqual(child.stdout.readline(), "ready\n")
+                actual_wait = child.wait
+                def original_wait(timeout):
+                    # The real child is blocked until THIS original wait starts.
+                    response.write_text('{"passed":false}')
+                    return actual_wait(timeout=timeout)
+                child.wait = original_wait
+                actual_killpg = os.killpg
+                with patch.object(os, "killpg", wraps=actual_killpg) as signals:
+                    receipt = scope["close_original_group"](child, timeout=10, cooperative=True)
+                self.assertEqual(closed.read_text(), "original-finally-joined")
+                self.assertTrue(receipt["cooperative_wait"]["wait_returned"])
+                self.assertTrue(receipt["original_joined"])
+                self.assertEqual(receipt["original_exit_code"], 1, "Failed baseline remains a natural failure")
+                self.assertFalse(receipt["interrupted"]); self.assertFalse(receipt["forced"])
+                self.assertTrue(all(call.args == (child.pid, 0) for call in signals.call_args_list))
+            finally:
+                if child.poll() is None:
+                    os.killpg(child.pid, signal.SIGKILL); child.wait(timeout=5)
+                child.stdout.close()
+
+        # A cooperative timeout consumes the ORIGINAL budget, never a fresh ten
+        # seconds. Keep the exact original group fallback and wait ownership.
+        clock, alive, waits, requested = [0.0], [True], [], []
+        owner = SimpleNamespace(pid=424246, returncode=None)
+        owner.poll = lambda: owner.returncode
+        def wait_original(timeout):
+            waits.append(timeout)
+            if owner.returncode is None:
+                clock[0] += timeout
+                raise subprocess.TimeoutExpired(["original-owner"], timeout)
+            return owner.returncode
+        owner.wait = wait_original
+        def fallback_group(pid, requested_signal):
+            self.assertEqual(pid, owner.pid)
+            if requested_signal == 0:
+                if not alive[0]: raise ProcessLookupError
+            else:
+                requested.append(requested_signal); alive[0] = False
+                owner.returncode = -requested_signal
+        scope["time"] = SimpleNamespace(monotonic=lambda: clock[0], sleep=lambda seconds: self.fail("unexpected renewal"))
+        with patch.object(os, "killpg", side_effect=fallback_group):
+            receipt = scope["close_original_group"](owner, timeout=10, cooperative=True)
+        self.assertEqual(waits, [5, 5])
+        self.assertEqual(requested, [signal.SIGTERM])
+        self.assertFalse(receipt["cooperative_wait"]["wait_returned"])
+        self.assertTrue(receipt["original_joined"]); self.assertTrue(receipt["interrupted"])
+        self.assertFalse(receipt["forced"])
+
     def test_three_cycle_capture_scales_only_aggregate_packet_evidence_budget(self):
         for resource_cycles, pairs, observed in ((1, 100000, False), (3, 100000, True), (3, 300000, False)):
             with self.subTest(resource_cycles=resource_cycles, packets=2*pairs):

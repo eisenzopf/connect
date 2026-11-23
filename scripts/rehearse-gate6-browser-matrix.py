@@ -60,7 +60,7 @@ def record_cleanup_failure(report, stage, error):
     report.setdefault("cleanup_failures", []).append(dict(stage=stage, name=type(error).__name__))
 
 
-def close_original_group(owner, *, stop_signal=signal.SIGTERM, timeout=10):
+def close_original_group(owner, *, stop_signal=signal.SIGTERM, timeout=10, cooperative=False):
     """Stop/reap only this original Popen/group within its existing bound."""
     receipt = dict(original_pid=owner.pid, owned_pgid=owner.pid,
         group_identity_basis="original-Popen-start-new-session",
@@ -94,6 +94,18 @@ def close_original_group(owner, *, stop_signal=signal.SIGTERM, timeout=10):
             note("signal", error)
 
     try:
+        if cooperative and owner.poll() is None:
+            # The existing negative baseline response lets this SAME Node run
+            # its async browser finally. Reserve at most half of the ORIGINAL
+            # ten-second boundary; exact-group fallback gets only the remainder.
+            receipt["cooperative_wait"] = dict(requested=True, wait_returned=False)
+            try:
+                owner.wait(timeout=min(5, max(0, until - time.monotonic())))
+                receipt["cooperative_wait"]["wait_returned"] = True
+            except subprocess.TimeoutExpired:
+                pass
+            except BaseException as error:
+                note("cooperative-wait", error)
         stopping = owner.poll() is None or absent() is not True
         if stopping:
             receipt["interrupted"] = True
@@ -578,8 +590,14 @@ def main():
                 if idle is not None:
                     idle.poll()
                     if idle.done:
-                        idle_results.append(idle.finish())
+                        observed_idle = idle.finish()
+                        idle_results.append(observed_idle)
                         idle = None
+                        if observed_idle.get("failure_phase") == "baseline":
+                            report["resource_baseline_failure"] = dict(
+                                failure=observed_idle["failure"], final_failures=observed_idle["final_failures"])
+                            report["browser_baseline_failure_cleanup_requested"] = True
+                            raise ValueError(observed_idle["failure"])
             if time.monotonic() >= browser_cutoff:
                 raise subprocess.TimeoutExpired(command_args, browser_timeout)
             time.sleep(.05)
@@ -642,7 +660,8 @@ def main():
                 record_cleanup_failure(report, "browser-container", error)
             # Signal local Node AND its non-detached browser descendants before
             # waiting. An exited leader alone is not an absent original group.
-            custody = close_original_group(browser_owner, timeout=10)
+            custody = close_original_group(browser_owner, timeout=10,
+                cooperative=report.get("browser_baseline_failure_cleanup_requested") is True)
             identity = report.setdefault("browser_owner_identity",
                 dict(original_pid=browser_owner.pid, original_pgid=None))
             # Keep the actual early PGID observation (or its unknown/error).

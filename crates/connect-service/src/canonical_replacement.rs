@@ -1,6 +1,7 @@
 //! Owned managed replacement phases; retained tickets contain no domain reader.
 mod allocation;
 mod capture_recording;
+mod cleanup;
 pub(crate) mod continuation;
 mod diagnostics;
 pub(crate) mod discard;
@@ -859,7 +860,12 @@ impl Runtime {
                         .and_then(|a| a.clone())
                         .is_some_and(|a| a.webrtc.is_some());
                 if original_public_cleanup {
-                    if let Err(error) = self.finish_original_public_video_abort(&saved).await {
+                    if let Err(error) = cleanup::before_public_abort(
+                        self.settle_original_uncertain_start_before_public_abort(&saved),
+                        self.finish_original_public_video_abort(&saved),
+                    )
+                    .await
+                    {
                         tracing::debug!(target:"connect_service::canonical_replacement",record=%record,code=%error.code,
                             "Original public candidate cleanup/OLD restoration remains owned");
                         if self.stop.is_cancelled() || error.code == "cleanup-incomplete" {

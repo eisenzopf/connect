@@ -1,8 +1,8 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-23T01:28:00.242064+00:00",
-  "revision": 175,
-  "status": "Checkpoint175: current source566 passes the original-profile11Core plus1Service controls, zero failed/ignored, with original owners naturally closed and independently audited. Passive abort settlement diagnostics retain original promises/errors; earlier G85315Node controls remain a separate component scope. The same original freeze plan and actualF survive for cleanup; cleanup metadata never grants Warm or a public cut. Cold structural receipts preserve sameOLD custody through real metadata exclusion while actual terminal/private-readiness cancellation, revocation and original expiry still refuse. G858 source565 first build failed E0616 before any tests; the one-expression existing-view correction is recorded separately, without regrading that failure. Historical G851 full4364PASS and G852 OriginalV8 abortFAILED remain source-scoped; the initiating G852 leaf is unproven. Mobile287 records this unit checkpoint. Commit/push, then all seven original final-source readiness scopes; STOP READY32. Matrix v218 remains1/32 and399/432; G6-054 parked.",
+  "updated_at": "2026-11-23T07:38:05.759373+00:00",
+  "revision": 176,
+  "status": "Checkpoint 176. All 23 Rust controls passed on generation 570. The 12 harness controls passed before two Rust test fixture corrections. The first Firefox readiness rehearsal failed. The BUNDLE offer, failed-start cleanup, browser unwind, and video recovery repairs are component verified. The original final-source readiness scopes remain pending. The last 32-cell matrix remains v218 with 1 cell and 399 checks passing. Stop at READY32.",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
@@ -9998,5 +9998,11 @@
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v281-clock-cleanup-units.json",
     "postrun_readback_sha256": "52eae454f8f9054a737427022d717f53b35f3fb09633691dbeba4b9107c02b10",
     "postrun_readback_scope": "Actual mobile281 focused80 only; later expanded1411 is outside its text/readback."
+  },
+  "checkpoint176_firefox_fixes_component_verification": {
+    "evidence": "docs/evidence/gate-6/g6-058-firefox-fixes-component-verification.json",
+    "updated_at": "2026-11-23T07:38:05.759373+00:00",
+    "local_progress_document": ".local/gate-6/g6-058-workplan.html",
+    "status": "component_verified_readiness_pending"
   }
 }

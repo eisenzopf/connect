@@ -1,0 +1,246 @@
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video.rs
+@@ -85,7 +85,7 @@
+ pub(crate) fn slots(sdp: &str, answer: bool) -> ControlResult<OfferedSlots> {
+     let session: SdpSession = sdp.parse().map_err(|_| E::Unsupported)?;
+     let media = &session.media_descriptions;
+-    if media.len()!=3 || media.iter().any(|m|m.port==0) || media[0].media!="audio" || media[1].media!="video" || media[2].media!="video" {
++    if media.len()!=3 || media[0].media!="audio" || media[1].media!="video" || media[2].media!="video" {
+         return Err(E::Unsupported);
+     }
+     let expected = if answer { ["sendrecv", "sendrecv", "sendonly"] } else { ["sendrecv", "sendrecv", "recvonly"] };
+@@ -94,37 +94,114 @@
+     }
+     let out = OfferedSlots { audio_mid: one_mid(&media[0])?, preview_mid: one_mid(&media[1])?, public_mid: one_mid(&media[2])? };
+     if out.audio_mid==out.preview_mid || out.audio_mid==out.public_mid || out.preview_mid==out.public_mid { return Err(E::Unsupported); }
++    validate_ports(&session, &out, answer)?;
+     Ok(out)
++}
++// RFC 8843 sections 6/7.2 and its replacement RFC 9143 sections 6/7.2:
++// an INITIAL offer may request a video section only inside BUNDLE using port
++// zero plus bundle-only. The exact reserved roles and positive tagged transport
++// remain mandatory. This profile keeps audio positive (its original validator).
++fn bundle_only_count(media: &MediaDescription) -> usize {
++    media.generic_attributes.iter().filter(|a| matches!(a, ParsedAttribute::BundleOnly)).count()
++}
++fn bundle_ids<'a>(session: &'a SdpSession, roles: &OfferedSlots) -> ControlResult<&'a [String]> {
++    let mut groups = session.generic_attributes.iter().filter_map(|a| match a {
++        ParsedAttribute::Group(semantics, ids) if semantics.eq_ignore_ascii_case("BUNDLE") => Some(ids),
++        _ => None,
++    });
++    let ids = groups.next().ok_or(E::Unsupported)?;
++    let expected = [roles.audio_mid.as_str(), roles.preview_mid.as_str(), roles.public_mid.as_str()];
++    if groups.next().is_some() || ids.len() != expected.len()
++        || ids.iter().collect::<std::collections::BTreeSet<_>>().len() != expected.len()
++        || expected.iter().any(|id| !ids.iter().any(|got| got.as_str() == *id))
++        || session.media_descriptions.iter().any(|m| m.generic_attributes.iter().any(|a|
++            matches!(a, ParsedAttribute::Group(semantics, _) if semantics.eq_ignore_ascii_case("BUNDLE"))))
++    {
++        return Err(E::Unsupported);
++    }
++    let tagged = session.media_descriptions.iter().find(|m| one_mid(m).ok().as_deref() == Some(ids[0].as_str())).ok_or(E::Unsupported)?;
++    if tagged.port == 0 || bundle_only_count(tagged) != 0 { return Err(E::Unsupported); }
++    Ok(ids)
++}
++fn validate_ports(session: &SdpSession, roles: &OfferedSlots, answer: bool) -> ControlResult<()> {
++    if session.generic_attributes.iter().any(|a| matches!(a, ParsedAttribute::BundleOnly))
++        || session.media_descriptions[0].port == 0
++    { return Err(E::Unsupported); }
++    let mut bundled_zero = false;
++    for media in &session.media_descriptions {
++        let markers = bundle_only_count(media);
++        if media.port == 0 {
++            if answer || media.media != "video" || markers != 1 { return Err(E::Unsupported); }
++            bundled_zero = true;
++        } else if markers != 0 {
++            return Err(E::Unsupported);
++        }
++    }
++    if bundled_zero { bundle_ids(session, roles)?; }
++    Ok(())
+ }
+ impl OfferedSlots {
+     pub(crate) fn mid(&self, role: VideoRole) -> &str {
+         match role { VideoRole::Preview => &self.preview_mid, VideoRole::PublicReserved => &self.public_mid }
+     }
+     pub(crate) fn validate_answer(&self, offer: &str, answer: &str) -> ControlResult<()> {
+-        if slots(offer,false)? != *self || slots(answer,true)? != *self { return Err(E::Unsupported); }
++        self.validate_pair(offer, answer)?;
+         for role in [VideoRole::Preview, VideoRole::PublicReserved] {
+             self.negotiated(offer,answer,role)?;
+         }
+         Ok(())
+     }
++    fn validate_pair(&self, offer: &str, answer: &str) -> ControlResult<()> {
++        if slots(offer, false)? != *self || slots(answer, true)? != *self { return Err(E::Unsupported); }
++        let offered: SdpSession = offer.parse().map_err(|_| E::Unsupported)?;
++        if offered.media_descriptions.iter().any(|m| m.port == 0) {
++            let selected: SdpSession = answer.parse().map_err(|_| E::Unsupported)?;
++            // All three roles must be accepted in the same group and retain the
++            // original positive offerer tag. RFC 9143 section 7.3 assigns a
++            // nonzero answer transport to each accepted section. Do not add the
++            // superseded RFC 8843 zero-answer compatibility form (7.4.1).
++            if bundle_ids(&offered, self)?.first() != bundle_ids(&selected, self)?.first() { return Err(E::Unsupported); }
++        }
++        Ok(())
++    }
+     pub(crate) fn negotiated(&self, offer: &str, answer: &str, role: VideoRole) -> ControlResult<crate::media::core_video_profile::NegotiatedVideo> {
+-        crate::media::core_video_profile::negotiated_profile(&project_video(offer,self.mid(role))?, &project_video(answer,self.mid(role))?)
++        self.validate_pair(offer, answer)?;
++        crate::media::core_video_profile::negotiated_profile(&project_video(offer,self.mid(role),false)?, &project_video(answer,self.mid(role),true)?)
+     }
+     pub(crate) fn outbound_mid(&self, offer: &str, answer: &str, role: VideoRole) -> ControlResult<Option<(u8,String)>> {
+-        crate::media::core_video_profile::outbound_mid(&project_video(offer,self.mid(role))?, &project_video(answer,self.mid(role))?, false)
++        self.validate_pair(offer, answer)?;
++        crate::media::core_video_profile::outbound_mid(&project_video(offer,self.mid(role),false)?, &project_video(answer,self.mid(role),true)?, false)
+     }
+ }
+ /// Projection is only for existing exact codec/extmap validators. Full shape,
+ /// original m-section position, direction and all role MIDs are checked first.
+-pub(crate) fn project_video(sdp: &str, expected_mid: &str) -> ControlResult<String> {
++/// Only a validated offer-only bundle section gets its positive tagged port in
++/// this codec view; the original offer/answer and native role mapping are never
++/// rewritten. The ordinary codec validator remains zero-port strict.
++pub(crate) fn project_video(sdp: &str, expected_mid: &str, answer: bool) -> ControlResult<String> {
++    let roles = slots(sdp, answer)?;
+     let parsed: SdpSession = sdp.parse().map_err(|_| E::Unsupported)?;
+     let selected: Vec<_> = parsed.media_descriptions.iter().enumerate().filter(|(_,m)|m.media=="video" && one_mid(m).ok().as_deref()==Some(expected_mid)).map(|(i,_)|i).collect();
+     let [selected] = selected.as_slice() else { return Err(E::Unsupported); };
++    let effective_port = if parsed.media_descriptions[*selected].port == 0 {
++        let ids = bundle_ids(&parsed, &roles)?;
++        Some(parsed.media_descriptions.iter().find(|m| one_mid(m).ok().as_deref() == Some(ids[0].as_str())).ok_or(E::Unsupported)?.port)
++    } else { None };
+     let mut index=None;
+     let mut out=String::new();
+     for line in sdp.lines() {
+         if line.starts_with("m=") { index=Some(index.map_or(0,|i|i+1)); }
+-        if index.is_none() || index==Some(*selected) { out.push_str(line.trim_end_matches('\r')); out.push_str("\r\n"); }
++        if index.is_none() || index==Some(*selected) {
++            if let Some(port) = effective_port {
++                if line.starts_with("m=") {
++                    let mut fields: Vec<_> = line.split_whitespace().map(str::to_owned).collect();
++                    fields[1] = port.to_string();
++                    out.push_str(&fields.join(" ")); out.push_str("\r\n"); continue;
++                }
++                if line.trim_end_matches('\r') == "a=bundle-only" { continue; }
++            }
++            out.push_str(line.trim_end_matches('\r')); out.push_str("\r\n");
++        }
+     }
+     Ok(out)
+ }
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video/tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video/tests.rs
+@@ -18,7 +18,7 @@
+     assert!(p.validate_ports(wrong.iter()).is_err());
+     assert!(p.validate_ports(p.streams()[..2].iter()).is_err());
+     assert!(ReservedVideoProfile::new(p.audio_stream_id.clone(),p.preview_stream_id.clone(),p.preview_stream_id.clone()).is_err());
+-    let ordinary=project_video(&sdp(false),"camera").unwrap();
++    let ordinary=project_video(&sdp(false),"camera",false).unwrap();
+     assert!(crate::media::core_video_profile::negotiated_profile(&ordinary,&ordinary).is_ok());
+     assert!(crate::media::core_video_profile::negotiated_profile(&sdp(false),&sdp(true)).is_err(),"extra B remains opt-in, not a relaxed default");
+ }
+@@ -37,4 +37,46 @@
+     }
+     assert!(slots(&offer.replace("a=recvonly","a=sendrecv"),false).is_err());
+     assert!(slots(&offer.replace("a=mid:fresh","a=mid:camera"),false).is_err());
++    initial_bundle_only_offer_vectors();
+ }
++
++// Sanitized actual Firefox initial shape: positive audio/A, zero recvonly B
++// explicitly grouped with the same positive transport tag. No ICE credentials.
++fn initial_bundle_only_offer_vectors() {
++    let offer = sdp(false).replace("m=video 9 UDP/TLS/RTP/SAVPF 121 125\r\n", "m=video 0 UDP/TLS/RTP/SAVPF 121 125\r\na=bundle-only\r\n");
++    let answer = sdp(true);
++    let roles = slots(&offer, false).unwrap();
++    roles.validate_answer(&offer, &answer).unwrap();
++    let actual = roles.negotiated(&offer, &answer, VideoRole::PublicReserved).unwrap();
++    assert_eq!((actual.payload_type, actual.rtx_payload_type, actual.mid.as_deref()), (121, Some(125), Some("fresh")));
++    assert_eq!(roles.outbound_mid(&offer, &answer, VideoRole::PublicReserved).unwrap(), Some((4, "fresh".into())));
++    let projected = project_video(&offer, "fresh", false).unwrap();
++    assert!(projected.contains("m=video 9 ") && !projected.contains("a=bundle-only"));
++    assert!(offer.contains("m=video 0 ") && offer.contains("a=bundle-only"), "projection must not change the original offer");
++    let same_pt_offer = offer.replace("121 125", "120 124").replace("rtpmap:121", "rtpmap:120").replace("rtpmap:125", "rtpmap:124").replace("fmtp:125 apt=121", "fmtp:124 apt=120");
++    let same_pt_answer = answer.replace("121 125", "120 124").replace("rtpmap:121", "rtpmap:120").replace("rtpmap:125", "rtpmap:124").replace("fmtp:125 apt=121", "fmtp:124 apt=120");
++    assert_eq!(roles.negotiated(&same_pt_offer, &same_pt_answer, VideoRole::PublicReserved).unwrap().payload_type, 120);
++    for bad in [
++        offer.replace("a=bundle-only\r\n", ""),
++        offer.replace("a=bundle-only\r\n", "a=bundle-only\r\na=bundle-only\r\n"),
++        offer.replace("a=group:BUNDLE au camera fresh\r\n", ""),
++        offer.replace("a=group:BUNDLE au camera fresh", "a=group:BUNDLE au camera"),
++        offer.replace("a=group:BUNDLE au camera fresh", "a=group:BUNDLE au camera foreign"),
++        offer.replace("a=group:BUNDLE au camera fresh", "a=group:BUNDLE au camera camera"),
++        offer.replace("a=group:BUNDLE au camera fresh", "a=group:BUNDLE fresh au camera"),
++        offer.replace("a=group:BUNDLE au camera fresh", "a=group:BUNDLE au camera fresh\r\na=group:BUNDLE au camera fresh"),
++        offer.replace("m=audio 9 ", "m=audio 0 "),
++        offer.replace("m=video 0 ", "m=video 9 "),
++        offer.replace("a=recvonly", "a=sendrecv"),
++    ] { assert!(slots(&bad, false).is_err(), "invalid bundle-only initial offer accepted"); }
++    for bad in [
++        answer.replace("a=group:BUNDLE au camera fresh\r\n", ""),
++        answer.replace("a=group:BUNDLE au camera fresh", "a=group:BUNDLE camera au fresh"),
++        answer.replace("a=group:BUNDLE au camera fresh", "a=group:BUNDLE au camera"),
++        answer.replace("m=video 9 UDP/TLS/RTP/SAVPF 121 125", "m=video 0 UDP/TLS/RTP/SAVPF 121 125\r\na=bundle-only"),
++        answer.replace("a=mid:fresh", "a=bundle-only\r\na=mid:fresh"),
++        answer.replace("a=fmtp:125 apt=121", "a=fmtp:125 apt=120"),
++        answer.replace("121 VP8/90000", "121 VP8/8000"),
++    ] { assert!(roles.validate_answer(&offer, &bad).is_err(), "invalid current answer accepted"); }
++    assert!(crate::media::core_video_profile::negotiated_profile(&offer, &answer).is_err(), "ordinary singleton validator remains strict");
++}
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video/tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video/tests.rs
+@@ -6,7 +6,7 @@
+ }
+ #[tokio::test]
+ async fn reserved_b_actual_native_answer_has_distinct_tracks_mids_ssrcs_and_default_stays_single_video() {
+-    for reserve in [false,true] {
++    for (reserve, bundle_only) in [(false,false),(true,false),(true,true)] {
+         let mut config=WebRtcConfig::loopback();config.require_vp8_audio_video_profile=true;
+         let client=RvoipPeerConnection::new(&config,PeerRole::Offerer).await.unwrap();
+         let server=match RvoipPeerConnection::new_canonical(&config,PeerRole::Answerer).await {
+@@ -19,7 +19,33 @@
+             if reserve {
+                 client.pc.add_transceiver_from_kind(RtpCodecKind::Video,Some(RTCRtpTransceiverInit {direction:RTCRtpTransceiverDirection::Recvonly,..Default::default()})).await.unwrap();
+             }
+-            let offered=client.create_offer_and_gather().await.unwrap();
++            let offered = if bundle_only {
++                // Valid external initial-offer shape, modeled before FIRST
++                // setLocalDescription (not an applied-offer rewrite/retry).
++                // Retain the actual native keys/ICE/transceivers and gather.
++                client.prepare_send_capable_dtmf_for_offer().await.unwrap();
++                let generated = client.pc.create_offer(None).await.unwrap();
++                let mut section = None;
++                let mut sdp = String::new();
++                for line in generated.sdp.lines() {
++                    if line.starts_with("m=") { section = Some(section.map_or(0, |i| i + 1)); }
++                    if section == Some(2) && line.starts_with("m=video ") {
++                        let mut fields: Vec<_> = line.split_whitespace().map(str::to_owned).collect();
++                        fields[1] = "0".into();
++                        sdp.push_str(&fields.join(" ")); sdp.push_str("\r\na=bundle-only\r\n");
++                    } else { sdp.push_str(line); sdp.push_str("\r\n"); }
++                }
++                let offer = webrtc::peer_connection::sdp::session_description::RTCSessionDescription::offer(sdp).unwrap();
++                client.pc.set_local_description(offer).await.unwrap();
++                client.begin_outbound_dtmf_renegotiation();
++                client.wait_gather().await.unwrap();
++                let sdp = client.pc.local_description().await.unwrap().sdp;
++                let parsed: rvoip_sip_core::types::sdp::SdpSession = sdp.parse().unwrap();
++                assert_eq!(parsed.media_descriptions.len(), 3);
++                assert_eq!(parsed.media_descriptions[2].port, 0);
++                assert!(parsed.media_descriptions[2].generic_attributes.iter().any(|a| matches!(a, rvoip_sip_core::types::sdp::ParsedAttribute::BundleOnly)));
++                sdp
++            } else { client.create_offer_and_gather().await.unwrap() };
+             server.apply_remote_offer(&offered).await.unwrap();
+             let original_preview=server.local_video_track_internal().unwrap();
+             let answered=server.create_answer_and_gather().await.unwrap();
+@@ -28,6 +54,10 @@
+             server.wait_connected(Duration::from_secs(5)).await.unwrap();
+             let parsed:rvoip_sip_core::types::sdp::SdpSession=answered.parse().unwrap();
+             assert_eq!(parsed.media_descriptions.len(),if reserve {3} else {2});
++            if bundle_only {
++                assert!(parsed.media_descriptions.iter().all(|m| m.port != 0));
++                assert!(parsed.media_descriptions.iter().all(|m| m.generic_attributes.iter().all(|a| !matches!(a, rvoip_sip_core::types::sdp::ParsedAttribute::BundleOnly))));
++            }
+             if reserve {
+                 server.validate_reserved_video_answer(&offered,&answered).await.unwrap();
+                 let (a,assrc)=server.reserved_video_track_for_role(VideoRole::Preview).await.unwrap();

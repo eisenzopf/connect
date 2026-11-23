@@ -1,0 +1,63 @@
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video/tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video/tests.rs
+@@ -19,37 +19,44 @@
+             if reserve {
+                 client.pc.add_transceiver_from_kind(RtpCodecKind::Video,Some(RTCRtpTransceiverInit {direction:RTCRtpTransceiverDirection::Recvonly,..Default::default()})).await.unwrap();
+             }
++            // Apply the original native local offer exactly once. Only the
++            // separate wire copy models an external Firefox initial offer.
++            let original_offered = client.create_offer_and_gather().await.unwrap();
+             let offered = if bundle_only {
+-                // Valid external initial-offer shape, modeled before FIRST
+-                // setLocalDescription (not an applied-offer rewrite/retry).
+-                // Retain the actual native keys/ICE/transceivers and gather.
+-                client.prepare_send_capable_dtmf_for_offer().await.unwrap();
+-                let generated = client.pc.create_offer(None).await.unwrap();
++                let original: rvoip_sip_core::types::sdp::SdpSession = original_offered.parse().unwrap();
++                assert_eq!(original.media_descriptions.len(), 3);
++                assert!(original.media_descriptions.iter().all(|m| m.port != 0));
++                assert!(original.media_descriptions.iter().all(|m| m.generic_attributes.iter().all(|a| !matches!(a, rvoip_sip_core::types::sdp::ParsedAttribute::BundleOnly))));
++                assert!(original_offered.ends_with("\r\n"));
+                 let mut section = None;
+                 let mut sdp = String::new();
+-                for line in generated.sdp.lines() {
++                let mut changed = None;
++                for line in original_offered.split_inclusive("\r\n") {
+                     if line.starts_with("m=") { section = Some(section.map_or(0, |i| i + 1)); }
+                     if section == Some(2) && line.starts_with("m=video ") {
+-                        let mut fields: Vec<_> = line.split_whitespace().map(str::to_owned).collect();
+-                        fields[1] = "0".into();
+-                        sdp.push_str(&fields.join(" ")); sdp.push_str("\r\na=bundle-only\r\n");
+-                    } else { sdp.push_str(line); sdp.push_str("\r\n"); }
++                        let (_, rest) = line.strip_prefix("m=video ").unwrap().split_once(' ').unwrap();
++                        let wire_line = format!("m=video 0 {rest}a=bundle-only\r\n");
++                        assert!(changed.replace((line.to_owned(), wire_line.clone())).is_none());
++                        sdp.push_str(&wire_line);
++                    } else { sdp.push_str(line); }
+                 }
+-                let offer = rtc::peer_connection::sdp::RTCSessionDescription::offer(sdp).unwrap();
+-                client.pc.set_local_description(offer).await.unwrap();
+-                client.begin_outbound_dtmf_renegotiation();
+-                client.wait_gather().await.unwrap();
+-                let sdp = client.pc.local_description().await.unwrap().sdp;
++                let (original_line, wire_line) = changed.unwrap();
++                assert_eq!(sdp.replacen(&wire_line, &original_line, 1), original_offered,
++                    "wire copy changes only B port and bundle-only; native keys/ICE/MIDs/codecs remain exact");
+                 let parsed: rvoip_sip_core::types::sdp::SdpSession = sdp.parse().unwrap();
+                 assert_eq!(parsed.media_descriptions.len(), 3);
+                 assert_eq!(parsed.media_descriptions[2].port, 0);
+                 assert!(parsed.media_descriptions[2].generic_attributes.iter().any(|a| matches!(a, rvoip_sip_core::types::sdp::ParsedAttribute::BundleOnly)));
++                assert_eq!(client.pc.local_description().await.unwrap().sdp, original_offered);
+                 sdp
+-            } else { client.create_offer_and_gather().await.unwrap() };
++            } else { original_offered.clone() };
+             server.apply_remote_offer(&offered).await.unwrap();
++            assert_eq!(server.pc.remote_description().await.unwrap().sdp, offered);
+             let original_preview=server.local_video_track_internal().unwrap();
+             let answered=server.create_answer_and_gather().await.unwrap();
+             client.set_remote_answer(&answered).await.unwrap();
++            assert_eq!(client.pc.local_description().await.unwrap().sdp, original_offered,
++                "the native offerer keeps its original positive local offer through answer acceptance");
+             client.wait_connected(Duration::from_secs(5)).await.unwrap();
+             server.wait_connected(Duration::from_secs(5)).await.unwrap();
+             let parsed:rvoip_sip_core::types::sdp::SdpSession=answered.parse().unwrap();

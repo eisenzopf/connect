@@ -26,6 +26,8 @@ export function matrixResourceBridge(directory,{cycles=1}={}){
                 if(!stat.isFile()||stat.isSymbolicLink()||stat.size>4096)throw Error('Bounded resource response');
                 const result=JSON.parse(await fs.readFile(response,'utf8'));
                 if(typeof result.passed!=='boolean')throw Error('Original resource verdict missing');
+                // This awaited Node bridge must refuse BEFORE browser actor authentication.
+                if(phase==='baseline'&&!result.passed)throw Error('Original resource baseline refused');
                 if(phase==='retired'){current++;next=0;}
                 return {...result,monotonic_seconds:Number(process.hrtime.bigint())/1e9};
             }catch(error){if(error.code!=='ENOENT')throw error;}
