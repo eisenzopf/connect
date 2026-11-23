@@ -8868,7 +8868,7 @@
     "future_strict_Firefox": null,
     "all7_final_source_scopes_required": true
   },
-  "updated": "2026-11-23T14:08:48+00:00",
+  "updated": "2026-11-23T14:31:53+00:00",
   "v219_g570_exact_clock_component": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g570-exact-clock-component-progress.json",
     "sha256": "3d910638366c09869326694d91964eba1e8da2537b08c870f70ac2e5e1f818ef",
@@ -10197,6 +10197,45 @@
     },
     "audio_baseline": "Fresh ordinary input before the first controlled post-cut mixer tick produced +160 RTP samples at 8 kHz. Input after that tick produced +320. The original private readiness audio remained isolated. An audio production fix is pending.",
     "local_progress_document": ".local/gate-6/g6-058-workplan.html",
+    "ready_for_32": false,
+    "matrix_credit": false
+  },
+  "checkpoint182_managed_audio_cut_cadence": {
+    "dependency_generation": 574,
+    "predecessor": "4d8844cef9fbbfdf73b998a80550e58053deb657",
+    "scope": "Test-only controlled cadence on the original Conference worker and actual managed participant cut. No production audio change.",
+    "result": {
+      "path": ".local/gate-6/checkpoint182-audio-managed-cut-r2/focused-controls/root-original-join.json",
+      "sha256": "902d04c070e7ce5b8dcc492ad86ee5e2bc78b2e4cbfc9731d760f5de9f5e70ee"
+    },
+    "repeat_12": {
+      "path": ".local/gate-6/checkpoint182-audio-managed-cut-r2/focused-controls/managed-cadence-repeat.json",
+      "sha256": "f1f2289d7e22bd688acaa070482d1c78ccf3b3f9f4cabd8f876abafbd57ff3ab"
+    },
+    "first_fixture_failure": {
+      "path": ".local/gate-6/checkpoint182-audio-managed-cut/focused-controls/result.json",
+      "sha256": "c6ab11d51102bb8d88b8e999cefd2ee49bdf3daf911130d7ca1a30a4341c9fee"
+    },
+    "test_correction": "Project the actual committed successor into the test host after the exact managed cut. The first attempt left the retired owner as a prerequisite of the fixture authority.",
+    "audio_oracle": {
+      "fresh_successor_before_first_tick_rtp_delta": 160,
+      "fresh_successor_after_empty_first_tick_rtp_delta": 320,
+      "clock_hz": 8000,
+      "private_readiness_audio_remains_isolated": true
+    },
+    "production_capture_alignment": {
+      "path": ".local/gate-6/checkpoint182-audio-managed-cut/original-wire-service-alignment.json",
+      "sha256": "43adb45898fb4a3bfce3c22a33068d48ff5c71a6e0d1d4d1da5dc95b0fb13fbc"
+    },
+    "production_scope_open": "Any production change must prepare a genuine successor quantum, current source Publish authority and the exact receiver programme at the cut. A temporary Store refusal overlapped the measured gap, without a packet-level causal binding.",
+    "patch": {
+      "path": "patches/rvoip/connect-managed-audio-cut-cadence-controls.patch",
+      "sha256": "2e152a727ed44500e28cf9b951960265db7be00ded3e6a346fb717d660956a15"
+    },
+    "preparation": {
+      "path": ".local/gate-6/checkpoint182-audio-managed-cut-r2/normal574-runtime/receipt.json",
+      "sha256": "73de22aa8a410d5fffa37586c384297875c7f9e008f5cfaec4d98ace0251e268"
+    },
     "ready_for_32": false,
     "matrix_credit": false
   }

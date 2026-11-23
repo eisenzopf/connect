@@ -3051,6 +3051,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-reserved-video-feedback-routing.patch",
       "sha256": "a8bff27a3ece6f36d46c6fe73cde464631cee63c97312694c901fae86f81381a"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-managed-audio-cut-cadence-controls.patch",
+      "sha256": "2e152a727ed44500e28cf9b951960265db7be00ded3e6a346fb717d660956a15"
     }
   ]
 }

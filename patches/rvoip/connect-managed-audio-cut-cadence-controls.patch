@@ -1,0 +1,511 @@
+diff --git a/crates/foundation/rvoip-core/src/conference/tick_gate.rs b/crates/foundation/rvoip-core/src/conference/tick_gate.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/conference/tick_gate.rs
+@@ -0,0 +1,152 @@
++//! Test-only steps of the ORIGINAL Conference worker/ticker, never a scheduler.
++use crate::ids::ConnectionId;
++use crate::staged_streams::media_scene::GuardedMediaScene;
++use crate::staged_streams::{ControlResult, StreamControlError};
++use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
++use std::sync::{Arc, Mutex, Weak};
++use tokio::sync::{Notify, Semaphore};
++
++pub(crate) type Slot = Arc<Mutex<Weak<State>>>;
++pub(crate) fn new_slot() -> Slot {
++    Arc::new(Mutex::new(Weak::new()))
++}
++
++pub(crate) struct State {
++    scene: Weak<GuardedMediaScene>,
++    until: tokio::time::Instant,
++    entered: AtomicUsize,
++    issued: AtomicUsize,
++    completed: AtomicUsize,
++    closed: AtomicBool,
++    expired: AtomicBool,
++    changed: Notify,
++    release: Notify,
++    permits: Semaphore,
++}
++/// Sole test owner; Drop releases an entered worker on assertion/unwind too.
++pub(crate) struct ControlledTicks {
++    state: Arc<State>,
++}
++pub(crate) fn arm(
++    slot: &Slot,
++    scene: Weak<GuardedMediaScene>,
++    until: tokio::time::Instant,
++) -> ControlResult<ControlledTicks> {
++    if tokio::time::Instant::now() >= until {
++        return Err(StreamControlError::Deadline);
++    }
++    let mut current = slot.lock().unwrap_or_else(|p| p.into_inner());
++    if current.upgrade().is_some() {
++        return Err(StreamControlError::Authority);
++    }
++    let state = Arc::new(State {
++        scene,
++        until,
++        entered: AtomicUsize::new(0),
++        issued: AtomicUsize::new(0),
++        completed: AtomicUsize::new(0),
++        closed: AtomicBool::new(false),
++        expired: AtomicBool::new(false),
++        changed: Notify::new(),
++        release: Notify::new(),
++        permits: Semaphore::new(0),
++    });
++    *current = Arc::downgrade(&state);
++    Ok(ControlledTicks { state })
++}
++impl ControlledTicks {
++    async fn reached(&self, counter: &AtomicUsize, n: usize) -> ControlResult<()> {
++        loop {
++            let changed = self.state.changed.notified();
++            if self.state.expired.load(Ordering::Acquire) {
++                return Err(StreamControlError::Deadline);
++            }
++            if counter.load(Ordering::Acquire) >= n {
++                return Ok(());
++            }
++            tokio::time::timeout_at(self.state.until, changed)
++                .await
++                .map_err(|_| StreamControlError::Deadline)?;
++        }
++    }
++    pub(crate) async fn entered(&self, n: usize) -> ControlResult<()> {
++        self.reached(&self.state.entered, n).await
++    }
++    pub(crate) async fn completed(&self, n: usize) -> ControlResult<()> {
++        self.reached(&self.state.completed, n).await
++    }
++    pub(crate) fn step(&mut self) -> ControlResult<()> {
++        if self.state.closed.load(Ordering::Acquire)
++            || tokio::time::Instant::now() >= self.state.until
++        {
++            return Err(StreamControlError::Deadline);
++        }
++        let issued = self.state.issued.load(Ordering::Acquire);
++        if self.state.entered.load(Ordering::Acquire) != issued + 1
++            || self.state.completed.load(Ordering::Acquire) != issued
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        let scene = self
++            .state
++            .scene
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        // Same existing test clock: select one quantum, not wall-time/authority.
++        let now = std::time::Instant::now();
++        scene.observe_audio_tick_for_test(now, now);
++        self.state
++            .issued
++            .compare_exchange(issued, issued + 1, Ordering::AcqRel, Ordering::Acquire)
++            .map_err(|_| StreamControlError::NotReady)?;
++        self.state.permits.add_permits(1);
++        Ok(())
++    }
++    pub(crate) fn queues(&self, id: &ConnectionId) -> Option<(usize, bool, usize, usize)> {
++        self.state.scene.upgrade()?.audio_queue_state_for_test(id)
++    }
++    pub(crate) fn snapshot(&self) -> (usize, usize, usize, bool) {
++        (
++            self.state.entered.load(Ordering::Acquire),
++            self.state.issued.load(Ordering::Acquire),
++            self.state.completed.load(Ordering::Acquire),
++            self.state.expired.load(Ordering::Acquire),
++        )
++    }
++}
++impl Drop for ControlledTicks {
++    fn drop(&mut self) {
++        self.state.closed.store(true, Ordering::Release);
++        self.state.release.notify_waiters();
++    }
++}
++pub(crate) struct Completion {
++    state: Arc<State>,
++    ordinal: usize,
++}
++impl Completion {
++    pub(crate) fn complete(self) {
++        self.state.completed.store(self.ordinal, Ordering::Release);
++        self.state.changed.notify_waiters();
++    }
++}
++pub(crate) async fn enter(slot: &Slot) -> Option<Completion> {
++    let state = { slot.lock().unwrap_or_else(|p| p.into_inner()).upgrade() }?;
++    if state.closed.load(Ordering::Acquire) {
++        return None;
++    }
++    let ordinal = state.entered.fetch_add(1, Ordering::AcqRel) + 1;
++    state.changed.notify_waiters();
++    loop {
++        let released = state.release.notified();
++        if state.closed.load(Ordering::Acquire) {
++            break;
++        }
++        tokio::select! {biased;
++            _=released=>{},
++            _=tokio::time::sleep_until(state.until)=>{state.expired.store(true,Ordering::Release);state.closed.store(true,Ordering::Release);state.changed.notify_waiters();break;},
++            permit=state.permits.acquire()=>{permit.ok()?.forget();break;},
++        }
++    }
++    Some(Completion { state, ordinal })
++}
+diff --git a/crates/foundation/rvoip-core/src/conference.rs b/crates/foundation/rvoip-core/src/conference.rs
+--- a/crates/foundation/rvoip-core/src/conference.rs
++++ b/crates/foundation/rvoip-core/src/conference.rs
+@@ -25,6 +25,8 @@
+ use tokio::sync::{Mutex, mpsc};
+ mod task_owner;
+ mod timing;
++#[cfg(test)]
++pub(crate) mod tick_gate;
+ use task_owner::ConferenceTask;
+ 
+ use crate::error::{Result, RvoipError};
+@@ -242,6 +244,8 @@
+     finalizer_hook_for_test: task_owner::FinalizerHook,
+     #[cfg(test)]
+     pub(crate) started_for_test: Arc<tokio::sync::Notify>,
++    #[cfg(test)]
++    tick_gate_for_test: tick_gate::Slot,
+ }
+ 
+ impl Conference {
+@@ -286,6 +290,10 @@
+         let started_for_test = Arc::new(tokio::sync::Notify::new());
+         #[cfg(test)]
+         let original_started = started_for_test.clone();
++        #[cfg(test)]
++        let tick_gate_for_test = tick_gate::new_slot();
++        #[cfg(test)]
++        let original_tick_gate = tick_gate_for_test.clone();
+         let task = tokio::spawn(async move {
+             #[cfg(test)]
+             let _original_future_owner = original_future_owner;
+@@ -298,10 +306,16 @@
+             let mut timing = timing::WorkerTiming::new(MIX_INTERVAL, task_staged.as_ref().map(|scene| scene.timing_identity()));
+             loop {
+                 let scheduled = ticker.tick().await.into_std();
++                #[cfg(test)]
++                let controlled_tick = if task_staged.is_some() {
++                    tick_gate::enter(&original_tick_gate).await
++                } else { None };
+                 timing.begin(scheduled, std::time::Instant::now());
+                 if let Some(staged) = &task_staged {
+                     staged.tick();
+                     timing.finish(std::time::Instant::now());
++                    #[cfg(test)]
++                    if let Some(tick) = controlled_tick { tick.complete(); }
+                     continue;
+                 }
+                 // A guarded scene owns its own members. Never gate it on the
+@@ -324,7 +338,17 @@
+             finalizer_hook_for_test,
+             #[cfg(test)]
+             started_for_test,
+-        }
++            #[cfg(test)]
++            tick_gate_for_test,
++        }
++    }
++    #[cfg(test)]
++    pub(crate) fn control_original_ticks_for_test(
++        &self,
++        until: tokio::time::Instant,
++    ) -> crate::staged_streams::ControlResult<tick_gate::ControlledTicks> {
++        let scene = self.staged.as_ref().ok_or(crate::staged_streams::StreamControlError::Unsupported)?;
++        tick_gate::arm(&self.tick_gate_for_test, Arc::downgrade(scene), until)
+     }
+     #[cfg(test)]
+     pub(crate) fn hold_original_finalizer_for_test(&self) -> task_owner::FinalizerHold {
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/managed_cut.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/managed_cut.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/managed_cut.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/managed_cut.rs
+@@ -571,6 +571,13 @@
+         }
+         occupied
+     }
++    /// Step only the SAME original staged Conference worker in Core tests.
++    pub(crate) fn control_managed_audio_ticks_for_test(
++        &self, session:&SessionId, until:tokio::time::Instant,
++    )->ControlResult<crate::conference::tick_gate::ControlledTicks> {
++        let runtime=self.participant_runtime(session)?;
++        Ok(runtime.mixer.control_original_ticks_for_test(until)?)
++    }
+     /// Hold the real model metadata mutex, with no mock lock/result/grant.
+     pub(crate) fn with_managed_model_metadata_for_test<T>(&self,session:&SessionId,work:impl FnOnce()->T)->ControlResult<T> {
+         let runtime=self.participant_runtime(session)?;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -616,7 +616,7 @@
+             .map(|member| member.egress.contains_key(logical))
+     }
+     #[cfg(test)]
+-    pub(super) fn audio_queue_state_for_test(
++    pub(crate) fn audio_queue_state_for_test(
+         &self,
+         connection: &ConnectionId,
+     ) -> Option<(usize, bool, usize, usize)> {
+@@ -1155,7 +1155,7 @@
+         )
+     }
+     #[cfg(test)]
+-    pub(super) fn observe_audio_tick_for_test(&self, now: Instant, next: Instant) {
++    pub(crate) fn observe_audio_tick_for_test(&self, now: Instant, next: Instant) {
+         self.audio.observe_tick_for_test(now, next);
+     }
+     #[cfg(test)]
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs
+@@ -854,3 +854,244 @@
+         if let Err(error)=work {resume_unwind(error)}assert!(clean);
+     }
+ }
++
++async fn managed_tick_pcm_timestamp(
++    room: &mut ManagedRoom,
++    id: &ConnectionId,
++    expected: i16,
++) -> u32 {
++    let queued = room
++        .nodes
++        .get_mut(id)
++        .unwrap()
++        .out
++        .try_recv()
++        .expect("actual original managed output missing");
++    let result = Arc::new(std::sync::Mutex::new(None));
++    let received = result.clone();
++    queued
++        .deliver(move |frame| async move {
++            let mut decoder = rvoip_media_core::codec::factory::CodecFactory::create_codec(
++                0,
++                Some(8000),
++                Some(1),
++            )
++            .unwrap();
++            let pcm = decoder.decode(&frame.payload).unwrap();
++            assert_eq!(pcm.samples.len(), 160);
++            let mean =
++                pcm.samples.iter().map(|s| i32::from(*s)).sum::<i32>() / pcm.samples.len() as i32;
++            assert!(
++                (mean - i32::from(expected)).abs() < 400,
++                "actual source mismatch: expected {expected}, got {mean}"
++            );
++            *received.lock().unwrap() = Some(frame.timestamp_rtp);
++            Ok(())
++        })
++        .await
++        .unwrap();
++    let timestamp = result.lock().unwrap().take().unwrap();
++    timestamp
++}
++
++#[tokio::test]
++async fn managed_cut_original_worker_distinguishes_first_fresh_ordinary_quantum_from_private_ready()
++{
++    use crate::orchestrator::participant_control::{
++        ManagedCutPostPublication, ManagedCutPublished,
++    };
++    for fresh_before_first_tick in [true, false] {
++        let mut room = ManagedRoom::new().await;
++        let mut owned_post: Option<ManagedCutPostPublication> = None;
++        let work = catch_original(async {
++            let ready = model_ready(&mut room).await;
++            let prepared = room
++                .orch
++                .prepare_staged_managed_cut(captured(&room, &ready).await)
++                .await
++                .unwrap();
++            let candidate = ready.grant.intent.replacement.clone();
++            let mut ticks = room
++                .orch
++                .control_managed_audio_ticks_for_test(&room.session, ready.grant.until)
++                .unwrap();
++            ticks.entered(1).await.unwrap();
++            for node in room.nodes.values_mut() {
++                node.drain();
++            }
++            room.nodes
++                .get_mut(&ready.old)
++                .unwrap()
++                .publish(800)
++                .unwrap();
++            ticks.step().unwrap();
++            ticks.completed(1).await.unwrap();
++            let before = managed_tick_pcm_timestamp(&mut room, &ready.retained, 800).await;
++            ticks.entered(2).await.unwrap();
++            for node in room.nodes.values_mut() {
++                node.drain();
++            }
++            // Actual candidate ingress still belongs to private preparation.
++            room.nodes
++                .get_mut(&candidate)
++                .unwrap()
++                .publish(5200)
++                .unwrap();
++            let private_sequence = room.nodes[&candidate].sequence;
++            assert!(ready._probe.has_duplex_io() && ready._audio.has_delivered_remote_audio());
++            assert_eq!(ticks.queues(&candidate), Some((0, false, 0, 0)));
++            room.nodes
++                .get_mut(&ready.old)
++                .unwrap()
++                .publish(800)
++                .unwrap();
++            assert_eq!(ticks.queues(&ready.old).unwrap().0, 1);
++            let revision = room.orch.participant_revision(&room.session).unwrap();
++            // This is the same current host-owned candidate view used by the
++            // existing managed successor controls, captured while OLD is live.
++            let actual_candidate = room.world.owner(&candidate).unwrap();
++            assert_eq!(
++                actual_candidate.connection.state(),
++                crate::relationships::BindingState::Active
++            );
++            assert!(
++                actual_candidate
++                    .connection
++                    .same_incarnation(ready.root.prepared_binding().binding())
++            );
++            let published = publish_ready(&room, &ready, prepared).await;
++            let ManagedCutPublished::Replacement { outcome, post, .. } = published else {
++                panic!("wrong managed publication")
++            };
++            owned_post = Some(post); // retain before any following assertion can unwind
++            assert_eq!(outcome.replaced, ready.old);
++            assert_eq!(outcome.admitted, candidate);
++            assert_eq!(
++                room.orch.participant_revision(&room.session).unwrap(),
++                revision + 1
++            );
++            assert!(ready.root.is_committed());
++            assert_eq!(room.orch.session_of(&ready.old), None);
++            assert!(room.nodes[&ready.old].controller.shutdown.is_cancelled());
++            assert!(
++                room.nodes
++                    .get_mut(&ready.old)
++                    .unwrap()
++                    .publish(9000)
++                    .is_err()
++            );
++            assert_eq!(room.nodes[&candidate].sequence, private_sequence);
++            assert_eq!(ticks.queues(&candidate), Some((0, false, 0, 0)));
++            // Finish the SAME real original post; never run a raw scene commit.
++            room.orch
++                .finish_managed_cut_publication(owned_post.take().unwrap())
++                .await
++                .unwrap();
++            // Project the genuine managed result into this controlled host.
++            // The committed model/route already owns the exact incarnation.
++            let mut resources = room.world.resources.lock().unwrap();
++            let resource = resources.get_mut(&candidate).unwrap();
++            let controller = &room.nodes[&candidate].controller;
++            assert!(
++                resource
++                    .owner
++                    .connection
++                    .same_incarnation(&actual_candidate.connection)
++            );
++            assert!(resource.pending.as_ref().is_some_and(|pending| {
++                pending
++                    .binding()
++                    .same_incarnation(&actual_candidate.connection)
++            }));
++            assert!(
++                resource
++                    .proof
++                    .as_ref()
++                    .is_some_and(|proof| proof.is_committed() && proof.belongs_to(controller))
++            );
++            assert!(
++                controller
++                    .origin_binding
++                    .same_incarnation(&actual_candidate.connection)
++            );
++            *resource = Resource {
++                owner: actual_candidate,
++                proof: None,
++                pending: None,
++                probe_operation: None,
++            };
++            drop(resources);
++            if fresh_before_first_tick {
++                room.nodes
++                    .get_mut(&candidate)
++                    .unwrap()
++                    .publish(6800)
++                    .unwrap();
++                assert_eq!(ticks.queues(&candidate).unwrap().0, 1);
++            }
++            ticks.step().unwrap();
++            ticks.completed(2).await.unwrap();
++            if !fresh_before_first_tick {
++                assert!(
++                    room.nodes
++                        .get_mut(&ready.retained)
++                        .unwrap()
++                        .out
++                        .try_recv()
++                        .is_err(),
++                    "private or retired old PCM crossed the actual managed cut"
++                );
++                ticks.entered(3).await.unwrap();
++                room.nodes
++                    .get_mut(&candidate)
++                    .unwrap()
++                    .publish(6800)
++                    .unwrap();
++                assert_eq!(ticks.queues(&candidate).unwrap().0, 1);
++                ticks.step().unwrap();
++                ticks.completed(3).await.unwrap();
++            }
++            let after = managed_tick_pcm_timestamp(&mut room, &ready.retained, 6800).await;
++            assert!(
++                room.nodes
++                    .get_mut(&ready.retained)
++                    .unwrap()
++                    .out
++                    .try_recv()
++                    .is_err()
++            );
++            let observed = ticks.snapshot();
++            assert!(!observed.3, "original tick control expired");
++            drop(ticks); // releases a next entered original worker before shutdown
++            (before, after, fresh_before_first_tick, observed)
++        })
++        .await;
++        let post_joined = if let Some(post) = owned_post.take() {
++            matches!(
++                catch_original(room.orch.finish_managed_cut_publication(post)).await,
++                Ok(Ok(()))
++            )
++        } else {
++            true
++        };
++        let cleanup = room.close_originals().await;
++        assert!(
++            post_joined && cleanup.iter().all(|joined| *joined),
++            "all actual managed originals/post must join: {cleanup:?}"
++        );
++        let (before, after, fresh_before_first_tick, ticks) = match work {
++            Ok(v) => v,
++            Err(error) => resume_unwind(error),
++        };
++        let expected = if fresh_before_first_tick { 160 } else { 320 };
++        assert_eq!(
++            after.wrapping_sub(before),
++            expected,
++            "actual ManagedCut cadence baseline fresh_before_first_tick={fresh_before_first_tick}"
++        );
++        eprintln!(
++            "managed_original_worker_audio_cut fresh_before_first_tick={fresh_before_first_tick} old_rtp={before} new_rtp={after} delta={} controlled_ticks={ticks:?} originals_joined=true",
++            after.wrapping_sub(before)
++        );
++    }
++}
