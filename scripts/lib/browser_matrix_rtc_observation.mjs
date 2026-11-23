@@ -36,7 +36,7 @@ registerProcessor('matrix-rtc-decoded-pcm',MatrixRtcDecodedPcm);
  * internal preparation/readiness sink is excluded: it is not inside render().
  * The caller still owns render handles and closes/joins their AudioContexts. */
 export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measurementOrigin=()=>null,
-    videoObserver='render-callback/1',decodedVideo,decodedVideoOwnerFactory=null}) {
+    videoObserver='render-callback/1',decodedVideo,decodedVideoOwnerFactory=null,videoTimingDiagnostics=false}) {
     if(!['render-callback/1',RTC_DECODED_VIDEO_PROFILE].includes(videoObserver))throw Error('Declared RTC video observer required');
     if(videoObserver===RTC_DECODED_VIDEO_PROFILE&&(typeof decodedVideo!=='function'||typeof decodedVideoOwnerFactory!=='function'))throw Error('Original decoded-pixel callback and owner required');
     // Shared callback-only fixtures have no new static module dependency. The
@@ -57,6 +57,27 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
     const draw=CanvasRenderingContext2D.prototype.drawImage,frame=HTMLVideoElement.prototype.requestVideoFrameCallback;
     const canvases=new Map(),metadata=new WeakMap(),pending=new Set(),taps=new Set(),modules=new WeakMap(),observed=new WeakSet();
     const presentations = new WeakMap(),capturePeers=new Map(),captureConflicts=new Set();
+    // At most ten scalar-only owners and 24 noteworthy observations per owner.
+    // No callback recording changes owner selection, pixels or frame credit.
+    const videoTiming=new Map();
+    const timingLimit=24;
+    const recordVideoTiming=(connection,identity,last,current)=>{
+        let entry=videoTiming.get(identity.element_id);
+        if(!entry){
+            entry={element_id:identity.element_id,connection_id:connection,frames:0,skipped_presentations:0,max_draw_ms:0,max_measure_ms:0,events:[],omitted:0};
+            videoTiming.set(identity.element_id,entry);
+        }
+        const previous=entry.last;
+        entry.last=current;
+        entry.frames++;
+        entry.max_draw_ms=Math.max(entry.max_draw_ms,current.draw_ms);
+        entry.max_measure_ms=Math.max(entry.max_measure_ms,current.measure_ms);
+        const skipped=last===0?0:Math.max(0,current.presented_frames-last-1);
+        entry.skipped_presentations+=skipped;
+        if(skipped===0&&current.draw_ms<4&&current.measure_ms<4)return;
+        if(entry.events.length===timingLimit){entry.omitted++;return;}
+        entry.events.push({skipped_presentations:skipped,previous:previous??null,current});
+    };
     let nextPresentationElement = 0;
     let nextAudioClock = 0;
     let rendering=null,closed=false,lifetimeFailures=0;
@@ -205,13 +226,16 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
     if(capture)Rtc.prototype.capture=observedCapture;
     const observedFrame=function(callback){
         return frame.call(this,(now,detail)=>{
-            metadata.set(this,{now,detail});
+            metadata.set(this,videoTimingDiagnostics?{now,detail,enteredAt:performance.now()}:{now,detail});
             try{return callback(now,detail);}finally{metadata.delete(this);}
         });
     };
     HTMLVideoElement.prototype.requestVideoFrameCallback=observedFrame;
     const observedDraw=function(source,...args){
-        const result=draw.call(this,source,...args),connectionId=canvases.get(this.canvas),current=metadata.get(source);
+        const connectionId=canvases.get(this.canvas),current=metadata.get(source);
+        const drawStarted=videoTimingDiagnostics&&!closed&&connectionId&&current?performance.now():null;
+        const result=draw.call(this,source,...args);
+        const drawingMs=drawStarted===null?null:performance.now()-drawStarted;
         if(!closed&&connectionId&&current){
             let identity = presentations.get(source);
             if (!identity) {
@@ -249,11 +273,25 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
                 invalid(connectionId, refusal, presentation);
                 return result;
             }
+            const previous=identity.last;
             identity.last = presentation.presentedFrames;
             // Borrow the actual just-rendered bitmap. Rereading a live video
             // element can pair body/marker pixels from a newer presentation.
-            video(connectionId, Math.round(current.detail.mediaTime * 1000000), performance.now(), this.canvas,
+            const measuredAt=performance.now();
+            video(connectionId, Math.round(current.detail.mediaTime * 1000000), measuredAt, this.canvas,
                 source.videoWidth, source.videoHeight, presentation);
+            if(drawingMs!==null){
+                const measuredMs=performance.now()-measuredAt;
+                const origin=measurementOrigin(connectionId);
+                if(Number.isFinite(origin)&&measuredAt>=origin&&measuredAt<origin+62000)
+                    recordVideoTiming(connectionId,identity,previous,{
+                        programme_seconds:(measuredAt-origin)/1000,
+                        presented_frames:presentation.presentedFrames,callback_entered_at_ms:current.enteredAt,
+                        presentation_at_ms:Number.isFinite(presentation.presentationTime)?presentation.presentationTime:null,
+                        expected_display_at_ms:Number.isFinite(presentation.expectedDisplayTime)?presentation.expectedDisplayTime:null,
+                        draw_ms:drawingMs,measure_ms:measuredMs,
+                    });
+            }
         }
         return result;
     };
@@ -272,6 +310,8 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
             }catch{return false;}
         },
         report(){return audioBoundaries.report();},
+        videoTimingReport(){return {profile:'connect/rtc-video-callback-timing/1',limit_per_element:timingLimit,
+            owners:[...videoTiming.values()].map(({last,...entry})=>entry)};},
         decodedVideoReport(){return decoded?.report()??null;},
         stopDecodedVideo(){return decoded?.close();},
         attach(connectionId,canvas){
@@ -312,7 +352,7 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
                 tap.gain?.disconnect();
             }
             const decodedVideo=await decoded?.close();
-            URL.revokeObjectURL(worklet);canvases.clear();taps.clear();
+            URL.revokeObjectURL(worklet);canvases.clear();taps.clear();videoTiming.clear();
             return {decoded_video:decodedVideo??null,audio_lifetime:{retained_taps:taps.size,
                 state_listeners_unconfirmed:stateListenersUnconfirmed,observation_failures:lifetimeFailures,
                 render_finished_promises_joined:false,

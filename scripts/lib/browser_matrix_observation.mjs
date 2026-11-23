@@ -312,7 +312,7 @@ export class DecodedRoute {
         if (refusal) row.refusal = refusal;
         rows.push(Object.freeze(row));
     }
-    videoFrame(owner,timestamp,at,gray,pixels,width,height,native=null,presentation=null){
+    videoFrame(owner,timestamp,at,gray,pixels,width,height,native=null,presentation=null,transferPixels=false){
         if(this.begin===null)return;const seconds=(at-this.begin)/1000;if(seconds<0||seconds>=62)return;
         check(this.video.length<10000,'Decoded Video bound');
         let key = owner + ':v:' + timestamp;
@@ -349,16 +349,19 @@ export class DecodedRoute {
             ?false:this.seen.has(key);
         this.seen.add(this.sourceFrameIdentity?timestampKey:key);
 
+        // getImageData supplies a fresh, exclusively owned pixel array. The
+        // fixture transfers that buffer; other callers keep copy semantics.
+        const retainedPixels=transferPixels?pixels:pixels.slice();
         let changed;
         if(native!==null&&native!==undefined){
             // Native private preparation has its own physical history. It must
             // not borrow an old owner's last pixels as decoder-startup evidence.
             const previous=this.ownerPixels.get(owner);check(this.ownerPixels.has(owner)||this.ownerPixels.size<10,"Bounded original pixel histories");
-            changed=previous!==undefined&&pixels.some((v,i)=>v!==previous[i]);this.ownerPixels.set(owner,pixels.slice());
+            changed=previous!==undefined&&pixels.some((v,i)=>v!==previous[i]);this.ownerPixels.set(owner,retainedPixels);
         }else{
             // RTC/default observations retain the original logical-route
             // comparison across an already validated owner switch.
-            changed=this.lastPixels!==null&&pixels.some((v,i)=>v!==this.lastPixels[i]);this.lastPixels=pixels.slice();
+            changed=this.lastPixels!==null&&pixels.some((v,i)=>v!==this.lastPixels[i]);this.lastPixels=retainedPixels;
         }
         if(kind==='pulse'&&!this.videoHigh)this.videoEdges.push(seconds);this.videoHigh=kind==='pulse';
         const row={owner,seconds,timestamp,kind,duplicate,changed,native,row_index:this.video.length,sourceFrameIdentity:identity,sourceFrameKey,
@@ -674,7 +677,7 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
                 const context=owner.context;context.drawImage(frame,0,0,8,8);const bytes=context.getImageData(0,0,8,8).data;
                 const gray=Array.from({length:64},(_,i)=>.299*bytes[i*4]+.587*bytes[i*4+1]+.114*bytes[i*4+2]);
                 context.drawImage(frame,0,0,128,72);const pixels=context.getImageData(0,0,128,72).data;
-                route.videoFrame(binding.connectionId,frame.timestamp,at,gray,pixels,frame.displayWidth,frame.displayHeight,native);
+                route.videoFrame(binding.connectionId,frame.timestamp,at,gray,pixels,frame.displayWidth,frame.displayHeight,native,null,true);
             }
         }catch(error){if(route.invalid.length<16)route.invalid.push(String(error.message));}
     }
@@ -721,17 +724,17 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
                     context.drawImage(frame,0,0,128,72);
                     pixels=context.getImageData(0,0,128,72).data;
                 }
-                (routes[owner.index].rendered??routes[owner.index].measure).videoFrame(connection,timestamp,at,gray,pixels,width,height,null,presentation);
+                (routes[owner.index].rendered??routes[owner.index].measure).videoFrame(connection,timestamp,at,gray,pixels,width,height,null,presentation,true);
             }catch(error){invalidRtc(connection,String(error.message));}
         },
-        videoObserver:rtcVideoObserver,decodedVideoOwnerFactory:rtcDecodedVideoOwners,
+        videoObserver:rtcVideoObserver,decodedVideoOwnerFactory:rtcDecodedVideoOwners,videoTimingDiagnostics:rtcSourceFrameWitness,
         decodedVideo(connection,timestamp,at,frame,width,height){
             const owner=bindings.get(connection);if(closed||!owner||routes[owner.index].active!==connection)return;
             try{
                 const context=owner.context;context.drawImage(frame,0,0,8,8);const bytes=context.getImageData(0,0,8,8).data;
                 const gray=Array.from({length:64},(_,i)=>.299*bytes[i*4]+.587*bytes[i*4+1]+.114*bytes[i*4+2]);
                 context.drawImage(frame,0,0,128,72);const pixels=context.getImageData(0,0,128,72).data;
-                routes[owner.index].measure.videoFrame(connection,timestamp,at,gray,pixels,width,height,null,null);
+                routes[owner.index].measure.videoFrame(connection,timestamp,at,gray,pixels,width,height,null,null,true);
             }catch(error){invalidRtc(connection,String(error.message));}
         },
         invalid:invalidRtc,
@@ -891,6 +894,7 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
             rtc_audio_boundary_diagnostics:rtc?.report()??null,
             ...(rtcSourceFrameWitness?{collection_passed:decodedVideoComplete&&witnessBytes<=RTC_WITNESS_CYCLE_BYTES&&measured.every(route=>route.collection_passed),
                 source_frame_census_bytes:witnessBytes,source_frame_census_limit:RTC_WITNESS_CYCLE_BYTES,
+                rtc_video_callback_timing:rtc?.videoTimingReport()??null,
                 source_frame_public_owners:routes.map(route=>({route:route.measure.index,intervals:structuredClone(route.measure.publicOwnerIntervals)}))}:{}),
             pipeline:pipeline?.report(routes.map((route,index)=>({index,source:route.selected.index,
                 audio:route.measure.envelope.edges,audioEnvelope:route.measure.envelope.report(1),video:route.measure.videoEdges}))),passed:decodedVideoComplete&&measured.every(route=>route.passed),routes:rtcSourceFrameWitness?measured.map((value,index)=>({...value,source_route_index:routes[index].selected.index})):measured});},
