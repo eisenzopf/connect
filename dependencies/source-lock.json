@@ -3041,6 +3041,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-test-adapter-capture-metadata-deferral.patch",
       "sha256": "f1a2653d1a268acca5d3f5f781d82ba85a31dbe9e322341fa8276de4eefde25e"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-public-video-bootstrap-recovery.patch",
+      "sha256": "090ee7e7471e74d5b2331667ab9acc582a20b8c8d4c630789babca0e4290f42a"
     }
   ]
 }

@@ -81,7 +81,9 @@ async fn finish_warm_invocation<'a>(
     let cancel = root.handle.cancellation();
     loop {
         match attempt? {
-            PublicVideoWarmInvocation::Complete => return Ok(()),
+            PublicVideoWarmInvocation::Complete | PublicVideoWarmInvocation::AlreadySubmitted => {
+                return Ok(())
+            }
             PublicVideoWarmInvocation::DefinitelyUnstarted(retry) => {
                 let deadline = until.min(retry.deadline());
                 if runtime.stop.is_cancelled()
@@ -294,6 +296,10 @@ impl Runtime {
                     _=tokio::time::sleep(Duration::from_millis(20))=>{},
                 }
             };
+            tracing::debug!(target:"connect_service::canonical_replacement",
+                boundary="public-video-bootstrap",stage="core-freeze-returned",
+                operation=%root.handle.intent().operation_id,source=%root.handle.intent().source,
+                target=%root.handle.intent().replacement,"Original public bootstrap boundary");
             // Own SAME F immediately, including through any later metadata refusal.
             // IDs name the owned Core F; no u64 ordinal is exposed to JavaScript.
             p.cut
@@ -369,12 +375,20 @@ impl Runtime {
                 terminal(root, "warm-owner-missing", "refused");
                 Error::forbidden()
             })?;
+            tracing::debug!(target:"connect_service::canonical_replacement",
+                boundary="public-video-bootstrap",stage="service-first-warm-dispatch",
+                operation=%root.handle.intent().operation_id,source=%root.handle.intent().source,
+                target=%root.handle.intent().replacement,"Original public bootstrap boundary");
             finish_warm_invocation(self, root, until, warm.start().await)
                 .await
                 .map_err(|error| {
                     terminal(root, "warm-start", stream_kind(&error));
                     stream_error(error)
                 })?;
+            tracing::debug!(target:"connect_service::canonical_replacement",
+                boundary="public-video-bootstrap",stage="service-first-initial-picture-dispatch",
+                operation=%root.handle.intent().operation_id,source=%root.handle.intent().source,
+                target=%root.handle.intent().replacement,"Original public bootstrap boundary");
             finish_warm_invocation(self, root, until, warm.request_initial_picture().await)
                 .await
                 .map_err(|error| {
@@ -388,6 +402,10 @@ impl Runtime {
                     error
                 })?;
             p.cut_recorded.store(true, Ordering::Release);
+            // A distinct bounded recovery hint, never a replay of the initial
+            // callback. Waiting retains only original Weak/immutable warm facts.
+            let recovery_at = warm.recovery_picture_at().ok_or_else(Error::forbidden)?;
+            let mut recovery_pending = true;
             loop {
                 // Register before checking, so a simultaneous original Ready cannot
                 // be lost. Waiting owns no Store Reader, role mutex or packet grant.
@@ -405,6 +423,22 @@ impl Runtime {
                     _=cancel.cancelled()=>return Err(Error::forbidden()),
                     _=tokio::time::sleep_until(root.deadline)=>return Err(Error::new("expired","Original B decoder cutoff elapsed")),
                     _=&mut notified=>{},
+                    _=tokio::time::sleep_until(recovery_at),if recovery_pending=>{
+                        recovery_pending = false;
+                        // A genuine signed Ready already proves complete native
+                        // submission; wait only for its actual reader release.
+                        if p.ready.get().is_none() {
+                            if let Err(error) = finish_warm_invocation(self, root, until, warm.request_recovery_picture().await).await {
+                                // This optional hint is terminal and never retried.
+                                // It cannot reject an earned Ready or replace the
+                                // original readiness/cancellation/deadline checks.
+                                tracing::debug!(target:"connect_service::canonical_replacement",
+                                    stage="recovery-picture-ended",error_kind=stream_kind(&error),
+                                    operation=%root.origin.request().operation_id,
+                                    "Optional original B recovery hint ended; awaiting original readiness");
+                            }
+                        }
+                    },
                 }
             }
             self.record_public_video_phase(root, started, Stage::DecodedReady)

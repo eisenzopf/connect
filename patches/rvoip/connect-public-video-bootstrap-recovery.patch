@@ -1,0 +1,598 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/initial_picture.rs b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/initial_picture.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/initial_picture.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/initial_picture.rs
+@@ -9,7 +9,8 @@
+     source_scene:Option<scene_consumer::SceneStamp>,
+     target_scene:Option<scene_consumer::SceneStamp>,
+     direct:DirectStamp,
+-    attempted:AtomicU8,started:AtomicU8,
++    attempted:AtomicU8,started:AtomicU8,recovery:AtomicU8,
++    initial_completed:OnceLock<tokio::time::Instant>,
+ }
+ /// Completion of one original warm-start or initial-picture callback. This
+ /// does not prove native submission, delivery, decoded readiness or publication.
+@@ -17,15 +18,21 @@
+ pub enum PublicVideoWarmInvocation<'a> {
+     /// The one original adapter callback returned success.
+     Complete,
++    /// A distinct recovery hint was unnecessary: the SAME B already has an
++    /// actual complete native keyframe submission. No adapter was entered.
++    AlreadySubmitted,
+     /// Only actual pre-entry metadata contention can return this linear token.
+     /// It owns the SAME one-shot reservation and every earlier numeric cutoff.
+     DefinitelyUnstarted(PublicVideoWarmRetry<'a>),
+ }
+ impl std::fmt::Debug for PublicVideoWarmInvocation<'_> {
+     fn fmt(&self,f:&mut std::fmt::Formatter<'_>)->std::fmt::Result {
+-        f.write_str(match self {Self::Complete=>"PublicVideoWarmInvocation::Complete",Self::DefinitelyUnstarted(_)=>"PublicVideoWarmInvocation::DefinitelyUnstarted"})
+-    }
+-}
++        f.write_str(match self {Self::Complete=>"PublicVideoWarmInvocation::Complete",Self::AlreadySubmitted=>"PublicVideoWarmInvocation::AlreadySubmitted",Self::DefinitelyUnstarted(_)=>"PublicVideoWarmInvocation::DefinitelyUnstarted"})
++    }
++}
++#[derive(Clone,Copy,PartialEq,Eq)]
++enum InvocationKind {Start,Initial,Recovery}
++
+ // 0 idle, 1 exclusively reserved before entry, 2 permanently consumed. Drop
+ // can release ONLY state1; it can never reset an entered/uncertain callback.
+ struct InvocationReservation<'a> {slot:&'a AtomicU8,owned:bool}
+@@ -48,7 +55,7 @@
+ // no token owner/allocation, and leaves every check in the original methods.
+ trait WarmRetryOrigin:Sync {
+     fn current(&self)->bool;
+-    fn invoke<'a>(&'a self,start:bool,reservation:InvocationReservation<'a>,deadline:tokio::time::Instant,cancel:CancellationToken)
++    fn invoke<'a>(&'a self,kind:InvocationKind,reservation:InvocationReservation<'a>,deadline:tokio::time::Instant,cancel:CancellationToken)
+         ->std::pin::Pin<Box<dyn std::future::Future<Output=ControlResult<PublicVideoWarmInvocation<'a>>>+Send+'a>>;
+ }
+ /// Linear proof that this exact original callback has NOT been entered and
+@@ -57,7 +64,7 @@
+ #[must_use]
+ pub struct PublicVideoWarmRetry<'a> {
+     original:&'a dyn WarmRetryOrigin,reservation:InvocationReservation<'a>,
+-    start:bool,deadline:tokio::time::Instant,cancel:CancellationToken,
++    kind:InvocationKind,deadline:tokio::time::Instant,cancel:CancellationToken,
+ }
+ impl<'a> PublicVideoWarmRetry<'a> {
+     /// Earliest original100ms/captured scope/observed grant bound; never renew.
+@@ -69,11 +76,11 @@
+     /// caller; only another returned token permits another metadata wait.
+     pub fn retry(self)->std::pin::Pin<Box<dyn std::future::Future<Output=ControlResult<PublicVideoWarmInvocation<'a>>>+Send+'a>> {
+         Box::pin(async move {
+-        let Self {original,reservation,start,deadline,cancel}=self;
++        let Self {original,reservation,kind,deadline,cancel}=self;
+         if cancel.is_cancelled() {return Err(StreamControlError::Cancelled);}
+         if tokio::time::Instant::now()>=deadline {return Err(StreamControlError::Deadline);}
+         if !original.current() {return Err(StreamControlError::NotReady);}
+-        original.invoke(start,reservation,deadline,cancel).await
++        original.invoke(kind,reservation,deadline,cancel).await
+         })
+     }
+ }
+@@ -187,7 +194,7 @@
+         let direct=DirectStamp {feedback:route.feedback.clone(),gate:Arc::downgrade(gate),
+             ticket:route.ticket.clone(),selection:route.selection.clone(),cancel:gate.cancel.clone(),
+             preparation:route.preparation.clone(),post_cut:route.post_cut.clone()};
+-        Ok(Self {source,target,source_ticket,target_ticket,source_scene,target_scene,direct,attempted:AtomicU8::new(0),started:AtomicU8::new(0)})
++        Ok(Self {source,target,source_ticket,target_ticket,source_scene,target_scene,direct,attempted:AtomicU8::new(0),started:AtomicU8::new(0),recovery:AtomicU8::new(0),initial_completed:OnceLock::new()})
+     }
+     fn current(&self)->bool {
+         if !self.direct.is_current() {terminal_current_refusal(self,"current-direct-stamp","currentness-only-no-effect-proof");return false;}
+@@ -198,21 +205,38 @@
+         if ![&self.source_scene,&self.target_scene].into_iter().flatten().all(|s|!s.cancel.is_cancelled()) {terminal_current_refusal(self,"current-scene-cancellation","currentness-only-no-effect-proof");return false;}
+         true
+     }
+-    pub(super) async fn dispatch(&self)->ControlResult<PublicVideoWarmInvocation<'_>> {self.begin(false).await}
+-    pub(super) async fn start(&self)->ControlResult<PublicVideoWarmInvocation<'_>> {self.begin(true).await}
+-    async fn begin(&self,start:bool)->ControlResult<PublicVideoWarmInvocation<'_>> {
+-        let slot=if start {&self.started}else{&self.attempted};
++    pub(super) async fn dispatch(&self)->ControlResult<PublicVideoWarmInvocation<'_>> {self.begin(InvocationKind::Initial).await}
++    pub(super) async fn start(&self)->ControlResult<PublicVideoWarmInvocation<'_>> {self.begin(InvocationKind::Start).await}
++    // Numeric eligibility only, not a policy grant or a readiness observation.
++    pub(super) fn recovery_at(&self)->Option<tokio::time::Instant> {
++        self.initial_completed.get().map(|completed|*completed+Duration::from_millis(300))
++    }
++    fn recovery_needed(&self)->ControlResult<bool> {
++        let scope=self.direct.post_cut.as_ref().ok_or(StreamControlError::Authority)?;
++        let due=self.recovery_at().ok_or(StreamControlError::NotReady)?;
++        if tokio::time::Instant::now()<due || !self.current()
++            || !scope.owner.upgrade().is_some_and(|owner|owner.into_owner().started.load(Ordering::Acquire))
++            || scope.is_published() {return Err(StreamControlError::NotReady);}
++        Ok(scope.successful_keyframe_submission().is_none())
++    }
++    pub(super) async fn recover(&self)->ControlResult<PublicVideoWarmInvocation<'_>> {
++        if !self.recovery_needed()? {return Ok(PublicVideoWarmInvocation::AlreadySubmitted);}
++        self.begin(InvocationKind::Recovery).await
++    }
++    async fn begin(&self,kind:InvocationKind)->ControlResult<PublicVideoWarmInvocation<'_>> {
++        let slot=match kind {InvocationKind::Start=>&self.started,InvocationKind::Initial=>&self.attempted,InvocationKind::Recovery=>&self.recovery};
+         let reservation=InvocationReservation::acquire(slot).map_err(|error|{terminal_refusal(self,"invoke-reservation-owned-or-consumed","before-this-invocation-adapter-entry-prior-entry-possible",&error);error})?;
+         if !self.current() {terminal_refusal(self,"invoke-initial-current","before-once-CAS-and-adapter-entry",&StreamControlError::NotReady);return Err(StreamControlError::NotReady);}
+         let scope=self.direct.post_cut.as_ref().ok_or_else(||{terminal_refusal(self,"invoke-post-cut-scope-missing","before-once-CAS-and-adapter-entry",&StreamControlError::Authority);StreamControlError::Authority})?;
+         let cancel=scope.cancellation().inspect_err(|error|terminal_refusal(self,"invoke-scope-cancellation-owner","before-once-CAS-and-adapter-entry",error))?;
+         let deadline=scope.deadline().ok_or_else(||{terminal_refusal(self,"invoke-scope-deadline-owner","before-once-CAS-and-adapter-entry",&StreamControlError::Cancelled);StreamControlError::Cancelled})?
+             .min(tokio::time::Instant::now()+Duration::from_millis(100));
+-        self.invoke(start,reservation,deadline,cancel).await
+-    }
+-    async fn invoke<'a>(&'a self,start:bool,mut reservation:InvocationReservation<'a>,mut deadline:tokio::time::Instant,cancel:CancellationToken)->ControlResult<PublicVideoWarmInvocation<'a>> {
++        self.invoke(kind,reservation,deadline,cancel).await
++    }
++    async fn invoke<'a>(&'a self,kind:InvocationKind,mut reservation:InvocationReservation<'a>,mut deadline:tokio::time::Instant,cancel:CancellationToken)->ControlResult<PublicVideoWarmInvocation<'a>> {
+         if cancel.is_cancelled() {return Err(StreamControlError::Cancelled);}
+         if tokio::time::Instant::now()>=deadline {return Err(StreamControlError::Deadline);}
++        if kind==InvocationKind::Recovery && !self.recovery_needed()? {return Ok(PublicVideoWarmInvocation::AlreadySubmitted);}
+         let scope=self.direct.post_cut.as_ref().ok_or_else(||{terminal_refusal(self,"invoke-post-cut-scope-missing","before-once-CAS-and-adapter-entry",&StreamControlError::Authority);StreamControlError::Authority})?;
+         let source_port=self.source.upgrade().ok_or_else(||{terminal_refusal(self,"invoke-source-port-gone","before-once-CAS-and-adapter-entry",&StreamControlError::Cancelled);StreamControlError::Cancelled})?;
+         let target_port=self.target.upgrade().ok_or_else(||{terminal_refusal(self,"invoke-target-port-gone","before-once-CAS-and-adapter-entry",&StreamControlError::Cancelled);StreamControlError::Cancelled})?;
+@@ -248,30 +272,39 @@
+             Err(StreamControlError::NotReady) if metadata_blocked=>{
+                 // Every partial source/target lease/guard was destroyed by the
+                 // synchronous block before this token becomes observable.
+-                return Ok(PublicVideoWarmInvocation::DefinitelyUnstarted(PublicVideoWarmRetry {original:self,reservation,start,deadline,cancel}));
++                return Ok(PublicVideoWarmInvocation::DefinitelyUnstarted(PublicVideoWarmRetry {original:self,reservation,kind,deadline,cancel}));
+             }
+             Err(error)=>return Err(error),
+         };
+         let tokens=admitted.tokens.clone();
+-        let callback_adapter=if start {admitted.target.adapter.clone()}else{source.adapter.clone()};
++        let callback_adapter=if kind==InvocationKind::Start {admitted.target.adapter.clone()}else{source.adapter.clone()};
+         let request=InitialVideoPictureRequest {original:self,source:AdapterMediaPort(source_port),descriptor:scope.source().clone(),deadline,cancel:cancel.clone()};
+         let warm=PublicVideoWarmStart {original:self,target:AdapterMediaPort(target_port),scope:scope.clone(),deadline,cancel};
+         let result=tokio::select! {biased;
+             _=audio_consumer::any_cancelled(tokens)=>{terminal_refusal(self,"invoke-cancel-select","callback-may-have-been-polled-no-replay-proof",&StreamControlError::Cancelled);Err(StreamControlError::Cancelled)},
+             value=tokio::time::timeout_at(deadline,async {
+                 if !request.is_current() {terminal_refusal(self,"invoke-request-current-before-CAS","before-once-CAS-and-adapter-entry",&StreamControlError::NotReady);return Err(StreamControlError::NotReady);}
++                if kind==InvocationKind::Recovery && !self.recovery_needed()? {return Ok(false);}
+                 // Permanent consumption is BEFORE constructing/polling adapter
+                 // IO; no error/timeout/cancel can later yield a retry token.
+                 reservation.enter().inspect_err(|error|terminal_refusal(self,"invoke-once-CAS-refused","before-this-invocation-adapter-entry-prior-entry-possible",error))?;
+-                if start {
++                if kind==InvocationKind::Start {
+                     callback_adapter.start_public_video_warm(&warm).await.inspect_err(|error|terminal_refusal(self,"invoke-warm-adapter-return","after-once-CAS-and-adapter-entry-effects-possible",error))?;
+                     scope.owner.upgrade().ok_or_else(||{terminal_refusal(self,"invoke-owner-gone-after-adapter","after-adapter-success-effects-possible",&StreamControlError::Cancelled);StreamControlError::Cancelled})?.into_owner().started.store(true,Ordering::Release);
+-                    Ok(())
+-                }else {callback_adapter.request_initial_video_picture(&request).await.inspect_err(|error|terminal_refusal(self,"invoke-picture-adapter-return","after-once-CAS-and-adapter-entry-effects-possible",error))}
++                    Ok(true)
++                }else {
++                    callback_adapter.request_initial_video_picture(&request).await.inspect_err(|error|terminal_refusal(self,"invoke-picture-adapter-return","after-once-CAS-and-adapter-entry-effects-possible",error))?;
++                    Ok(true)
++                }
+             })=>value.map_err(|_|{terminal_refusal(self,"invoke-timeout","callback-may-have-been-polled-no-replay-proof",&StreamControlError::Deadline);StreamControlError::Deadline})?,
+         };
+         drop(admitted);
+-        result.map(|()|PublicVideoWarmInvocation::Complete)
++        result.map(|entered| {
++            // Only actual successful initial return establishes this timestamp;
++            // consumed failed/timed-out/cancelled callbacks never qualify.
++            if entered && kind==InvocationKind::Initial {let _=self.initial_completed.set(tokio::time::Instant::now());}
++            if entered {PublicVideoWarmInvocation::Complete}else{PublicVideoWarmInvocation::AlreadySubmitted}
++        })
+     }
+ }
+ 
+@@ -279,8 +312,8 @@
+ // boxing creates an unpolled control future, never an admission or retry grant.
+ impl WarmRetryOrigin for InitialPublicVideoPicture {
+     fn current(&self)->bool {InitialPublicVideoPicture::current(self)}
+-    fn invoke<'a>(&'a self,start:bool,reservation:InvocationReservation<'a>,deadline:tokio::time::Instant,cancel:CancellationToken)
++    fn invoke<'a>(&'a self,kind:InvocationKind,reservation:InvocationReservation<'a>,deadline:tokio::time::Instant,cancel:CancellationToken)
+         ->std::pin::Pin<Box<dyn std::future::Future<Output=ControlResult<PublicVideoWarmInvocation<'a>>>+Send+'a>> {
+-        Box::pin(InitialPublicVideoPicture::invoke(self,start,reservation,deadline,cancel))
+-    }
+-}
++        Box::pin(InitialPublicVideoPicture::invoke(self,kind,reservation,deadline,cancel))
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public.rs b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public.rs
+@@ -166,6 +166,16 @@
+         Box::pin(async move {
+         self.initial_picture.dispatch().await
+         })
++    }
++    /// Earliest distinct recovery hint time, measured from actual successful
++    /// initial callback completion. No policy/IO owner survives this delay.
++    pub fn recovery_picture_at(&self)->Option<tokio::time::Instant> {self.initial_picture.recovery_at()}
++    /// At most one separately guarded source hint for the SAME post-F B while
++    /// no complete native keyframe has been submitted. An initial callback
++    /// error/timeout never permits recovery. Pre-entry metadata retry retains
++    /// this separate reservation and its original cutoff, never the initial one.
++    pub fn request_recovery_picture<'a>(&'a self)->std::pin::Pin<Box<dyn std::future::Future<Output=ControlResult<PublicVideoWarmInvocation<'a>>>+Send+'a>> {
++        Box::pin(async move {self.initial_picture.recover().await})
+     }
+     /// Exact plan identity only; this is not a decoded-ready or IO grant.
+     pub fn matches_original_plan(&self,plan:&crate::orchestrator::participant_control::ManagedAudioDeviceReplacementPlan)->bool {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/metadata_retry_controls.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/metadata_retry_controls.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/metadata_retry_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/metadata_retry_controls.rs
+@@ -23,7 +23,7 @@
+ }
+ impl Drop for StateHold {fn drop(&mut self){self.release();}}
+ fn retry<'a>(value:ControlResult<PublicVideoWarmInvocation<'a>>)->PublicVideoWarmRetry<'a> {
+-    match value.unwrap() {PublicVideoWarmInvocation::DefinitelyUnstarted(retry)=>retry,PublicVideoWarmInvocation::Complete=>panic!("actual metadata hold must precede callback entry")}
++    match value.unwrap() {PublicVideoWarmInvocation::DefinitelyUnstarted(retry)=>retry,PublicVideoWarmInvocation::Complete|PublicVideoWarmInvocation::AlreadySubmitted=>panic!("actual metadata hold must precede callback entry")}
+ }
+ async fn invoke(owner:&PublicVideoWarmPreparation,hint:bool)->ControlResult<PublicVideoWarmInvocation<'_>> {
+     if hint {owner.request_initial_picture().await}else{owner.start().await}
+@@ -111,3 +111,93 @@
+     }}
+     assert!(facts.iter().all(|(_,_,clean,(terminal,no_callback,aliases))|*clean&&*terminal&&*no_callback&&*aliases),"{facts:?}");
+ }
++
++// Real original managed/F/Warm state and policy, modeled adapter only. No
++// generated feedback/readiness or native successful submission is fabricated.
++#[tokio::test]
++async fn managed_recovery_hint_requires_successful_initial_return_and_is_one_distinct_attempt() {
++    let mut facts=Vec::new();
++    for action in 0..6 {
++        let mut room=ManagedRoom::with_video(true).await;
++        let result=catch_original(async {
++            let(ready,_old,source,owner)=start_controls::ready(&mut room).await;
++            let target=ready.grant.intent.replacement.clone();
++            let backend=room.nodes[&source].backend.clone();
++            room.nodes[&target].backend.mode.store(20,Ordering::Release);
++            if action!=3 {assert!(matches!(owner.start().await,Ok(PublicVideoWarmInvocation::Complete)));}
++            backend.mode.store(match action {1=>12,2=>11,_=>10},Ordering::Release);
++            assert!(owner.recovery_picture_at().is_none());
++            let no_initial=owner.request_recovery_picture().await.is_err();
++            let before_initial=tokio::time::Instant::now();
++            let initial=owner.request_initial_picture().await;
++            if action==1 || action==2 {
++                let failed=initial.is_err() && owner.recovery_picture_at().is_none();
++                let cannot_recover=owner.request_recovery_picture().await.is_err();
++                let cannot_replay=owner.request_initial_picture().await.is_err();
++                let calls=backend.initial_picture_calls.load(Ordering::Acquire);
++                owner.close();return(no_initial&&failed&&cannot_recover&&cannot_replay,calls==1,true);
++            }
++            assert!(matches!(initial,Ok(PublicVideoWarmInvocation::Complete)));
++            let at=owner.recovery_picture_at().unwrap();
++            assert!(at>=before_initial+Duration::from_millis(300));
++            let early=owner.request_recovery_picture().await.is_err();
++            let leases=room.world.media_leases.load(Ordering::Acquire);
++            tokio::time::sleep_until(at).await;
++            let no_wait_aliases=room.world.media_leases.load(Ordering::Acquire)==leases;
++            let before_revision=room.nodes[&target].controller.revision();
++            if action==4 {backend.mode.store(12,Ordering::Release);}
++            if action==5 {backend.mode.store(11,Ordering::Release);}
++            let recovery=owner.request_recovery_picture().await;
++            let expected=if action==0 {matches!(recovery,Ok(PublicVideoWarmInvocation::Complete))}else{recovery.is_err()};
++            let no_replay=owner.request_recovery_picture().await.is_err() && owner.request_initial_picture().await.is_err();
++            let count=backend.initial_picture_calls.load(Ordering::Acquire);
++            let mut output=room.nodes[&target].backend.ports.lock().unwrap()[&b_id()].take_egress().unwrap();
++            let no_io=output.try_recv().is_err() && owner.scopes()[0].successful_keyframe_submission().is_none();
++            let unchanged=room.nodes[&target].controller.revision()==before_revision && owner.matches_original_plan(&ready.plan);
++            owner.close();(no_initial&&early&&no_wait_aliases&&expected&&no_replay,count==if action==3 {1}else{2},no_io&&unchanged)
++        }).await;
++        let clean=room.close_originals().await.into_iter().all(|x|x);if let Err(error)=result {resume_unwind(error)}
++        facts.push((action,clean,result.unwrap()));
++    }
++    assert!(facts.iter().all(|(_,clean,(a,b,c))|*clean&&*a&&*b&&*c),"{facts:?}");
++}
++
++#[tokio::test]
++async fn managed_recovery_hint_retains_same_reservation_and_drops_all_admissions_before_metadata_wait() {
++    let mut facts=Vec::new();
++    for target_side in [false,true] {for action in 0..5 {
++        let mut room=ManagedRoom::with_video(true).await;
++        let result=catch_original(async {
++            let(ready,_old,source,owner)=start_controls::ready(&mut room).await;
++            let target=ready.grant.intent.replacement.clone();
++            room.nodes[&source].backend.mode.store(10,Ordering::Release);
++            room.nodes[&target].backend.mode.store(20,Ordering::Release);
++            assert!(matches!(owner.start().await,Ok(PublicVideoWarmInvocation::Complete)));
++            assert!(matches!(owner.request_initial_picture().await,Ok(PublicVideoWarmInvocation::Complete)));
++            let due=owner.recovery_picture_at().unwrap();
++            tokio::time::sleep_until(due).await;
++            let selected=if target_side {&target}else{&source};
++            let mut hold=StateHold::new(room.nodes[selected].controller.clone());hold.acquire();
++            let leases=room.world.media_leases.load(Ordering::Acquire);
++            let token=retry(owner.request_recovery_picture().await);let original_deadline=token.deadline();
++            let released=room.world.media_leases.load(Ordering::Acquire)==leases;
++            let concurrent=owner.request_recovery_picture().await.is_err();
++            let token=retry(token.retry().await);let not_renewed=token.deadline()<=original_deadline;
++            let released_again=room.world.media_leases.load(Ordering::Acquire)==leases;
++            hold.release();
++            let result=match action {
++                0=>matches!(token.retry().await,Ok(PublicVideoWarmInvocation::Complete)),
++                1=>{owner.close();token.retry().await.is_err()},
++                2=>{room.world.allowed.store(false,Ordering::Release);let refused=matches!(token.retry().await,Err(StreamControlError::Authority));room.world.allowed.store(true,Ordering::Release);refused},
++                3=>{room.nodes[selected].backend.ports.lock().unwrap()[&if target_side {b_id()}else{desired(Medium::Video).logical_id}].0.ticket(if target_side {TicketSide::Egress}else{TicketSide::Ingress}).retire_if_current();token.retry().await.is_err()},
++                _=>{tokio::time::sleep_until(original_deadline).await;matches!(token.retry().await,Err(StreamControlError::Deadline))},
++            };
++            let calls=room.nodes[&source].backend.initial_picture_calls.load(Ordering::Acquire);
++            let expected=if action==0 {2}else{1};owner.close();
++            (released&&released_again&&concurrent&&not_renewed&&result,calls==expected)
++        }).await;
++        let clean=room.close_originals().await.into_iter().all(|x|x);if let Err(error)=result {resume_unwind(error)}
++        facts.push((target_side,action,clean,result.unwrap()));
++    }}
++    assert!(facts.iter().all(|(_,_,clean,(a,b))|*clean&&*a&&*b),"{facts:?}");
++}
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video/public_warm.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video/public_warm.rs
+@@ -4,6 +4,61 @@
+ use super::*;
+ use rvoip_core::staged_streams::direct_subscriptions::PostCutPublicVideoScope;
+ use rvoip_core::staged_streams::direct_subscriptions::PublicVideoKeyframeRecorder;
++// Diagnostic metadata only, serialized by the already-owned Timeline. No
++// payload, owner/permission Arc, additional lock or packet authority is kept.
++// Counters run only in the existing pending-public bootstrap/error branches;
++// DEBUG output is disabled unless the existing target is explicitly enabled.
++struct BootstrapDiagnostic {
++    armed:Instant,context:Option<(String,rvoip_core::ids::ConnectionId,rvoip_core::ids::ConnectionId)>,
++    packets:u32,unusable_starts:u32,orphan_or_gap:u32,identity_refusals:u32,header_refusals:u32,
++    valid_key_starts:u32,written_fragments:u32,native_errors:u32,zero_or_reused_writes:u32,
++    floor_refusals:u32,deferred_before_callback:u32,
++    first_dispatch_us:Option<u64>,first_key_us:Option<u64>,whole_written_us:Option<u64>,
++    first_rtp:Option<u32>,first_key_rtp:Option<u32>,
++}
++impl Default for BootstrapDiagnostic {
++    fn default()->Self {Self {armed:Instant::now(),context:None,packets:0,unusable_starts:0,
++        orphan_or_gap:0,identity_refusals:0,header_refusals:0,valid_key_starts:0,
++        written_fragments:0,native_errors:0,zero_or_reused_writes:0,floor_refusals:0,
++        deferred_before_callback:0,first_dispatch_us:None,first_key_us:None,
++        whole_written_us:None,first_rtp:None,first_key_rtp:None}}
++}
++impl BootstrapDiagnostic {
++    fn elapsed_us(&self)->u64 {self.armed.elapsed().as_micros().min(u128::from(u64::MAX)) as u64}
++    fn emit(&self,stage:&'static str) {
++        if let Some((operation,source,target))=&self.context {
++            tracing::debug!(target:"connect_service::canonical_replacement",
++                boundary="public-video-bootstrap",stage,operation=%operation,source=%source,target=%target,
++                packets=self.packets,unusable_starts=self.unusable_starts,orphan_or_gap=self.orphan_or_gap,
++                identity_refusals=self.identity_refusals,header_refusals=self.header_refusals,
++                valid_key_starts=self.valid_key_starts,written_fragments=self.written_fragments,
++                native_errors=self.native_errors,zero_or_reused_writes=self.zero_or_reused_writes,
++                floor_refusals=self.floor_refusals,deferred_before_callback=self.deferred_before_callback,
++                first_dispatch_us=?self.first_dispatch_us,first_key_us=?self.first_key_us,
++                whole_written_us=?self.whole_written_us,first_rtp=?self.first_rtp,first_key_rtp=?self.first_key_rtp,
++                "Original pending public bootstrap metadata");
++        }
++    }
++    fn dispatch(&mut self,timestamp:u32) {
++        self.packets=self.packets.saturating_add(1);
++        if self.first_dispatch_us.is_none() {
++            self.first_dispatch_us=Some(self.elapsed_us());self.first_rtp=Some(timestamp);
++            self.emit("first-admitted-bootstrap-dispatch");
++        }
++    }
++    fn key_start(&mut self,timestamp:u32) {
++        self.valid_key_starts=self.valid_key_starts.saturating_add(1);
++        if self.first_key_us.is_none() {self.first_key_us=Some(self.elapsed_us());self.first_key_rtp=Some(timestamp);}
++    }
++    fn whole_written(&mut self) {
++        if self.whole_written_us.is_none() {
++            self.whole_written_us=Some(self.elapsed_us());
++            // Actual WHOLE successful native writes only; not a Core recorder
++            // acceptance, decoded-Ready, publication or permission assertion.
++            self.emit("first-whole-native-keyframe-written");
++        }
++    }
++}
+ #[derive(Clone)]
+ enum Bootstrap {Waiting, Collecting {source:Source,ordinal:u64,timestamp:u32,next:u16}, Open {source:Source}}
+ pub(super) struct WarmVideo {
+@@ -13,10 +68,23 @@
+ }
+ impl WarmVideo {
+     pub(super) fn new(scope:Arc<PostCutPublicVideoScope>,recorder:PublicVideoKeyframeRecorder)->Self {
+-        Self {scope,progress:BootstrapProgress::default(),recorder}
++        let mut progress=BootstrapProgress::default();
++        progress.diagnostic.context=Some((scope.original_intent().operation_id.clone(),
++            scope.source().connection.clone(),scope.original_intent().replacement.clone()));
++        progress.diagnostic.emit("original-warm-scope-armed");
++        Self {scope,progress,recorder}
+     }
+     pub(super) fn preview(&mut self,source:&Source,input:&rtp::Packet,original:&Arc<rvoip_core::staged_streams::OriginalVideoFrame>)->ControlResult<Option<BootstrapCommit>> {
+         self.progress.preview_for_phase(self.scope.is_published(),source,input,original)
++    }
++    pub(super) fn floor_refused(&mut self) {
++        if self.progress.diagnostic.whole_written_us.is_none() {self.progress.diagnostic.floor_refusals=self.progress.diagnostic.floor_refusals.saturating_add(1);}
++    }
++    pub(super) fn native_refused(&mut self) {
++        if self.progress.diagnostic.whole_written_us.is_none() {self.progress.diagnostic.native_errors=self.progress.diagnostic.native_errors.saturating_add(1);}
++    }
++    pub(super) fn deferred_before_callback(&mut self) {
++        if self.progress.diagnostic.whole_written_us.is_none() {self.progress.diagnostic.deferred_before_callback=self.progress.diagnostic.deferred_before_callback.saturating_add(1);}
+     }
+     // Actual Producer calls ONLY after native write Ok, with its original IO
+     // object. Partial/unknown errors never call this and zero-write Ok cannot
+@@ -35,11 +103,18 @@
+         }
+     }
+ }
++impl Drop for WarmVideo {
++    fn drop(&mut self) {
++        if self.progress.diagnostic.whole_written_us.is_none() {
++            self.progress.diagnostic.emit("warm-owner-dropped-before-whole-keyframe");
++        }
++    }
++}
+ struct BootstrapProgress {
+-    bootstrap:Bootstrap,original:Option<Arc<rvoip_core::staged_streams::OriginalVideoFrame>>,
++    bootstrap:Bootstrap,original:Option<Arc<rvoip_core::staged_streams::OriginalVideoFrame>>,diagnostic:BootstrapDiagnostic,
+ }
+ impl Default for BootstrapProgress {
+-    fn default()->Self {Self {bootstrap:Bootstrap::Waiting,original:None}}
++    fn default()->Self {Self {bootstrap:Bootstrap::Waiting,original:None,diagnostic:BootstrapDiagnostic::default()}}
+ }
+ impl BootstrapProgress {
+     // Bootstrap is pending-public decoder setup only. Actual publication ends
+@@ -51,15 +126,20 @@
+         self.preview(source,input,original).map(Some)
+     }
+     fn preview(&mut self,source:&Source,input:&rtp::Packet,original:&Arc<rvoip_core::staged_streams::OriginalVideoFrame>)->ControlResult<BootstrapCommit> {
+-        let ordinal=original.frame_realm().ok_or(StreamControlError::Unsupported)?.ordinal();
++        self.diagnostic.dispatch(input.header.timestamp);
++        let ordinal=original.frame_realm().ok_or_else(|| {
++            self.diagnostic.header_refusals=self.diagnostic.header_refusals.saturating_add(1);
++            StreamControlError::Unsupported
++        })?.ordinal();
+         if matches!(&self.bootstrap,Bootstrap::Collecting {ordinal:point,timestamp,..}
+             if *point==ordinal && *timestamp==input.header.timestamp)
+             && self.original.as_ref().is_none_or(|old|!Arc::ptr_eq(old,original)) {
+             self.bootstrap=Bootstrap::Waiting;self.original=None;
++            self.diagnostic.identity_refusals=self.diagnostic.identity_refusals.saturating_add(1);
+             return Err(StreamControlError::Authority);
+         }
+         let was_open=matches!(&self.bootstrap,Bootstrap::Open {source:old} if old==source);
+-        match preview(&self.bootstrap,source,input,ordinal) {
++        match preview(&self.bootstrap,source,input,ordinal,&mut self.diagnostic) {
+             Ok(next)=>{let complete=!was_open && matches!(&next,Bootstrap::Open {..});Ok(BootstrapCommit {next,complete})},
+             Err(error)=>{self.bootstrap=Bootstrap::Waiting;self.original=None;Err(error)},
+         }
+@@ -68,31 +148,44 @@
+         &mut self,next:BootstrapCommit,original:&Arc<rvoip_core::staged_streams::OriginalVideoFrame>,
+         previously_written:bool,io:&dyn OwnedRtpIo,
+     )->Option<Arc<rvoip_core::staged_streams::OriginalVideoFrame>> {
+-        if previously_written || !io.attempted() || !io.written() {return None;}
++        if previously_written || !io.attempted() || !io.written() {
++            self.diagnostic.zero_or_reused_writes=self.diagnostic.zero_or_reused_writes.saturating_add(1);
++            return None;
++        }
++        self.diagnostic.written_fragments=self.diagnostic.written_fragments.saturating_add(1);
+         self.original=if matches!(&next.next,Bootstrap::Collecting {..}) {Some(original.clone())} else {None};
+         self.bootstrap=next.next;
++        if next.complete {self.diagnostic.whole_written();}
+         next.complete.then(||original.clone())
+     }
+ }
+ pub(super) struct BootstrapCommit {next:Bootstrap,complete:bool}
+-fn preview(state:&Bootstrap,source:&Source,input:&rtp::Packet,ordinal:u64)->ControlResult<Bootstrap> {
++fn preview(state:&Bootstrap,source:&Source,input:&rtp::Packet,ordinal:u64,diagnostic:&mut BootstrapDiagnostic)->ControlResult<Bootstrap> {
+     if matches!(state,Bootstrap::Open {source:old} if old==source) {return Ok(state.clone());}
+-    let first=*input.payload.first().ok_or(StreamControlError::Unsupported)?;
++    let first=*input.payload.first().ok_or_else(|| {
++        diagnostic.header_refusals=diagnostic.header_refusals.saturating_add(1);StreamControlError::Unsupported
++    })?;
+     let starts=first&0x10!=0 && first&0x0f==0;
+     if starts {
+-        let size=super::super::video_normalize::vp8_descriptor_len(&input.payload).ok_or(StreamControlError::Unsupported)?;
+-        let data=input.payload.get(size..).ok_or(StreamControlError::Unsupported)?;
++        let size=super::super::video_normalize::vp8_descriptor_len(&input.payload).ok_or_else(|| {
++            diagnostic.header_refusals=diagnostic.header_refusals.saturating_add(1);StreamControlError::Unsupported
++        })?;
++        let data=input.payload.get(size..).ok_or_else(|| {
++            diagnostic.header_refusals=diagnostic.header_refusals.saturating_add(1);StreamControlError::Unsupported
++        })?;
+         // RFC6386 key-frame tag, sync code and nonzero visible dimensions.
+         if data.len()<10 || data[0]&1!=0 || data[3..6]!=[0x9d,0x01,0x2a]
+             || u16::from_le_bytes([data[6],data[7]])&0x3fff==0
+             || u16::from_le_bytes([data[8],data[9]])&0x3fff==0 {
++            diagnostic.unusable_starts=diagnostic.unusable_starts.saturating_add(1);
+             return Err(StreamControlError::NotReady);
+         }
++        diagnostic.key_start(input.header.timestamp);
+     } else {
+         match state {
+             Bootstrap::Collecting {source:old,ordinal:point,timestamp,next}
+                 if old==source && *point==ordinal && *timestamp==input.header.timestamp && *next==input.header.sequence_number=>{},
+-            _=>return Err(StreamControlError::NotReady),
++            _=>{diagnostic.orphan_or_gap=diagnostic.orphan_or_gap.saturating_add(1);return Err(StreamControlError::NotReady)},
+         }
+     }
+     Ok(if input.header.marker {Bootstrap::Open {source:source.clone()}}
+@@ -110,29 +203,38 @@
+     #[test]
+     fn public_warm_bootstrap_requires_fresh_keyframe_and_all_successful_contiguous_fragments() {
+         let source=source(1);let mut state=Bootstrap::Waiting;
+-        assert!(preview(&state,&source,&packet(10,90,true,true,false),1).is_err());
+-        assert!(preview(&state,&source,&packet(10,90,true,false,true),1).is_err());
+-        let candidate=preview(&state,&source,&packet(65535,90,false,true,true),1).unwrap();
++        assert!(preview(&state,&source,&packet(10,90,true,true,false),1,&mut BootstrapDiagnostic::default()).is_err());
++        assert!(preview(&state,&source,&packet(10,90,true,false,true),1,&mut BootstrapDiagnostic::default()).is_err());
++        let candidate=preview(&state,&source,&packet(65535,90,false,true,true),1,&mut BootstrapDiagnostic::default()).unwrap();
+         // Without successful native IO there is no state commit: following
+         // fragment cannot bootstrap the receiver from a failed first write.
+-        assert!(preview(&state,&source,&packet(0,90,true,false,true),1).is_err());
++        assert!(preview(&state,&source,&packet(0,90,true,false,true),1,&mut BootstrapDiagnostic::default()).is_err());
+         state=candidate;
+-        assert!(preview(&state,&source,&packet(1,90,true,false,true),1).is_err());
+-        assert!(preview(&state,&source,&packet(0,90,true,false,true),2).is_err());
+-        assert!(preview(&state,&source,&packet(0,91,true,false,true),1).is_err());
+-        state=preview(&state,&source,&packet(0,90,true,false,true),1).unwrap();
++        assert!(preview(&state,&source,&packet(1,90,true,false,true),1,&mut BootstrapDiagnostic::default()).is_err());
++        assert!(preview(&state,&source,&packet(0,90,true,false,true),2,&mut BootstrapDiagnostic::default()).is_err());
++        assert!(preview(&state,&source,&packet(0,91,true,false,true),1,&mut BootstrapDiagnostic::default()).is_err());
++        state=preview(&state,&source,&packet(0,90,true,false,true),1,&mut BootstrapDiagnostic::default()).unwrap();
+         assert!(matches!(state,Bootstrap::Open {..}));
+-        assert!(preview(&state,&source,&packet(1,100,true,true,false),2).is_ok());
+-        assert!(preview(&state,&self::source(2),&packet(1,100,true,true,false),2).is_err());
++        assert!(preview(&state,&source,&packet(1,100,true,true,false),2,&mut BootstrapDiagnostic::default()).is_ok());
++        assert!(preview(&state,&self::source(2),&packet(1,100,true,true,false),2,&mut BootstrapDiagnostic::default()).is_err());
++        let mut pending=Bootstrap::Waiting;let mut diagnostic=BootstrapDiagnostic::default();
++        for ordinal in 1..=24 {
++            assert!(matches!(preview(&pending,&source,&packet(ordinal as u16,ordinal as u32,true,true,false),ordinal,&mut diagnostic),Err(StreamControlError::NotReady)));
++        }
++        assert_eq!(diagnostic.unusable_starts,24);assert_eq!(diagnostic.valid_key_starts,0);
++        pending=preview(&pending,&source,&packet(25,25,false,true,true),25,&mut diagnostic).unwrap();
++        assert_eq!(diagnostic.valid_key_starts,1);
++        assert!(preview(&pending,&source,&packet(27,25,true,false,true),25,&mut diagnostic).is_err());
++        assert_eq!(diagnostic.orphan_or_gap,1,"a started keyframe fractured, distinct from no usable start");
+     }
+     #[test]
+     fn public_warm_bootstrap_rejects_truncated_or_non_key_headers_and_restarts_only_on_keyframe() {
+         let source=source(1);let state=Bootstrap::Waiting;
+-        let mut short=packet(1,1,true,true,true);short.payload=vec![0x90,0x80].into();assert!(preview(&state,&source,&short,1).is_err());
+-        let mut wrong=packet(1,1,true,true,true);let mut bytes=wrong.payload.to_vec();bytes[4]=0;wrong.payload=bytes.into();assert!(preview(&state,&source,&wrong,1).is_err());
+-        let pending=preview(&state,&source,&packet(1,1,false,true,true),1).unwrap();
+-        assert!(preview(&pending,&source,&packet(2,2,true,true,false),2).is_err());
+-        assert!(matches!(preview(&pending,&source,&packet(3,3,true,true,true),3).unwrap(),Bootstrap::Open {..}));
++        let mut short=packet(1,1,true,true,true);short.payload=vec![0x90,0x80].into();assert!(preview(&state,&source,&short,1,&mut BootstrapDiagnostic::default()).is_err());
++        let mut wrong=packet(1,1,true,true,true);let mut bytes=wrong.payload.to_vec();bytes[4]=0;wrong.payload=bytes.into();assert!(preview(&state,&source,&wrong,1,&mut BootstrapDiagnostic::default()).is_err());
++        let pending=preview(&state,&source,&packet(1,1,false,true,true),1,&mut BootstrapDiagnostic::default()).unwrap();
++        assert!(preview(&pending,&source,&packet(2,2,true,true,false),2,&mut BootstrapDiagnostic::default()).is_err());
++        assert!(matches!(preview(&pending,&source,&packet(3,3,true,true,true),3,&mut BootstrapDiagnostic::default()).unwrap(),Bootstrap::Open {..}));
+     }
+ }
+ 
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+@@ -695,7 +695,7 @@
+                     };
+                     let bootstrap=if let Some(warm)=timeline.warm.as_mut() {
+                         if (!warm.scope.is_published() && !scope_matches) || self.warm_scope.as_ref().is_none_or(|scope|!Arc::ptr_eq(scope,&warm.scope)) {return Err(StreamControlError::Authority);}
+-                        warm.scope.require_original_frame(original_frame.as_ref())?;
++                        warm.scope.require_original_frame(original_frame.as_ref()).inspect_err(|_|warm.floor_refused())?;
+                         warm.preview(&source,&source_packet,original_frame.as_ref().ok_or(StreamControlError::Unsupported)?)?
+                     } else {
+                         if self.warm_scope.is_some() {return Err(StreamControlError::Authority);}
+@@ -747,6 +747,7 @@
+                             context.argument_timestamp = Some(mapping.timestamp);
+                             context.attempted = Some(io.attempted());
+                             context.written = Some(io.written());
++                            if let Some(warm)=timeline.warm.as_mut() {warm.native_refused();}
+                             super::core_refusal::record(
+                                 diagnostic_control,
+                                 RefusalStage::VideoIo,
+@@ -771,7 +772,8 @@
+             .await;
+         let (core, feedback) = match attempt {
+             ReadyMediaDelivery::Deferred { queued, .. } => {
+-                let timeline = original_timeline.expect("deferred before original video callback");
++                let mut timeline = original_timeline.expect("deferred before original video callback");
++                if let Some(warm)=timeline.warm.as_mut() {warm.deferred_before_callback();}
+                 *self.original.lock().unwrap_or_else(|p| p.into_inner()) = Some((queued, timeline));
+                 return OwnedRtpAttempt::DeferredNoIo;
+             }
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video/public_warm/submission_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video/public_warm/submission_tests.rs
+@@ -51,6 +51,9 @@
+     let(delta,delta_io)=fragment(&mut progress,&source,packet(1,12000,true,true,false),&later,0).await;
+     assert!(delta.is_none(),"an already-open P-frame is not another bootstrap completion");
+     assert!(delta_io.written());
++    assert_eq!(progress.diagnostic.valid_key_starts,1);
++    assert_eq!(progress.diagnostic.written_fragments,3);
++    assert!(progress.diagnostic.whole_written_us.is_some());
+     let mut single=BootstrapProgress::default();
+     let(complete,io)=fragment(&mut single,&source,packet(8,9000,true,true,true),&original,0).await;
+     assert!(Arc::ptr_eq(complete.as_ref().unwrap(),&original));assert_eq!(io.packets.len(),1);
+@@ -75,6 +78,8 @@
+                 assert!(receipt.is_none());assert_eq!(io.written(),mode==2);
+             }
+             assert!(!matches!(progress.bootstrap,Bootstrap::Open {..}));
++            assert!(progress.diagnostic.valid_key_starts>=1);
++            assert!(progress.diagnostic.whole_written_us.is_none(),"failed/partial/unknown/zero/pending native write cannot emit whole completion");
+             // A new actual accepted source group/keyframe can recover; no
+             // reset/mint is applied to the failed original group or IO.
+             let fresh=frame(&realm,12000);

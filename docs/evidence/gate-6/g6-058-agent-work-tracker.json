@@ -1,8 +1,8 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-23T09:05:54.669841+00:00",
-  "revision": 178,
-  "status": "Checkpoint 178. The full retest passed 4,372 tests and failed one DTMF capture fixture. The pinned test-only correction passed all four original adapter cases. Full current-source readiness verification remains pending.",
+  "updated_at": "2026-11-23T11:25:58.895640+00:00",
+  "revision": 179,
+  "status": "Checkpoint 179. Two prior readiness scopes passed on e99294a6. The strict Firefox rehearsal failed video quality on both moving routes. The reviewed bounded keyframe recovery and diagnostics pass all 35 focused controls on dependency generation 572. Same-source readiness and strict Firefox verification are pending.",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
@@ -10085,6 +10085,61 @@
         "sha256": "0a7644c8ad1d38119aa7a8e7d2533a9884febd146611a42be4f9abad7966ebb4"
       }
     },
+    "ready_for_32": false
+  },
+  "checkpoint179_firefox_public_video_recovery": {
+    "dependency_generation": 572,
+    "prior_source": "e99294a6fff3fd0bbc5da1ec615bc3f0db9097dd",
+    "prior_full_regression": {
+      "passed": 4373,
+      "failed": 0,
+      "result": {
+        "path": ".local/gate-6/g882-readiness2-full-root/cohort/component-result.json",
+        "sha256": "2742fcfb432c485865e27f1700bd59939f2070400ff19fb647e5296863442975"
+      }
+    },
+    "prior_strict_firefox": {
+      "passed": false,
+      "moves_completed": 12,
+      "distinct_moving_video_routes_failed": 2,
+      "capture_drops": 0,
+      "result": {
+        "path": ".local/gate-6/checkpoint178-firefox-normal3-component/component.json",
+        "sha256": "00c1811bc567372af3ce92e14a2aa141c7e7230df46c4fb6085b94563ff480af"
+      },
+      "wire_audit": {
+        "path": ".local/gate-6/g884-first-replacement-frames-original-wire-v2.json",
+        "sha256": "310a69f5efa4e6a3047577d53e8ba235157e9ac2479fc1817ad263bf17e4b7f5"
+      },
+      "later_loss_diagnostics": {
+        "path": ".local/gate-6/g884-later-egress-exact-boundary-epoch-readonly-analysis/existing-diagnostics.json",
+        "sha256": "07d9d3e2909f58200d9e8c4e8d14f61b3b42162fb60f514613bc9d19fa089e7c"
+      }
+    },
+    "fix": "Keep the original first request. Permit one separately admitted recovery after 300 ms from its successful return while the same replacement lacks a complete post-frontier native keyframe. Keep original readiness, authority and cutoffs. Record bounded bootstrap diagnostics. An optional hint failure ends only that hint.",
+    "patch": {
+      "path": "patches/rvoip/connect-public-video-bootstrap-recovery.patch",
+      "sha256": "090ee7e7471e74d5b2331667ab9acc582a20b8c8d4c630789babca0e4290f42a"
+    },
+    "preparation": {
+      "path": ".local/gate-6/g884-batch572-root/normal572-runtime/receipt.json",
+      "sha256": "28f14ab6175e5a9b7b04dcab125d55296351b37302af593e25e627020cd26ece"
+    },
+    "focused": {
+      "passed": 35,
+      "failed": 0,
+      "ignored": 0,
+      "result": {
+        "path": ".local/gate-6/g885-targeted572-root/result.json",
+        "sha256": "509c62b0f4ae3b35da21a69b1ed2dab373fb66e9aa5aa04e92644d737b151bf4"
+      },
+      "join": {
+        "path": ".local/gate-6/g885-targeted572-root/root-original-join.json",
+        "sha256": "bede10a7d7ddd1f72856a44386cf283c9398c863e9a9475b72af5755fa3a3a91"
+      }
+    },
+    "local_progress_document": ".local/gate-6/g6-058-workplan.html",
+    "new_firefox_runtime_proof": null,
     "ready_for_32": false
   }
 }
