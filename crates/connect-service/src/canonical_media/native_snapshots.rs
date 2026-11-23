@@ -1,6 +1,6 @@
 //! Per-route immutable authorization. Registration is a bounded route-change
 //! operation; established delivery only loads a published handle and atomics.
-use super::public_continuation::Continuation;
+use super::public_continuation::{Continuation, PublicationProgress};
 use super::*;
 use connect_store::{NativeMediaSnapshot, NativeReplacementActivation};
 
@@ -53,44 +53,140 @@ pub(super) const MAX_ROUTE_SNAPSHOTS: usize = 1024;
 struct PhaseBinding {
     continuation: Weak<Continuation>,
     activation: Weak<NativeReplacementActivation>,
+    // Same original phase progress. These metadata allocations own no entry,
+    // Root, Core ticket, Store reader or permission. Ordinary refresh must keep
+    // working after the original operation owner/Continuation has gone away.
+    publication: Arc<PublicationProgress>,
 }
 impl PhaseBinding {
+    fn current_entry(current: &Continuation, entry: &Arc<Connection>) -> bool {
+        Arc::ptr_eq(&current.entry, entry)
+            && Arc::ptr_eq(current.metadata.origin(), &entry.origin)
+            && !current.ordinary()
+    }
+
     fn new(current: &Arc<Continuation>, entry: &Arc<Connection>) -> connect_protocol::Result<Self> {
-        if !Arc::ptr_eq(&current.entry, entry)
-            || !Arc::ptr_eq(current.metadata.origin(), &entry.origin)
-            || current.ordinary()
-        {
+        if !Self::current_entry(current, entry) {
             return Err(connect_protocol::Error::forbidden());
         }
         Ok(Self {
             continuation: Arc::downgrade(current),
             activation: Arc::downgrade(&current.metadata),
+            publication: current.publication.clone(),
         })
     }
     fn upgrade(&self, entry: &Arc<Connection>) -> connect_protocol::Result<Arc<Continuation>> {
-        let current = self
-            .continuation
-            .upgrade()
-            .ok_or_else(connect_protocol::Error::forbidden)?;
-        let activation = self
-            .activation
-            .upgrade()
-            .ok_or_else(connect_protocol::Error::forbidden)?;
-        if !Arc::ptr_eq(&activation, &current.metadata) {
-            return Err(connect_protocol::Error::forbidden());
-        }
-        Self::new(&current, entry)?;
-        Ok(current)
-    }
-    fn matches(&self, current: &Arc<Continuation>, entry: &Arc<Connection>) -> bool {
-        self.upgrade(entry)
-            .is_ok_and(|registered| Arc::ptr_eq(&registered, current))
-    }
-    fn live(&self) -> bool {
         self.continuation
             .upgrade()
-            .is_some_and(|current| !current.ordinary())
-            && self.activation.strong_count() > 0
+            .filter(|current| self.matches(current, entry))
+            .ok_or_else(connect_protocol::Error::forbidden)
+    }
+    fn matches(&self, current: &Arc<Continuation>, entry: &Arc<Connection>) -> bool {
+        std::ptr::eq(self.continuation.as_ptr(), Arc::as_ptr(current))
+            && std::ptr::eq(self.activation.as_ptr(), Arc::as_ptr(&current.metadata))
+            && Self::current_entry(current, entry)
+    }
+    fn live(&self) -> bool {
+        if self
+            .publication
+            .ordinary
+            .load(std::sync::atomic::Ordering::Acquire)
+        {
+            self.publication.committed.get().is_some() && self.activation.strong_count() > 0
+        } else {
+            self.continuation
+                .upgrade()
+                .is_some_and(|current| !current.ordinary())
+                && self.activation.strong_count() > 0
+        }
+    }
+    fn committed_ordinary(&self, entry: &Arc<Connection>) -> bool {
+        self.publication
+            .ordinary
+            .load(std::sync::atomic::Ordering::Acquire)
+            && self.publication.committed.get().is_some_and(|projection| {
+                Arc::ptr_eq(projection.activation().origin(), &entry.origin)
+                    && self
+                        .activation
+                        .ptr_eq(&Arc::downgrade(projection.activation()))
+            })
+    }
+    fn resolve(&self, entry: &Arc<Connection>) -> connect_protocol::Result<ResolvedPhase> {
+        if self
+            .publication
+            .ordinary
+            .load(std::sync::atomic::Ordering::Acquire)
+        {
+            if !self.committed_ordinary(entry) {
+                return Err(connect_protocol::Error::forbidden());
+            }
+            return Ok(ResolvedPhase {
+                pending: None,
+                committed: Some(self.publication.committed.get().ok_or_else(busy)?.clone()),
+            });
+        }
+        Ok(ResolvedPhase {
+            pending: Some(self.upgrade(entry)?),
+            committed: self.publication.committed.get().cloned(),
+        })
+    }
+}
+struct ResolvedPhase {
+    pending: Option<Arc<Continuation>>,
+    committed: Option<Arc<connect_store::NativeCommittedSuccessorProjection>>,
+}
+impl ResolvedPhase {
+    fn projection(&self) -> connect_store::NativeReplacementPacketProjection<'_> {
+        match &self.committed {
+            Some(projection) => {
+                connect_store::NativeReplacementPacketProjection::Committed(projection)
+            }
+            None => connect_store::NativeReplacementPacketProjection::Pending(
+                self.pending
+                    .as_ref()
+                    .expect("resolved pending phase")
+                    .metadata
+                    .as_ref(),
+            ),
+        }
+    }
+    fn require_before(&self, entry: &Arc<Connection>) -> connect_protocol::Result<()> {
+        if let Some(current) = &self.pending {
+            require_current_phase(current, entry)
+        } else {
+            let projection = self
+                .committed
+                .as_ref()
+                .ok_or_else(connect_protocol::Error::forbidden)?;
+            if !Arc::ptr_eq(projection.activation().origin(), &entry.origin) {
+                return Err(connect_protocol::Error::forbidden());
+            }
+            // Metadata classification only. Actual fresh Store facts and
+            // physical activation are checked below; no copied Ready grant.
+            Ok(())
+        }
+    }
+    fn require_after(
+        &self,
+        entry: &Arc<Connection>,
+        view: &PeerConnectionProjection,
+        receiving: bool,
+    ) -> connect_protocol::Result<()> {
+        let owner = entry
+            .owner(view, &entry.principal, receiving)
+            .map_err(phase_error)?;
+        let owner = entry
+            .activation()
+            .map_err(phase_error)?
+            .ok_or_else(busy)?
+            .current(owner)
+            .map_err(phase_error)?;
+        if let Some(current) = &self.pending {
+            drop(current.current(&owner).map_err(phase_error)?);
+        }
+        // Ordinary has exactly the same fresh physical activation as the
+        // normal route. A completed operation's retired Root is not authority.
+        Ok(())
     }
 }
 #[derive(Clone)]
@@ -349,12 +445,12 @@ impl Connection {
                 .transpose()?;
             let target_phase = captured_target_phase
                 .as_ref()
-                .map(|phase| phase.upgrade(&target))
+                .map(|phase| phase.resolve(&target))
                 .transpose()?;
             let source_phase = captured_source_phase
                 .as_ref()
                 .map(|phase| {
-                    phase.upgrade(
+                    phase.resolve(
                         source
                             .as_ref()
                             .ok_or_else(connect_protocol::Error::forbidden)?,
@@ -362,11 +458,10 @@ impl Connection {
                 })
                 .transpose()?;
             if let Some(current) = &target_phase {
-                require_current_phase(current, &target)?;
+                current.require_before(&target)?;
             }
             if let Some(current) = &source_phase {
-                require_current_phase(
-                    current,
+                current.require_before(
                     source
                         .as_ref()
                         .ok_or_else(connect_protocol::Error::forbidden)?,
@@ -375,13 +470,13 @@ impl Connection {
             // SQL exists only in this bounded owned worker callback. No
             // ordinary fallback is allowed after an exact pending refusal.
             let read = if target_phase.is_some() || source_phase.is_some() {
-                store.try_native_replacement_continuation_media_read(
+                store.try_native_replacement_projection_media_read(
                     &target.origin,
-                    target_phase.as_ref().map(|phase| phase.metadata.as_ref()),
+                    target_phase.as_ref().map(|phase| phase.projection()),
                     source.as_ref().map(|source| {
                         (
                             source.origin.as_ref(),
-                            source_phase.as_ref().map(|phase| phase.metadata.as_ref()),
+                            source_phase.as_ref().map(|phase| phase.projection()),
                         )
                     }),
                     None,
@@ -392,39 +487,21 @@ impl Connection {
                     source.as_ref().map(|source| source.origin.as_ref()),
                 )?
             };
-            // The Read interval now exists. Recheck physical continuation
-            // after SQL, without retaining any Core mutex while acquiring it.
+            // Fresh facts first, then the actual same physical activation.
+            // A pending phase retains its actual Core publication ticket; an
+            // ordinary phase never manufactures one from historical metadata.
             if let Some(current) = &target_phase {
-                let owner = target
-                    .owner(read.target(), &target.principal, source.is_some())
-                    .map_err(phase_error)?;
-                let owner = target
-                    .activation()
-                    .map_err(phase_error)?
-                    .ok_or_else(busy)?
-                    .current(owner)
-                    .map_err(phase_error)?;
-                drop(current.current(&owner).map_err(phase_error)?);
+                current.require_after(&target, read.target(), source.is_some())?;
             }
             if let Some(current) = &source_phase {
-                let source = source
-                    .as_ref()
-                    .ok_or_else(connect_protocol::Error::forbidden)?;
-                let owner = source
-                    .owner(
-                        read.source()
-                            .ok_or_else(connect_protocol::Error::forbidden)?,
-                        &source.principal,
-                        false,
-                    )
-                    .map_err(phase_error)?;
-                let owner = source
-                    .activation()
-                    .map_err(phase_error)?
-                    .ok_or_else(busy)?
-                    .current(owner)
-                    .map_err(phase_error)?;
-                drop(current.current(&owner).map_err(phase_error)?);
+                current.require_after(
+                    source
+                        .as_ref()
+                        .ok_or_else(connect_protocol::Error::forbidden)?,
+                    read.source()
+                        .ok_or_else(connect_protocol::Error::forbidden)?,
+                    false,
+                )?;
             }
             Ok(read)
         };
@@ -555,23 +632,53 @@ impl Connection {
         }
         // Inspect capacity without pruning: any subsequent authority-busy is
         // definite no effect, including no withdrawal of an existing epoch.
-        if routes.values().filter(|route| route.live()).count() >= MAX_ROUTE_SNAPSHOTS {
+        let alias = if target_continuation.is_none() && source_continuation.is_none() {
+            routes.iter().find_map(|(old_key, registered)| {
+                if !same_source_owner(registered.source.as_ref(), source)
+                    || registered.target_phase.is_none() && registered.source_phase.is_none()
+                    || !registered
+                        .target_phase
+                        .as_ref()
+                        .is_none_or(|phase| phase.committed_ordinary(self))
+                    || !registered.source_phase.as_ref().is_none_or(|phase| {
+                        source.is_some_and(|source| phase.committed_ordinary(source))
+                    })
+                {
+                    return None;
+                }
+                let mut ordinary = registered.clone();
+                ordinary.target_phase = None;
+                ordinary.source_phase = None;
+                Some((*old_key, ordinary))
+            })
+        } else {
+            None
+        };
+        if alias.is_none()
+            && routes.values().filter(|route| route.live()).count() >= MAX_ROUTE_SNAPSHOTS
+        {
             return Err(connect_protocol::Error::new(
                 "capacity-exceeded",
                 "Media authorization route capacity exceeded",
             ));
         }
-        let registered = self.build_route_snapshot(
-            store,
-            source,
-            target_phase.clone(),
-            source_phase.clone(),
-            false,
-        )?;
+        let (replaced_phase_key, registered) = match alias {
+            Some((old_key, ordinary)) => (Some(old_key), ordinary),
+            None => (
+                None,
+                self.build_route_snapshot(
+                    store,
+                    source,
+                    target_phase.clone(),
+                    source_phase.clone(),
+                    false,
+                )?,
+            ),
+        };
         // No fallible operation follows publication. Only after successful
         // enrollment may old dead/ordinary phase handles be withdrawn.
-        routes.retain(|_, registered| {
-            let live = registered.live();
+        routes.retain(|old_key, registered| {
+            let live = Some(*old_key) != replaced_phase_key && registered.live();
             if !live {
                 tracing::debug!(target: "connect_service::packet_refusal",
                     connection=self.origin.connection_id(),
@@ -579,6 +686,7 @@ impl Connection {
                     old_source_phase=registered.source_phase.is_some(),
                     new_target_phase=target_phase.is_some(), new_source_phase=source_phase.is_some(),
                     unary=registered.source.is_none(),
+                    same_handle_ordinary_alias=replaced_phase_key == Some(*old_key),
                     "Retired phase snapshot handle withdrawn at route registration");
             }
             live

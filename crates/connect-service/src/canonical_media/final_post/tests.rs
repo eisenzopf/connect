@@ -74,3 +74,32 @@ async fn actual_final_owner_pin_retains_same_admitted_entry_when_watcher_finishe
     }
     runtime.stop.cancel();
 }
+
+#[tokio::test]
+async fn queued_store_begin_refuses_after_original_final_owner_closes() {
+    let directory = tempfile::tempdir().unwrap();
+    let store = Arc::new(
+        connect_store::Store::initialize(
+            &directory.path().join("state.sqlite3"),
+            Default::default(),
+        )
+        .unwrap(),
+    );
+    let runtime = Runtime::new(store).unwrap();
+    let record = "closed-before-store-begin";
+    assert!(runtime
+        .consultation_jobs
+        .lock()
+        .unwrap()
+        .insert(record.into()));
+    let final_owner = PostCustody::new(&runtime, (record, "attempt", "effect")).unwrap();
+    let dispatched = final_owner.begin_dispatch();
+    drop(final_owner);
+    assert!(dispatched.issue().is_err());
+    assert!(runtime
+        .consultation_jobs
+        .lock()
+        .unwrap()
+        .take_unconfirmed_begin()
+        .is_empty());
+}

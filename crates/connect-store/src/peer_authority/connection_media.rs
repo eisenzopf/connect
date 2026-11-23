@@ -38,6 +38,9 @@ pub use replacement_activation::{
     NativeReplacementActivation, NativeReplacementInstallationGuard,
     NativeReplacementInstallationObservation,
 };
+pub use replacement_continuation::{
+    NativeCommittedSuccessorProjection, NativeReplacementPacketProjection,
+};
 mod video_restore;
 pub use video_restore::NativeVideoRestoreRead;
 mod roles;

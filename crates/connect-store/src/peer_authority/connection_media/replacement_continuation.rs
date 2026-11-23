@@ -3,6 +3,53 @@
 //! additionally hold the actual managed binding/generation delivery capability.
 use super::*;
 
+/// Exact durable historical Capture for one public replacement. This contains
+/// no reader, packet epoch, private Ready admission or physical route grant.
+pub struct NativeCommittedSuccessorProjection {
+    capture: Arc<crate::NativeReplacementCommitted>,
+    metadata: snapshot::MetadataToken,
+}
+impl std::fmt::Debug for NativeCommittedSuccessorProjection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("NativeCommittedSuccessorProjection(redacted)")
+    }
+}
+impl NativeCommittedSuccessorProjection {
+    pub(crate) fn new(capture: Arc<crate::NativeReplacementCommitted>) -> Self {
+        Self {
+            capture,
+            metadata: snapshot::new_metadata(),
+        }
+    }
+    /// Exact original activation identity; metadata only, never IO authority.
+    pub fn activation(&self) -> &Arc<NativeReplacementActivation> {
+        self.capture.activation()
+    }
+}
+
+/// Purpose-separated inputs for a fresh replacement packet projection.
+#[derive(Clone, Copy)]
+pub enum NativeReplacementPacketProjection<'a> {
+    /// Original pending phase. Its existing admission contract is unchanged.
+    Pending(&'a NativeReplacementActivation),
+    /// Exact recorded Capture, followed by fresh pending or ordinary facts.
+    Committed(&'a NativeCommittedSuccessorProjection),
+}
+impl<'a> NativeReplacementPacketProjection<'a> {
+    fn activation(self) -> &'a NativeReplacementActivation {
+        match self {
+            Self::Pending(activation) => activation,
+            Self::Committed(projection) => projection.activation().as_ref(),
+        }
+    }
+    fn metadata(self) -> &'a snapshot::MetadataToken {
+        match self {
+            Self::Pending(activation) => &activation.metadata,
+            Self::Committed(projection) => &projection.metadata,
+        }
+    }
+}
+
 fn pending_facts(
     store: &Store,
     c: &Connection,
@@ -163,17 +210,34 @@ fn current_facts(
     store: &Store,
     c: &Connection,
     origin: &NativeMediaOrigin,
-    activation: Option<&NativeReplacementActivation>,
+    projection: Option<NativeReplacementPacketProjection<'_>>,
 ) -> Result<(PeerConnectionProjection, Vec<AuthorityScope>, i64)> {
-    match activation {
-        Some(activation) => {
+    match projection {
+        Some(projection) => {
+            let activation = projection.activation();
             if !std::ptr::eq(origin, activation.origin().as_ref()) {
                 return Err(native_view_error(
                     "continuation activation identity",
                     Error::forbidden(),
                 ));
             }
-            pending_facts(store, c, activation)
+            match projection {
+                NativeReplacementPacketProjection::Pending(_) => {
+                    pending_facts(store, c, activation)
+                }
+                NativeReplacementPacketProjection::Committed(committed) => {
+                    // A capture token never supplies policy. Recheck the exact
+                    // recorded bytes and lifetime before deriving fresh facts.
+                    if committed
+                        .capture
+                        .require_committed_successor_projection(store, c)?
+                    {
+                        facts(store, c, origin)
+                    } else {
+                        pending_facts(store, c, activation)
+                    }
+                }
+            }
         }
         None => facts(store, c, origin),
     }
@@ -207,20 +271,49 @@ impl Store {
         source: Option<(&NativeMediaOrigin, Option<&NativeReplacementActivation>)>,
         source_read: Option<&NativeMediaRead>,
     ) -> Result<NativeMediaRead> {
+        self.try_native_replacement_projection_media_read(
+            target,
+            target_activation.map(NativeReplacementPacketProjection::Pending),
+            source.map(|(origin, activation)| {
+                (
+                    origin,
+                    activation.map(NativeReplacementPacketProjection::Pending),
+                )
+            }),
+            source_read,
+        )
+    }
+
+    /// Fresh packet-purpose read from exact pending or durably captured phase
+    /// metadata. A caller must independently fence the same physical route;
+    /// this does not authorize Core publication, private Ready, or any replay.
+    pub fn try_native_replacement_projection_media_read(
+        &self,
+        target: &NativeMediaOrigin,
+        target_activation: Option<NativeReplacementPacketProjection<'_>>,
+        source: Option<(
+            &NativeMediaOrigin,
+            Option<NativeReplacementPacketProjection<'_>>,
+        )>,
+        source_read: Option<&NativeMediaRead>,
+    ) -> Result<NativeMediaRead> {
         if target_activation.is_none() && source.as_ref().is_none_or(|(_, a)| a.is_none()) {
             return Err(Error::forbidden());
         }
         current_owner(self, target)?;
         // These checks must precede memo lookup, including on a positive hit.
         // Equal logical IDs never let another origin borrow an activation.
-        if target_activation.is_some_and(|a| !std::ptr::eq(target, a.origin().as_ref())) {
+        if target_activation
+            .is_some_and(|a| !std::ptr::eq(target, a.activation().origin().as_ref()))
+        {
             return Err(Error::forbidden());
         }
         if let Some((origin, activation)) = source {
             current_owner(self, origin)?;
             if origin.conversation_id() != target.conversation_id()
                 || origin.session_id() != target.session_id()
-                || activation.is_some_and(|a| !std::ptr::eq(origin, a.origin().as_ref()))
+                || activation
+                    .is_some_and(|a| !std::ptr::eq(origin, a.activation().origin().as_ref()))
             {
                 return Err(Error::forbidden());
             }
@@ -241,7 +334,10 @@ impl Store {
         // A pending target has its own immutable phase token. A pending source
         // also keys by that token, so neither phase can borrow ordinary facts.
         // The existing memo bounds entries and retains only weak source tokens.
-        let metadata = target_activation.map_or(&target.metadata, |a| &a.metadata);
+        let metadata = target_activation.map_or(
+            &target.metadata,
+            NativeReplacementPacketProjection::metadata,
+        );
         let memo = &metadata
             .downcast_ref::<snapshot::Metadata>()
             .ok_or_else(Error::storage)?
@@ -276,7 +372,8 @@ impl Store {
                 AuthorityScope::merged(&scopes)?,
             ))
         };
-        let source_token = source.map(|(o, a)| a.map_or(&o.metadata, |a| &a.metadata));
+        let source_token =
+            source.map(|(o, a)| a.map_or(&o.metadata, NativeReplacementPacketProjection::metadata));
         let ((target_view, source_view, mut expires_at, may_subscribe), interval) =
             snapshot::cached_media(
                 self,

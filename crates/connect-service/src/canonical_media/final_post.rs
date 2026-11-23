@@ -6,7 +6,10 @@ use rvoip_core::orchestrator::participant_control::{
 };
 use std::{
     collections::BTreeMap,
-    sync::{atomic::Ordering, Arc, Mutex},
+    sync::{
+        atomic::{AtomicU8, Ordering},
+        Arc, Mutex,
+    },
 };
 
 pub(crate) struct FailedPost {
@@ -181,6 +184,35 @@ impl FailedPost {
         drop(self.post);
     }
 }
+const BEGIN_IDLE: u8 = 0;
+const BEGIN_ISSUED: u8 = 1;
+const BEGIN_CLOSED: u8 = 2;
+
+/// One dispatch marker shared with the blocking Store call. If the outer
+/// owner has closed, a late worker cannot begin a durable effect.
+pub(crate) struct BeginDispatch {
+    state: Arc<AtomicU8>,
+    #[cfg(feature = "test-support")]
+    probe: Option<Arc<super::preparation_custody_fixture::Probe>>,
+}
+impl BeginDispatch {
+    pub(crate) fn issue(&self) -> connect_protocol::Result<()> {
+        self.state
+            .compare_exchange(
+                BEGIN_IDLE,
+                BEGIN_ISSUED,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            )
+            .map_err(|_| connect_protocol::Error::forbidden())?;
+        #[cfg(feature = "test-support")]
+        if let Some(probe) = &self.probe {
+            probe.note_begin_submission();
+        }
+        Ok(())
+    }
+}
+
 /// Declare BEFORE the inner final frame. That frame (including actual SIP
 /// guards and ALL read/Writer/Invocation/role aliases) must end before this owner.
 pub(crate) struct PostCustody<'a> {
@@ -190,7 +222,7 @@ pub(crate) struct PostCustody<'a> {
     post: Option<ManagedCutPostPublication>,
     cleanup_observer_until: Option<tokio::time::Instant>,
     observation: Option<UnsettledObservation>,
-    begin_issued: bool,
+    begin_state: Arc<AtomicU8>,
     #[cfg(feature = "test-support")]
     probe: Option<Arc<super::preparation_custody_fixture::Probe>>,
 }
@@ -218,24 +250,29 @@ impl<'a> PostCustody<'a> {
             post: None,
             cleanup_observer_until: None,
             observation: None,
-            begin_issued: false,
+            begin_state: Arc::new(AtomicU8::new(BEGIN_IDLE)),
             #[cfg(feature = "test-support")]
             probe: None,
         })
     }
-    pub(crate) fn begin_issued(&mut self) {
-        self.begin_issued = true;
-        #[cfg(feature = "test-support")]
-        if let Some(probe) = &self.probe {
-            probe.note_begin_submission();
+    pub(crate) fn begin_dispatch(&self) -> BeginDispatch {
+        BeginDispatch {
+            state: self.begin_state.clone(),
+            #[cfg(feature = "test-support")]
+            probe: self.probe.clone(),
         }
+    }
+    pub(crate) fn begin_issued(&mut self) {
+        self.begin_dispatch()
+            .issue()
+            .expect("one original begin dispatch");
     }
     /// Only typed Some custody or definite pre-DML None clears dispatch state.
     pub(crate) fn begin_returned_definite(&mut self) {
-        self.begin_issued = false;
+        self.begin_state.store(BEGIN_IDLE, Ordering::Release);
     }
     pub(crate) fn begin_is_unconfirmed(&self) -> bool {
-        self.begin_issued
+        self.begin_state.load(Ordering::Acquire) == BEGIN_ISSUED
     }
     #[cfg(feature = "test-support")]
     pub(crate) fn observe_for_test(
@@ -289,8 +326,7 @@ impl<'a> PostCustody<'a> {
     fn submit(&mut self) -> connect_protocol::Result<Option<ManagedCutPostCompletion>> {
         // Caller or unwind has released every inner alias before this point.
         self.flush_observation();
-        if self.begin_issued {
-            self.begin_issued = false;
+        if self.begin_state.swap(BEGIN_CLOSED, Ordering::AcqRel) == BEGIN_ISSUED {
             *self
                 .entry
                 .unconfirmed_begin

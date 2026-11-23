@@ -737,3 +737,250 @@ fn existing_or_claimed_dormant_candidate_cannot_enter_positive_commit_reader_pat
 mod source_retirement;
 
 mod commit_sql;
+
+#[test]
+fn committed_successor_projection_requires_exact_durable_capture_and_current_publication() {
+    let m = fixture_scoped(true, &["stream.subscribe"]);
+    let capture = Arc::new(capture(&m));
+    let activation = capture.activation().clone();
+    assert_eq!(
+        m.f.store
+            .try_native_committed_successor_projection(capture.clone())
+            .unwrap_err()
+            .code,
+        "forbidden",
+        "an unrecorded physical receipt cannot select the committed purpose"
+    );
+    record_same_capture(&m.f.store, &capture, || true).unwrap();
+    let projection =
+        m.f.store
+            .try_native_committed_successor_projection(capture.clone())
+            .unwrap();
+    assert!(Arc::ptr_eq(projection.activation(), &activation));
+    let read = || {
+        m.f.store.try_native_replacement_projection_media_read(
+            &m.sources[1],
+            None,
+            Some((
+                activation.origin(),
+                Some(crate::NativeReplacementPacketProjection::Committed(
+                    &projection,
+                )),
+            )),
+            None,
+        )
+    };
+    let pending = read().unwrap();
+    assert!(pending.current());
+    assert_eq!(
+        pending.source().unwrap().runtime_connection_id,
+        activation.origin().runtime_connection_id()
+    );
+    drop(pending);
+    let foreign = Fixture::new();
+    assert!(
+        foreign
+            .store
+            .try_native_replacement_projection_media_read(
+                &m.sources[1],
+                None,
+                Some((
+                    activation.origin(),
+                    Some(crate::NativeReplacementPacketProjection::Committed(
+                        &projection
+                    ))
+                )),
+                None,
+            )
+            .is_err(),
+        "a receipt is never authority in another installation"
+    );
+    assert!(
+        m.f.store
+            .try_native_replacement_projection_media_read(
+                &m.sources[1],
+                Some(crate::NativeReplacementPacketProjection::Committed(
+                    &projection
+                )),
+                None,
+                None,
+            )
+            .is_err(),
+        "equal purpose cannot replace exact activation-origin identity"
+    );
+    m.f.store
+        .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
+        .unwrap();
+    let ordinary = read().unwrap();
+    assert!(ordinary.current());
+    assert_eq!(
+        ordinary.source().unwrap().runtime_connection_id,
+        activation.origin().runtime_connection_id()
+    );
+    drop(ordinary);
+    let m = fixture_scoped(true, &["stream.subscribe"]);
+    let cancelled = Arc::new(self::capture(&m));
+    record_same_capture(&m.f.store, &cancelled, || true).unwrap();
+    let projection =
+        m.f.store
+            .try_native_committed_successor_projection(cancelled.clone())
+            .unwrap();
+    cancel(&m.f, &m.key, &m.command);
+    assert!(
+        m.f.store
+            .try_native_replacement_projection_media_read(
+                &m.sources[1],
+                None,
+                Some((
+                    cancelled.activation().origin(),
+                    Some(crate::NativeReplacementPacketProjection::Committed(
+                        &projection
+                    ))
+                )),
+                None,
+            )
+            .is_err(),
+        "a committed receipt cannot conceal current root cancellation"
+    );
+}
+
+#[test]
+fn committed_successor_projection_excludes_only_old_connection_and_keeps_current_identity_fences() {
+    for ordinary in [false, true] {
+        let m = fixture_scoped(true, &["stream.subscribe"]);
+        let capture = Arc::new(capture(&m));
+        record_same_capture(&m.f.store, &capture, || true).unwrap();
+        let projection =
+            m.f.store
+                .try_native_committed_successor_projection(capture.clone())
+                .unwrap();
+        let activation = capture.activation().clone();
+        if ordinary {
+            m.f.store
+                .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
+                .unwrap();
+        }
+        let read = || {
+            m.f.store.try_native_replacement_projection_media_read(
+                &m.sources[1],
+                None,
+                Some((
+                    activation.origin(),
+                    Some(crate::NativeReplacementPacketProjection::Committed(
+                        &projection,
+                    )),
+                )),
+                None,
+            )
+        };
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_secs(1));
+        let old =
+            m.f.store
+                .acquire_authority(
+                    &[crate::AuthorityScope::connection(
+                        m.sources[0].connection_id(),
+                        crate::AuthorityMode::Write,
+                    )
+                    .unwrap()],
+                    &wait,
+                )
+                .unwrap();
+        assert!(
+            read().unwrap().current(),
+            "OLD's historical retirement must not fence the new physical source"
+        );
+        drop(old);
+        let selected_identity = &m.f.keys[1];
+        let identity = m.f.store.revalidate(selected_identity).unwrap().identity_id;
+        let current =
+            m.f.store
+                .acquire_authority(
+                    &[
+                        crate::AuthorityScope::identity(&identity, crate::AuthorityMode::Write)
+                            .unwrap(),
+                    ],
+                    &wait,
+                )
+                .unwrap();
+        assert_eq!(
+            read().unwrap_err().code,
+            "authority-busy",
+            "current selected identity must still fence media"
+        );
+        drop(current);
+        assert!(read().unwrap().current());
+        let actor = m.f.store.revalidate(&m.f.admin).unwrap();
+        m.f.store.revoke(&actor, selected_identity).unwrap();
+        assert!(
+            read().is_err(),
+            "fresh authorization must reject selected credential revocation"
+        );
+    }
+}
+
+#[test]
+fn committed_successor_same_handle_alias_keeps_epoch_through_ordinary_then_revokes_on_cleanup() {
+    let m = fixture_scoped(true, &["stream.subscribe"]);
+    let capture = Arc::new(capture(&m));
+    record_same_capture(&m.f.store, &capture, || true).unwrap();
+    let projection =
+        m.f.store
+            .try_native_committed_successor_projection(capture.clone())
+            .unwrap();
+    let target = m.sources[1].clone();
+    let source = capture.activation().origin().clone();
+    let store = Arc::new(m.f.store);
+    let weak = Arc::downgrade(&store);
+    let captured_target = target.clone();
+    let captured_source = source.clone();
+    let snapshot = store
+        .register_native_media_snapshot_for(&target, Some(&source), move || {
+            weak.upgrade()
+                .ok_or_else(Error::forbidden)?
+                .try_native_replacement_projection_media_read(
+                    &captured_target,
+                    None,
+                    Some((
+                        &captured_source,
+                        Some(crate::NativeReplacementPacketProjection::Committed(
+                            &projection,
+                        )),
+                    )),
+                    None,
+                )
+        })
+        .unwrap();
+    let mut watcher = store.start_media_authorization_watcher().unwrap();
+    let io = admit(&snapshot);
+    let stamp = io.snapshot_stamp().unwrap();
+    let epoch = io.packet_epoch().unwrap();
+    drop(io);
+    // This is exactly the application Handle clone used for the ordinary
+    // key. No newer read repairs the original packet's epoch or stamp.
+    let alias = snapshot.clone();
+    drop(snapshot);
+    assert!(
+        epoch.current(),
+        "removing the old phase key must not revoke the same alias"
+    );
+    store
+        .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
+        .unwrap();
+    assert!(
+        epoch.current(),
+        "OLD retirement/publication must not revoke selected successor media"
+    );
+    let after = alias.admit_original(stamp).unwrap();
+    assert!(after.current());
+    assert_eq!(
+        after.source().unwrap().runtime_connection_id,
+        source.runtime_connection_id()
+    );
+    drop(after);
+    drop(alias);
+    assert!(
+        !epoch.current(),
+        "last actual application owner still revokes queued metadata"
+    );
+    watcher.shutdown().unwrap();
+}

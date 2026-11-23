@@ -5,11 +5,18 @@ use super::*;
 use rvoip_core::orchestrator::participant_control::CurrentReplacementPublication;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+#[derive(Default)]
+pub(super) struct PublicationProgress {
+    pub(super) ordinary: AtomicBool,
+    pub(super) committed:
+        std::sync::OnceLock<Arc<connect_store::NativeCommittedSuccessorProjection>>,
+}
+
 pub(crate) struct Continuation {
     root: Weak<crate::canonical_replacement::PreparedReplacement>,
     pub(super) metadata: Arc<connect_store::NativeReplacementActivation>,
     pub(super) entry: Arc<Connection>,
-    ordinary: AtomicBool,
+    pub(super) publication: Arc<PublicationProgress>,
 }
 impl Continuation {
     pub(super) fn new(
@@ -21,16 +28,47 @@ impl Continuation {
             root,
             metadata,
             entry,
-            ordinary: AtomicBool::new(false),
+            publication: Arc::new(PublicationProgress::default()),
         })
     }
+    /// Seal historical metadata while the SAME current physical publication
+    /// ticket is held. Neither the token nor this OnceLock grants packet IO.
+    pub(super) fn capture_committed_projection(
+        &self,
+        projection: Arc<connect_store::NativeCommittedSuccessorProjection>,
+    ) -> ControlResult<()> {
+        if !Arc::ptr_eq(projection.activation(), &self.metadata) || self.ordinary() {
+            return Err(StreamControlError::Authority);
+        }
+        let owner = self
+            .entry
+            .owner(self.metadata.target(), &self.entry.principal, false)?;
+        let owner = self
+            .entry
+            .activation()?
+            .ok_or(StreamControlError::NotReady)?
+            .current(owner)?;
+        let publication = self.current(&owner)?;
+        if let Some(existing) = self.publication.committed.get() {
+            if !Arc::ptr_eq(existing, &projection) {
+                return Err(StreamControlError::Authority);
+            }
+        } else {
+            self.publication
+                .committed
+                .set(projection)
+                .map_err(|_| StreamControlError::MetadataBusy)?;
+        }
+        drop(publication);
+        Ok(())
+    }
     pub(crate) fn ordinary(&self) -> bool {
-        self.ordinary.load(Ordering::Acquire)
+        self.publication.ordinary.load(Ordering::Acquire)
     }
     /// Called inside the exact installed-entry publication guard immediately
     /// after that original SQL transaction committed. It only changes lookup.
     pub(super) fn publish_ordinary(&self) {
-        self.ordinary.store(true, Ordering::Release);
+        self.publication.ordinary.store(true, Ordering::Release);
     }
     pub(super) fn current(
         &self,

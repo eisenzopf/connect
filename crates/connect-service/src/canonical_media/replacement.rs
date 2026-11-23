@@ -710,6 +710,13 @@ fn retry_dormant_unary<T>(
 }
 
 impl ReplacementAdoption {
+    pub(crate) fn capture_committed_projection(
+        &self,
+        projection: Arc<connect_store::NativeCommittedSuccessorProjection>,
+    ) -> ControlResult<()> {
+        self.continuation.capture_committed_projection(projection)
+    }
+
     #[cfg(feature = "test-support")]
     pub(crate) fn route_fixture_continuation(
         &self,

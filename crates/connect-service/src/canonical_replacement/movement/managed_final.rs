@@ -183,19 +183,24 @@ impl Runtime {
                 if let Some(probe) = &control_probe {
                     probe.note_final_writer_call();
                 }
+                let store = self.media.store.clone();
+                let wait = connect_store::AuthorityWait::new(
+                    until.saturating_duration_since(tokio::time::Instant::now()),
+                );
+                let _cancel_wait = wait.cancel_on_drop();
                 let read = if let Some(original) = attempt.as_ref() {
                     let admission = original.admission();
-                    let store = self.media.store.clone();
-                    let wait = connect_store::AuthorityWait::new(
-                        until.saturating_duration_since(tokio::time::Instant::now()),
-                    );
-                    let _cancel_wait = wait.cancel_on_drop();
-                    store_call(move || {
+                    let read = store_call(move || {
                         store.try_native_replacement_commit_attempt_scene_write(
                             &admission, &sources, &wait,
                         )
                     })
-                    .await?
+                    .await?;
+                    #[cfg(feature = "test-support")]
+                    if let Some(probe) = &control_probe {
+                        probe.note_final_writer_returned();
+                    }
+                    read
                 } else {
                     let origin = started
                         .policy
@@ -203,23 +208,56 @@ impl Runtime {
                         .get()
                         .cloned()
                         .ok_or_else(Error::forbidden)?;
-                    let store = self.media.store.clone();
-                    let cutoff = metadata.expires_at();
-                    let wait = connect_store::AuthorityWait::new(
-                        until.saturating_duration_since(tokio::time::Instant::now()),
-                    );
-                    let _cancel_wait = wait.cancel_on_drop();
-                    store_call(move || {
-                        store.try_native_replacement_commit_scene_write_with_wait(
-                            &origin, &sources, cutoff, &wait,
-                        )
+                    let facts = metadata.clone();
+                    let dispatch = post.begin_dispatch();
+                    #[cfg(feature = "test-support")]
+                    let store_probe = control_probe.clone();
+                    // Keep the already-acquired Writer on this worker for the
+                    // immediate journal begin. No async dispatch or role turn
+                    // can interleave while it is waiting to enter primary SQL.
+                    let result = store_call(move || {
+                        let read = store.try_native_replacement_commit_scene_write_with_wait(
+                            &origin,
+                            &sources,
+                            facts.expires_at(),
+                            &wait,
+                        )?;
+                        #[cfg(feature = "test-support")]
+                        if let Some(probe) = &store_probe {
+                            probe.note_final_writer_returned();
+                        }
+                        dispatch.issue()?;
+                        let begin = || {
+                            store.try_begin_prepared_native_replacement_commit_with_wait(
+                                &facts, &read, &wait,
+                            )
+                        };
+                        #[cfg(feature = "test-support")]
+                        let begun = if let Some(observation) = store_probe
+                            .as_ref()
+                            .and_then(|probe| probe.native_begin_observation())
+                        {
+                            store.with_native_prepared_begin_observation_for_test(
+                                observation,
+                                &wait,
+                                begin,
+                            )?
+                        } else {
+                            begin()?
+                        };
+                        #[cfg(not(feature = "test-support"))]
+                        let begun = begin()?;
+                        Ok(begun.map(|original| (read, original)))
                     })
-                    .await?
+                    .await?;
+                    post.begin_returned_definite();
+                    let Some((read, original)) = result else {
+                        drop(roles);
+                        return Ok(Turn::BeforeEntryBusy);
+                    };
+                    attempt = Some(original);
+                    read
                 };
-                #[cfg(feature = "test-support")]
-                if let Some(probe) = &control_probe {
-                    probe.note_final_writer_returned();
-                }
                 let mut i = Invocation {
                     entries: entries.clone(),
                     policy: started.policy.clone(),
@@ -232,47 +270,6 @@ impl Runtime {
                     managed_capture: false,
                     final_sip_route: None,
                 };
-                // First begin is once-only. Later turns use only exact started
-                // purpose re-admission and never create a new attempt/effect.
-                if attempt.is_none() {
-                    let store = self.media.store.clone();
-                    let facts = metadata.clone();
-                    let read = i.read.clone();
-                    let wait = connect_store::AuthorityWait::new(
-                        until.saturating_duration_since(tokio::time::Instant::now()),
-                    );
-                    let _cancel_wait = wait.cancel_on_drop();
-                    #[cfg(feature = "test-support")]
-                    let begin_observation = control_probe
-                        .as_ref()
-                        .and_then(|probe| probe.native_begin_observation());
-                    post.begin_issued();
-                    let result = store_call(move || {
-                        #[cfg(feature = "test-support")]
-                        if let Some(observation) = begin_observation {
-                            return store.with_native_prepared_begin_observation_for_test(
-                                observation,
-                                &wait,
-                                || {
-                                    store.try_begin_prepared_native_replacement_commit_with_wait(
-                                        &facts, &read, &wait,
-                                    )
-                                },
-                            );
-                        }
-                        store.try_begin_prepared_native_replacement_commit_with_wait(
-                            &facts, &read, &wait,
-                        )
-                    })
-                    .await?;
-                    post.begin_returned_definite();
-                    let Some(original) = result else {
-                        drop(i);
-                        drop(roles);
-                        return Ok(Turn::BeforeEntryBusy);
-                    };
-                    attempt = Some(original);
-                }
                 // Exact original fault boundary: SAME durable Started, no
                 // Core invocation. Try-only test registry; no retry permission
                 // or different denial is manufactured from its result.

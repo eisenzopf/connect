@@ -740,6 +740,22 @@ impl Store {
             private_successor,
         }))
     }
+    /// Capture metadata only after this SAME public outcome and audience are
+    /// durably recorded. No current authority or Core grant escapes this call.
+    #[cfg(test)]
+    pub(crate) fn try_native_committed_successor_projection(
+        &self,
+        captured: Arc<NativeReplacementCommitted>,
+    ) -> Result<Arc<crate::NativeCommittedSuccessorProjection>> {
+        // Pure SQL metadata only: the constructor cannot grant a reader or
+        // IO. Every use below rechecks this capture under fresh packet custody.
+        let c = self.try_connection()?;
+        captured.require_committed_successor_projection(self, &c)?;
+        Ok(Arc::new(crate::NativeCommittedSuccessorProjection::new(
+            captured,
+        )))
+    }
+
     /// Persist a known actual outcome after all transient engine grants have
     /// been dropped. This does not reauthorize or reexecute movement.
     pub fn record_native_replacement_committed(
@@ -754,6 +770,19 @@ impl Store {
             Some(captured),
         )
     }
+    /// Attach metadata for the same actual positive Capture when its normal
+    /// recording succeeds. Every later use still requires current media authority.
+    pub fn record_native_replacement_with_successor_projection(
+        &self,
+        captured: Arc<NativeReplacementCommitted>,
+    ) -> Result<Arc<crate::NativeCommittedSuccessorProjection>> {
+        self.record_native_replacement_committed(&captured)?;
+        captured.require_public_successor_capture()?;
+        Ok(Arc::new(crate::NativeCommittedSuccessorProjection::new(
+            captured,
+        )))
+    }
+
     fn read_recorded_replacement_commit(
         &self,
         captured: &NativeReplacementCommitted,
@@ -1571,6 +1600,53 @@ impl Store {
         tracing::debug!(target:"connect_store::native_commit_capture",record=%p.record,
             mode=if hint.is_some(){"scoped-writer"}else{"broad-writer"},"Final replacement metadata publication committed");
         Ok(PublicationAttempt::Applied(origin))
+    }
+}
+
+impl NativeReplacementCommitted {
+    fn require_public_successor_capture(&self) -> Result<&NativeReplacementAudienceCapture> {
+        let a = &self.attempt;
+        let audience = self.audience.as_ref().ok_or_else(Error::forbidden)?;
+        if a.private_successor.is_some()
+            || audience.is_candidate_only()
+            || a.target.private_consultation.is_some()
+            || a.target.handoff_preparation
+        {
+            return Err(Error::forbidden());
+        }
+        Ok(audience)
+    }
+
+    /// Same-Unit historical binding plus live root/lifetime classification. The
+    /// bool chooses fresh ordinary facts; it is never a media authorization.
+    pub(crate) fn require_committed_successor_projection(
+        &self,
+        store: &Store,
+        c: &Connection,
+    ) -> Result<bool> {
+        let a = &self.attempt;
+        let p = &a.origin.started.attempt.allocated.attempt.prepared;
+        local_owner(store, &p.owner, &p.runtime)?;
+        let audience = self.require_public_successor_capture()?;
+        let state: Option<String> = c.query_row(
+            "SELECT o.state FROM native_replacements n JOIN operations o ON o.record_id=n.operation_record_id JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='commit' JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=o.record_id WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4 AND s.attempt_id=?5 AND s.effect_id=?6 AND s.started=1 AND s.observation_json=?7 AND e.provider='native-replacement-commit' AND e.correlation_key=e.id AND e.idempotency_mode='none' AND e.state='confirmed' AND e.attempt=1 AND e.submission_generation=1 AND e.provider_ref IS NULL AND e.compensates_effect_id IS NULL AND e.observation_json=?8 AND n.candidate_connection_id=?9 AND n.candidate_runtime_id=?10 AND n.generation=?11 AND o.cancel_requested=0 AND o.tombstoned=0 AND o.state IN ('preparing','completed')",
+            params![p.record,p.runtime,p.reservation,p.hash,a.attempt,a.effect,self.observation,a.expected,a.target.connection.connection_id,a.target.runtime_connection_id,a.target.connection.generation],
+            |row| row.get(0),
+        ).optional().map_err(|_| Error::storage())?;
+        let state = state.ok_or_else(Error::forbidden)?;
+        audience.require_recorded(c, &a.effect)?;
+        let ordinary: bool = c.query_row(
+            "SELECT EXISTS(SELECT 1 FROM native_replacement_lifetimes l WHERE l.operation_record_id=?1 AND l.attempt_runtime=?2 AND l.attempt_id=?3 AND l.effect_id=?4 AND l.generation=?5)",
+            params![p.record,p.runtime,a.attempt,a.effect,a.target.connection.generation],
+            |row| row.get(0),
+        ).map_err(|_| Error::storage())?;
+        if (state == "completed") != ordinary {
+            return Err(Error::forbidden());
+        }
+        // Pending keeps every existing deadline/role/member/endpoint check in
+        // pending_facts. Ordinary runs the full normal facts/lifetime path;
+        // neither branch copies the captured target as current permission.
+        Ok(ordinary)
     }
 }
 

@@ -11,7 +11,10 @@ mod commit_admission;
 mod final_current;
 mod managed_final;
 use connect_store::{NativeReplacementCommitNotSubmitted, NativeReplacementCommitUncertain};
-use rvoip_core::{adapter::EndReason, participant_transitions::EndpointConfirmationPolicy};
+use rvoip_core::{
+    adapter::EndReason, participant_transitions::EndpointConfirmationPolicy,
+    staged_streams::StreamControlError,
+};
 #[derive(Clone)]
 pub(super) enum Capture {
     Known(Arc<KnownCapture>),
@@ -326,23 +329,37 @@ impl Runtime {
         });
         // A confirmation refusal is propagated only after this Known effect
         // has been recorded, just like a refused activation boundary.
-        let recorded = super::diagnostics::metadata(
+        let preserve_successor_snapshot = root.public_video.required();
+        let recording = super::diagnostics::metadata(
             &self.stop,
             &capture.value,
             super::diagnostics::Phase::Capture,
             Some(&capture.recording),
-            root.public_video.required(),
+            preserve_successor_snapshot,
             || {
                 let store = self.media.store.clone();
                 let capture = capture.value.clone();
-                move || store.record_native_replacement_committed(&capture)
+                move || {
+                    if preserve_successor_snapshot {
+                        store
+                            .record_native_replacement_with_successor_projection(capture)
+                            .map(Some)
+                    } else {
+                        store
+                            .record_native_replacement_committed(&capture)
+                            .map(|_| None)
+                    }
+                }
             },
         )
         .await;
-        if let Err(error) = recorded {
-            self.stop_unactivated_replacement(&capture).await;
-            return Err(error);
-        }
+        let successor_projection = match recording {
+            Ok(projection) => projection,
+            Err(error) => {
+                self.stop_unactivated_replacement(&capture).await;
+                return Err(error);
+            }
+        };
         if let Err(error) = activation_result {
             tracing::debug!(target:"connect_service::canonical_replacement",stage="native-activation-capture-refused",code=%error.code,
                 "Actual moved capture retained; refusing activation and reconciling exact target");
@@ -361,6 +378,19 @@ impl Runtime {
             root.deadline
                 .min(tokio::time::Instant::now() + Duration::from_secs(5)),
             || async {
+                if let Some(projection) = &successor_projection {
+                    adoption
+                        .capture_committed_projection(projection.clone())
+                        .map_err(|error| match error {
+                            StreamControlError::MetadataBusy | StreamControlError::NotReady => {
+                                Error::new(
+                                    "authority-busy",
+                                    "Committed successor physical metadata busy",
+                                )
+                            }
+                            _ => Error::forbidden(),
+                        })?;
+                }
                 // Install only the actual committed private successor. Repeated
                 // metadata observation can recognize that same capability;
                 // neither an ID nor a historical receipt can substitute for it.

@@ -1,0 +1,44 @@
+{
+  "format": "connect/g6-058-local-firefox-component-evidence/1",
+  "source_revision": "b87487051c916aa29958b4fad89b4159268d6686",
+  "date": "2026-11-23",
+  "scope": "Local macOS ARM64 Firefox WSS/WebRTC quality item 3, three cycles, EdDSA",
+  "handoffs_completed": 12,
+  "cycles": 3,
+  "ready_for_full_matrix": false,
+  "component_passed": false,
+  "rtc_stats_joins_by_cycle": [
+    63,
+    63,
+    63
+  ],
+  "longest_moving_video_gap_ms_by_cycle": [
+    784,
+    816,
+    766
+  ],
+  "capture": {
+    "packet_count": 296108,
+    "kernel_drops": 0,
+    "slowest_capture_previous_ms": 483.043,
+    "slowest_capture_ms": 68.439
+  },
+  "audio_failure": {
+    "cycle": 3,
+    "receiver_route": 5,
+    "source_route": 4,
+    "failed_identity_blocks": 1,
+    "block_ms": 20,
+    "server_output_rtp_timestamp_gaps": 2
+  },
+  "prior_full_matrix": {
+    "passed": 1,
+    "total": 32
+  },
+  "private_evidence_sha256": {
+    "joined_run": "1b9fa5c1866c369a87309a92ae56609893efc6130fd6d2940c30d93149545f10",
+    "component": "55244ce50c3e95f6c98d658a220b900a9d3c75a07e48967d8f08d1c1584c1a25",
+    "timing_and_quality_comparison": "223faeff71b2b2d2a669d482ae305e646bc50d5fb6dffb89e8ed36fa85f1b25f",
+    "frame_alias_adjudication": "79685c6eee0f6e04ec45db8185f210ed53f0a478045a7cd6467a416060aab58f"
+  }
+}
