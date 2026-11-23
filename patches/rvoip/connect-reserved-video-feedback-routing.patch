@@ -1,0 +1,750 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll/adoption_quantum.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll/adoption_quantum.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll/adoption_quantum.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll/adoption_quantum.rs
+@@ -252,3 +252,194 @@
+         "private prestart PCM entered ordinary playback without fresh ordinary input"
+     );
+ }
++
++// Observe a single original20ms mixer quantum without advancing wall time,
++// changing authority, supplying PCM or fabricating a source clock.
++fn one_original_audio_tick(f: &Move) {
++    let now = Instant::now();
++    f.room.scene.observe_audio_tick_for_test(now, now);
++    f.room.tick();
++}
++
++async fn delivered_pcm_timestamp(f: &mut Move, name: &str, expected: i16) -> u32 {
++    let queued = f
++        .room
++        .nodes
++        .get_mut(name)
++        .unwrap()
++        .out
++        .try_recv()
++        .expect("original guarded receiver has no output for the controlled tick");
++    let result = Arc::new(std::sync::Mutex::new(None));
++    let captured = result.clone();
++    queued
++        .deliver(move |frame| async move {
++            use rvoip_media_core::codec::factory::CodecFactory;
++            let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++            let decoded = codec.decode(&frame.payload).unwrap();
++            assert_eq!(
++                decoded.samples.len(),
++                160,
++                "actual codec output must be one20ms quantum"
++            );
++            let mean = decoded.samples.iter().map(|s| i32::from(*s)).sum::<i32>()
++                / decoded.samples.len() as i32;
++            assert!(
++                (mean - i32::from(expected)).abs() < 400,
++                "wrong original speaker: expected {expected}, got {mean}"
++            );
++            *captured.lock().unwrap() = Some(frame.timestamp_rtp);
++            Ok(())
++        })
++        .await
++        .unwrap();
++    let timestamp = result.lock().unwrap().take().unwrap();
++    timestamp
++}
++
++#[tokio::test]
++async fn controlled_replacement_tick_distinguishes_fresh_ordinary_input_from_private_ready_pcm() {
++    for fresh_before_first_tick in [true, false] {
++        let mut f = Move::for_audio_preroll().await;
++        let work = catch_original(async {
++            f.io().await;
++            f.confirm().await;
++            let prepared = prepare(&f, deadline(), CancellationToken::new()).await;
++            f.room.publish("bob", 6000).unwrap();
++            one_original_audio_tick(&f);
++            f.room.heard("device", 6000).await;
++            assert!(prepared.has_delivered_remote_audio());
++            drain_outputs(&mut f);
++
++            // The last output before the cut is genuinely OLD speech.
++            f.room.publish("alice", 800).unwrap();
++            one_original_audio_tick(&f);
++            let before = delivered_pcm_timestamp(&mut f, "bob", 800).await;
++            drain_outputs(&mut f);
++            let old = ConnectionId::from_string("alice");
++            let new = ConnectionId::from_string("device");
++            let old_codec = f
++                .room
++                .scene
++                .weak_media_owners_for_test(&old)
++                .unwrap()
++                .into_iter()
++                .find(|(name, _)| *name == "mixer-decoder")
++                .unwrap()
++                .1;
++            assert!(old_codec.upgrade().is_some());
++
++            // Both original producers submit genuine input before the cut.
++            // Candidate input is decoded privately and is NOT ordinary FIFO.
++            let captured = Instant::now();
++            f.room.publish("device", 5200).unwrap();
++            let private_sequence = f.room.nodes["device"].sequence;
++            let target = &f.room.nodes["device"].controller;
++            let consumer = target
++                .audio_consumer
++                .lock()
++                .unwrap()
++                .as_ref()
++                .unwrap()
++                .upgrade()
++                .unwrap();
++            assert!(consumer.decoded_since(target, captured));
++            assert!(f._audio_probe.as_ref().unwrap().has_duplex_io());
++            assert!(f.room.scene.replacement_endpoint_ready(&f.context).is_ok());
++            assert_eq!(
++                f.room.scene.audio_queue_state_for_test(&new),
++                Some((0, false, 0, 0))
++            );
++            f.room.publish("alice", 800).unwrap();
++            assert_eq!(f.room.scene.audio_queue_state_for_test(&old).unwrap().0, 1);
++
++            // Exactly the existing actual model/cut path; no synthetic owner,
++            // ticket, private-to-public frame conversion or postcut renewal.
++            let owner = {
++                let read = f.room.domain.base.0.read().await;
++                f.room
++                    .domain
++                    .resource_owner(&read, read.owners["device"].clone())
++                    .unwrap()
++            };
++            let logical = f
++                .model
++                .stage_replacement(
++                    &owner.member,
++                    &owner.member,
++                    f.pending.intent().clone(),
++                    &f.pending,
++                    &owner.endpoint,
++                )
++                .unwrap();
++            let plan = f.plan().unwrap();
++            let (_outcome, _handle) = f.commit(plan).await.unwrap();
++            f.model.commit_replacement(logical);
++            f.model
++                .require_live_binding(&owner.member, &owner.connection)
++                .unwrap();
++            f.room
++                .domain
++                .base
++                .0
++                .write()
++                .await
++                .owners
++                .insert("device".into(), owner);
++            assert!(!f.room.scene.contains_connection(&old));
++            assert!(f.room.scene.audio_queue_state_for_test(&old).is_none());
++            assert!(old_codec.upgrade().is_none());
++            assert!(f.room.nodes["alice"].controller.shutdown.is_cancelled());
++            assert!(f.room.publish("alice", 9000).is_err());
++            assert_eq!(f.room.nodes["device"].sequence, private_sequence);
++            assert_eq!(
++                f.room.scene.audio_queue_state_for_test(&new),
++                Some((0, false, 0, 0))
++            );
++            assert!(captured.elapsed() < Duration::from_millis(200));
++
++            if fresh_before_first_tick {
++                // Same installed candidate, truly NEW ordinary ingress.
++                f.room.publish("device", 6800).unwrap();
++                assert_eq!(f.room.scene.audio_queue_state_for_test(&new).unwrap().0, 1);
++            }
++            one_original_audio_tick(&f);
++            if !fresh_before_first_tick {
++                // An empty first tick must neither leak the private5200 PCM
++                // nor replay the old queued800 PCM or invent concealment.
++                assert!(f.room.nodes.get_mut("bob").unwrap().out.try_recv().is_err());
++                f.room.publish("device", 6800).unwrap();
++                assert_eq!(f.room.scene.audio_queue_state_for_test(&new).unwrap().0, 1);
++                one_original_audio_tick(&f);
++            }
++            let after = delivered_pcm_timestamp(&mut f, "bob", 6800).await;
++            assert!(f.room.nodes.get_mut("bob").unwrap().out.try_recv().is_err());
++            drain_outputs(&mut f);
++            drop(prepared);
++            (before, after, fresh_before_first_tick)
++        })
++        .await;
++        let cleanup = close_originals(&f).await;
++        drop(f);
++        assert!(
++            cleanup
++                .iter()
++                .all(|(_, joined, outstanding)| *joined && *outstanding == 0),
++            "all original controllers/adapters must close before cadence oracle: {cleanup:?}"
++        );
++        let (before, after, fresh_before_first_tick) = match work {
++            Ok(value) => value,
++            Err(error) => resume_unwind(error),
++        };
++        let expected = if fresh_before_first_tick { 160 } else { 320 };
++        assert_eq!(
++            after.wrapping_sub(before),
++            expected,
++            "controlled original20ms tick must expose the actual empty quantum; fresh_before_first_tick={fresh_before_first_tick}"
++        );
++        eprintln!(
++            "controlled_audio_cut fresh_before_first_tick={fresh_before_first_tick} old_rtp={before} new_rtp={after} delta={} original_tick_ms=20 input_clock_hz=8000 originals_joined=true",
++            after.wrapping_sub(before)
++        );
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media/public_warm.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media/public_warm.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/public_warm.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/public_warm.rs
+@@ -72,9 +72,28 @@
+         video.arm_public_warm(scope.clone(),recorder).map_err(|error|{terminal_warm_refusal(request,"adapter-arm-public-warm","adapter-entered-before-queue-recorder-claimed",&error);error})?;
+         // No await follows queue consumption/worker installation. Close shares
+         // this exact setup exclusion and retains both original task joins.
++        let signals = video.register_reserved_feedback(&peer, io.health.stop.clone()).map_err(|error| {
++            terminal_warm_refusal(request, "adapter-reserved-feedback-install", "adapter-entered-before-queue-recorder-claimed", &error);
++            error
++        })?;
+         let video=slot.take().ok_or_else(||{terminal_warm_refusal(request,"adapter-reserved-slot-take-empty","adapter-entered-recorder-claimed-arm-returned",&StreamControlError::NotReady);StreamControlError::NotReady})?;
+         let pictures=video.picture_requests();
+-        io.start_locked(&mut setup,picture_feedback(pictures,peer.video_keyframe_requests(),peer.video_repair_requests(),self.routes.clone(),self.picture_next.clone(),io.health.stop.clone())).map_err(|error|{terminal_warm_refusal(request,"adapter-picture-worker-install","original-queue-consumed-worker-effect-possible",&error);error})?;
++        let routes = self.routes.clone();
++        let picture_next = self.picture_next.clone();
++        let picture_stop = io.health.stop.clone();
++        io.start_locked(&mut setup, async move {
++            let result = picture_feedback(
++                pictures, signals.picture.clone(), signals.repair.clone(),
++                routes, picture_next, picture_stop,
++            ).await;
++            // Retain this original signal owner through the actual worker join.
++            // Handler keeps Weak only; exit/failed install cannot leave live B.
++            drop(signals);
++            result
++        }).map_err(|error| {
++            terminal_warm_refusal(request, "adapter-picture-worker-install", "original-queue-consumed-worker-effect-possible", &error);
++            error
++        })?;
+         io.start_locked(&mut setup,egress_loop(Egress::Video(video),io.health.stop.clone(),Medium::Video)).map_err(|error|{terminal_warm_refusal(request,"adapter-egress-worker-install","original-queue-consumed-picture-worker-installed",&error);error})?;
+         Ok(())
+     }
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+@@ -53,6 +53,16 @@
+     pub(crate) fn owned_binding_metadata(&self, peer:&Arc<crate::peer::RvoipPeerConnection>) -> Option<(u32,u8,rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureSnapshot)> {
+         if self.physical_peer.as_ref().is_none_or(|original|!Arc::ptr_eq(original,peer)) { return None; }
+         Some((self.ssrc,self.payload_type,self.exposure.observer().snapshot()?))
++    }
++    pub(crate) fn register_reserved_feedback(
++        &self,
++        peer: &Arc<crate::peer::RvoipPeerConnection>,
++        stop: tokio_util::sync::CancellationToken,
++    ) -> ControlResult<Arc<crate::peer::handler::VideoFeedbackSignals>> {
++        if self.physical_peer.as_ref().is_none_or(|original| !Arc::ptr_eq(original, peer)) {
++            return Err(StreamControlError::Authority);
++        }
++        peer.register_reserved_video_feedback(&self.track, self.ssrc, stop)
+     }
+     /// Check the exact format and physical track before taking the port queue.
+     /// Actual negotiated direction/encoding and fresh permission are repeated
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/handler/reserved_feedback_controls.rs b/crates/webrtc/rvoip-webrtc/src/peer/handler/reserved_feedback_controls.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/peer/handler/reserved_feedback_controls.rs
+@@ -0,0 +1,141 @@
++//! Exact handler routing with two live writer identities and independent
++//! consumers. Native Track metadata is real; no RTP write or Core grant is
++//! modeled as successful here. The real two-MID transport control is separate.
++use super::*;
++use futures::FutureExt as _;
++use rtc::media_stream::MediaStreamTrack;
++use rtc::rtp_transceiver::rtp_sender::RtpCodecKind;
++use tokio_util::sync::CancellationToken;
++use webrtc::media_stream::track_local::static_rtp::TrackLocalStaticRTP;
++
++fn reserved(
++    channels: &HandlerChannels,
++    ssrc: u32,
++) -> (
++    Arc<TrackLocalStaticRTP>,
++    Arc<VideoFeedbackSignals>,
++    CancellationToken,
++) {
++    let track = Arc::new(TrackLocalStaticRTP::new(MediaStreamTrack::new(
++        "two-writers".into(),
++        format!("reserved-{ssrc}"),
++        "video".into(),
++        RtpCodecKind::Video,
++        vec![],
++    )));
++    let stop = CancellationToken::new();
++    let signals = Arc::new(VideoFeedbackSignals::reserved(stop.clone()));
++    assert!(channels
++        .reserved_video_feedback
++        .set(ReservedVideoFeedback::new(ssrc, &track, &signals))
++        .is_ok());
++    (track, signals, stop)
++}
++
++#[tokio::test]
++async fn two_writer_nacks_reach_only_their_own_armed_consumer_and_keep_each_bound() {
++    for bssrc in [0, 11] {
++        let (channels, _, _, _, _, _) = HandlerChannels::pair(8);
++        *channels.local_video_ssrc.lock() = Some(7);
++        let a = channels.video_repair_requests.clone();
++        let legacy_picture = channels.video_feedback.clone();
++        let (track, b, stop) = reserved(&channels, bssrc);
++        assert_eq!(Arc::strong_count(&track), 1, "registration retains Weak only");
++        let handler = ConnectionHandler::new(channels.clone());
++        let a_wait = a.changed();
++        let b_wait = b.repair.changed();
++        tokio::pin!(a_wait, b_wait);
++        assert!(a_wait.as_mut().now_or_never().is_none());
++        assert!(b_wait.as_mut().now_or_never().is_none());
++        // Both actual original waiters are registered before either event.
++        handler.on_unrepaired_video_nack(bssrc, &[100, 101]).await;
++        handler.on_unrepaired_video_nack(7, &[1, 2]).await;
++        handler.on_unrepaired_video_nack(13, &[99]).await;
++        tokio::time::timeout(std::time::Duration::from_secs(1), async {
++            tokio::join!(a_wait.as_mut(), b_wait.as_mut());
++        })
++        .await
++        .expect("neither writer may steal the other's only wake");
++        assert_eq!(a.take(), vec![(7, 1), (7, 2)]);
++        assert_eq!(b.repair.take(), vec![(bssrc, 100), (bssrc, 101)]);
++        assert!(a.take().is_empty() && b.repair.take().is_empty());
++        assert!(legacy_picture.notified().now_or_never().is_none());
++        let sequences = (0..80).collect::<Vec<u16>>();
++        for _ in 0..3 {
++            tokio::join!(
++                handler.on_unrepaired_video_nack(7, &sequences),
++                handler.on_unrepaired_video_nack(bssrc, &sequences),
++            );
++        }
++        let ap = a.take();
++        let bp = b.repair.take();
++        assert_eq!(ap.len(), 64);
++        assert_eq!(bp.len(), 64);
++        assert!(ap.iter().enumerate().all(|(i, key)| *key == (7, i as u16)));
++        assert!(bp
++            .iter()
++            .enumerate()
++            .all(|(i, key)| *key == (bssrc, i as u16)));
++        // Cancellation is the SAME original B PortIo stop in production.
++        // Even an observer retaining signals cannot reactivate the writer.
++        stop.cancel();
++        handler.on_unrepaired_video_nack(bssrc, &[1000]).await;
++        assert!(b.repair.take().is_empty());
++        assert!(channels
++            .reserved_video_feedback
++            .get()
++            .unwrap()
++            .signals_for(bssrc)
++            .is_none());
++        handler.on_unrepaired_video_nack(7, &[3]).await;
++        assert_eq!(a.take(), vec![(7, 3)]);
++    }
++}
++
++#[tokio::test]
++async fn two_writer_picture_feedback_matches_each_fir_role_once_and_refuses_retirement() {
++    use rtc::rtcp::payload_feedbacks::{
++        full_intra_request::FullIntraRequest, picture_loss_indication::PictureLossIndication,
++    };
++    let (channels, _, _, _, _, _) = HandlerChannels::pair(8);
++    *channels.local_video_ssrc.lock() = Some(7);
++    let a = channels.video_feedback.clone();
++    let (track, b, stop) = reserved(&channels, 11);
++    let handler = ConnectionHandler::new(channels.clone());
++    let pli = |ssrc| PictureLossIndication {
++        sender_ssrc: 1,
++        media_ssrc: ssrc,
++    };
++    assert!(!handler.on_rtcp_packet(&pli(13)).await);
++    assert!(a.notified().now_or_never().is_none());
++    assert!(b.picture.notified().now_or_never().is_none());
++    assert!(handler.on_rtcp_packet(&pli(11)).await);
++    assert!(b.picture.notified().now_or_never().is_some());
++    assert!(a.notified().now_or_never().is_none(), "unused preview cannot wake for B");
++    let mut fir = FullIntraRequest::default();
++    for ssrc in [11, 7, 11, 13, 7] {
++        fir.fir.push(Default::default());
++        fir.fir.last_mut().unwrap().ssrc = ssrc;
++    }
++    assert!(handler.on_rtcp_packet(&fir).await);
++    assert!(a.notified().now_or_never().is_some());
++    assert!(b.picture.notified().now_or_never().is_some());
++    assert!(a.notified().now_or_never().is_none());
++    assert!(b.picture.notified().now_or_never().is_none());
++    stop.cancel();
++    assert!(!handler.on_rtcp_packet(&pli(11)).await);
++    assert!(handler.on_rtcp_packet(&fir).await, "live preview still receives its FIR");
++    assert!(a.notified().now_or_never().is_some());
++    assert!(b.picture.notified().now_or_never().is_none());
++    // A registered weak identity never becomes a new owner of a track or
++    // worker. Their disappearance is terminal even if a signal observer lives.
++    drop(track);
++    assert!(channels
++        .reserved_video_feedback
++        .get()
++        .unwrap()
++        .signals_for(11)
++        .is_none());
++    drop(b);
++    assert!(!handler.on_rtcp_packet(&pli(11)).await);
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/handler.rs b/crates/webrtc/rvoip-webrtc/src/peer/handler.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/handler.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/handler.rs
+@@ -45,6 +45,58 @@
+     }
+     pub(crate) fn take(&self) -> Vec<(u32, u16)> {
+         std::mem::take(&mut *self.pending.lock())
++    }
++}
++
++/// Per installed video writer feedback metadata only. The reserved role uses
++/// its actual PortIo stop; these channels grant neither media nor source IO.
++pub(crate) struct VideoFeedbackSignals {
++    pub(crate) picture: Arc<tokio::sync::Notify>,
++    pub(crate) repair: Arc<VideoRepairRequests>,
++    stop: Option<tokio_util::sync::CancellationToken>,
++}
++impl VideoFeedbackSignals {
++    #[cfg(test)]
++    pub(crate) fn preview(
++        picture: Arc<tokio::sync::Notify>,
++        repair: Arc<VideoRepairRequests>,
++    ) -> Self {
++        Self { picture, repair, stop: None }
++    }
++    pub(crate) fn reserved(stop: tokio_util::sync::CancellationToken) -> Self {
++        Self {
++            picture: Arc::new(tokio::sync::Notify::new()),
++            repair: Arc::new(VideoRepairRequests::default()),
++            stop: Some(stop),
++        }
++    }
++    fn current(&self) -> bool {
++        self.stop.as_ref().is_none_or(|stop| !stop.is_cancelled())
++    }
++}
++// Exactly one extra native writer role per peer, never an arbitrary SSRC map.
++// No native track, PortIo, worker, peer, policy reader or permission is retained.
++pub(crate) struct ReservedVideoFeedback {
++    ssrc: u32,
++    track: std::sync::Weak<webrtc::media_stream::track_local::static_rtp::TrackLocalStaticRTP>,
++    signals: std::sync::Weak<VideoFeedbackSignals>,
++}
++impl ReservedVideoFeedback {
++    pub(crate) fn new(
++        ssrc: u32,
++        track: &Arc<webrtc::media_stream::track_local::static_rtp::TrackLocalStaticRTP>,
++        signals: &Arc<VideoFeedbackSignals>,
++    ) -> Self {
++        Self { ssrc, track: Arc::downgrade(track), signals: Arc::downgrade(signals) }
++    }
++    pub(crate) fn signals_for(&self, ssrc: u32) -> Option<Arc<VideoFeedbackSignals>> {
++        if self.ssrc != ssrc || self.track.strong_count() == 0 {
++            return None;
++        }
++        self.signals.upgrade().filter(|signals| signals.current())
++    }
++    fn current_signals(&self) -> Option<Arc<VideoFeedbackSignals>> {
++        self.signals_for(self.ssrc)
+     }
+ }
+ 
+@@ -100,6 +152,7 @@
+     pub video_feedback: Arc<tokio::sync::Notify>,
+     pub(crate) video_repair_requests: Arc<VideoRepairRequests>,
+     pub local_video_ssrc: Arc<SyncMutex<Option<u32>>>,
++    pub(crate) reserved_video_feedback: Arc<std::sync::OnceLock<ReservedVideoFeedback>>,
+ }
+ 
+ impl HandlerChannels {
+@@ -146,6 +199,7 @@
+                 video_feedback: Arc::new(tokio::sync::Notify::new()),
+                 video_repair_requests: Arc::new(VideoRepairRequests::default()),
+                 local_video_ssrc: Arc::new(SyncMutex::new(None)),
++                reserved_video_feedback: Arc::new(std::sync::OnceLock::new()),
+             },
+             HandlerReceivers {
+                 gather_complete: gather_complete_rx,
+@@ -194,6 +248,10 @@
+     async fn on_unrepaired_video_nack(&self, media_ssrc: u32, sequences: &[u16]) {
+         if *self.channels.local_video_ssrc.lock() == Some(media_ssrc) {
+             self.channels.video_repair_requests.note(media_ssrc, sequences);
++        } else if let Some(signals) = self.channels.reserved_video_feedback.get()
++            .and_then(|slot| slot.signals_for(media_ssrc))
++        {
++            signals.repair.note(media_ssrc, sequences);
+         }
+     }
+ 
+@@ -227,23 +285,29 @@
+                 }
+             }
+         }
+-        let Some(local_ssrc) = *self.channels.local_video_ssrc.lock() else {
+-            return false;
++        let requested = |ssrc| {
++            packet.as_any().downcast_ref::<PictureLossIndication>()
++                .is_some_and(|pli| pli.media_ssrc == ssrc)
++                || packet.as_any().downcast_ref::<FullIntraRequest>()
++                    .is_some_and(|fir| fir.fir.iter().any(|entry| entry.ssrc == ssrc))
+         };
+-        let pli = packet
+-            .as_any()
+-            .downcast_ref::<PictureLossIndication>()
+-            .is_some_and(|pli| pli.media_ssrc == local_ssrc);
+-        let fir = packet
+-            .as_any()
+-            .downcast_ref::<FullIntraRequest>()
+-            .is_some_and(|fir| fir.fir.iter().any(|entry| entry.ssrc == local_ssrc));
+-        if pli || fir {
++        let mut handled = false;
++        let preview = *self.channels.local_video_ssrc.lock();
++        if preview.is_some_and(|ssrc| requested(ssrc)) {
+             self.channels.video_feedback.notify_one();
+-            true
+-        } else {
+-            false
+-        }
++            handled = true;
++        }
++        // A compound FIR may name both fixed writers or repeat either entry.
++        // Deliver at most one coalesced wake to each exact matched live writer.
++        if let Some(slot) = self.channels.reserved_video_feedback.get() {
++            if requested(slot.ssrc) {
++                if let Some(signals) = slot.current_signals() {
++                    signals.picture.notify_one();
++                    handled = true;
++                }
++            }
++        }
++        handled
+     }
+ 
+     async fn on_ice_gathering_state_change(&self, state: RTCIceGatheringState) {
+@@ -539,3 +603,7 @@
+         assert!(requests.take().is_empty());
+     }
+ }
++
++#[cfg(test)]
++#[path="handler/reserved_feedback_controls.rs"]
++mod reserved_feedback_controls;
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video/tests.rs b/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video/tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video/tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video/tests.rs
+@@ -84,6 +84,17 @@
+                 assert!(server.reserved_video_track_for_role(VideoRole::PublicReserved).await.is_err());
+                 tx.set_direction(RTCRtpTransceiverDirection::Sendonly).await.unwrap();
+                 server.validate_reserved_video_answer(&offered,&answered).await.unwrap();
++                if !bundle_only {
++                    verify_reserved_video_rtcp(
++                        &client,
++                        &server,
++                        [
++                            (roles.preview_mid.as_str(), &a, assrc),
++                            (roles.public_mid.as_str(), &b, bssrc),
++                        ],
++                    )
++                    .await;
++                }
+             } else {
+                 assert!(server.reserved_video_track.lock().is_none());assert!(server.reserved_video_slots.get().is_none());
+                 assert!(crate::media::core_video_profile::negotiated_profile(&offered,&answered).is_ok());
+@@ -110,6 +121,93 @@
+         if let Err(e)=work { std::panic::resume_unwind(e); }
+     }
+ }
++
++async fn verify_reserved_video_rtcp(
++    client: &RvoipPeerConnection,
++    server: &RvoipPeerConnection,
++    writers: [(&str, &Arc<TrackLocalStaticRTP>, u32); 2],
++) {
++    use rtc::rtcp::payload_feedbacks::picture_loss_indication::PictureLossIndication;
++    use rtc::rtcp::transport_feedbacks::transport_layer_nack::{NackPair, TransportLayerNack};
++
++    let stop = tokio_util::sync::CancellationToken::new();
++    let (_, track, ssrc) = writers[1];
++    let reserved = server
++        .register_reserved_video_feedback(track, ssrc, stop.clone())
++        .unwrap();
++    let preview = server.video_feedback_for(writers[0].2).unwrap();
++    for ((mid, writer, ssrc), feedback) in writers.into_iter().zip([preview, reserved.clone()]) {
++        let mut owner = None;
++        for transceiver in client.pc.get_transceivers().await {
++            if transceiver.mid().await.unwrap().as_deref() == Some(mid) {
++                owner = Some(transceiver);
++                break;
++            }
++        }
++        let owner = owner.expect("actual negotiated transceiver for the exact writer MID");
++        writer
++            .write_rtp(crate::media::vp8_rtp_packet_for_ssrc(ssrc, 1, 9000))
++            .await
++            .unwrap();
++        let remote = tokio::time::timeout(Duration::from_secs(2), async {
++            loop {
++                if let Some(receiver) = owner.receiver().await.unwrap() {
++                    break receiver.track().clone();
++                }
++                tokio::time::sleep(Duration::from_millis(5)).await;
++            }
++        })
++        .await
++        .unwrap_or_else(|_| panic!("RTP receiver for MID {mid} must be installed by the driver"));
++        tokio::time::timeout(Duration::from_secs(2), async {
++            loop {
++                match remote.poll().await {
++                    Some(webrtc::media_stream::track_remote::TrackRemoteEvent::OnRtpPacket(
++                        packet,
++                        _,
++                    )) => {
++                        assert_eq!(packet.header.ssrc, ssrc);
++                        break;
++                    }
++                    Some(_) => continue,
++                    None => panic!("receiver {mid} ended before RTP"),
++                }
++            }
++        })
++        .await
++        .expect("actual writer RTP observed before sending receiver feedback");
++
++        remote
++            .write_rtcp(vec![
++                Box::new(PictureLossIndication {
++                    sender_ssrc: client.local_video_ssrc().unwrap(),
++                    media_ssrc: ssrc,
++                }),
++                Box::new(TransportLayerNack {
++                    sender_ssrc: client.local_video_ssrc().unwrap(),
++                    media_ssrc: ssrc,
++                    nacks: vec![NackPair {
++                        packet_id: 2,
++                        lost_packets: 0,
++                    }],
++                }),
++            ])
++            .await
++            .unwrap();
++        tokio::time::timeout(Duration::from_secs(2), feedback.picture.notified())
++            .await
++            .unwrap_or_else(|_| panic!("PLI must reach writer for MID {mid}"));
++        tokio::time::timeout(Duration::from_secs(2), feedback.repair.changed())
++            .await
++            .unwrap_or_else(|_| panic!("unsatisfied NACK must reach writer for MID {mid}"));
++        assert_eq!(feedback.repair.take(), vec![(ssrc, 2)]);
++    }
++
++    stop.cancel();
++    assert!(server.video_feedback_for(ssrc).is_none());
++}
++
++
+ #[tokio::test]
+ async fn reserved_b_intent_cannot_be_late_rebound_or_accept_foreign_offer_roles() {
+     let mut config=WebRtcConfig::loopback();config.require_vp8_audio_video_profile=true;
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video.rs b/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video.rs
+@@ -9,6 +9,29 @@
+     transceiver: Arc<dyn RtpTransceiver>,
+ }
+ impl RvoipPeerConnection {
++    // Called only by the actual Core B writer installation. The caller lends
++    // its exact native track and the original PortIo stop; no writer escapes.
++    pub(crate) fn register_reserved_video_feedback(
++        &self,
++        track: &Arc<TrackLocalStaticRTP>,
++        ssrc: u32,
++        stop: tokio_util::sync::CancellationToken,
++    ) -> rvoip_core::staged_streams::ControlResult<Arc<super::super::handler::VideoFeedbackSignals>> {
++        use rvoip_core::staged_streams::StreamControlError as E;
++        if stop.is_cancelled() {
++            return Err(E::Cancelled);
++        }
++        let (original, original_ssrc) = self.reserved_video_feedback_binding.get().ok_or(E::NotReady)?;
++        if *original_ssrc != ssrc || !std::sync::Weak::ptr_eq(original, &Arc::downgrade(track)) {
++            return Err(E::Authority);
++        }
++        let signals = Arc::new(super::super::handler::VideoFeedbackSignals::reserved(stop));
++        self.reserved_video_feedback.set(super::super::handler::ReservedVideoFeedback::new(
++            ssrc, track, &signals,
++        )).map_err(|_| E::NotReady)?;
++        Ok(signals)
++    }
++
+     pub(crate) fn install_reserved_video(&self, profile: ReservedVideoProfile) -> Result<()> {
+         if !self.guarded_video_io || self.role != PeerRole::Answerer || self.local_audio.lock().is_some() || self.local_video.lock().is_some() {
+             return Err(WebRtcError::IncompatibleCapabilities);
+@@ -52,6 +75,10 @@
+         let transceiver=self.pc.add_transceiver_from_track(track.clone() as Arc<dyn TrackLocal>,Some(RTCRtpTransceiverInit {
+             direction:RTCRtpTransceiverDirection::Sendonly, ..Default::default()
+         })).await?;
++        // This immutable identity is from the SAME actually installed native
++        // track. Feedback setup later performs no native track mutex wait.
++        self.reserved_video_feedback_binding.set((Arc::downgrade(&track), ssrc))
++            .map_err(|_|WebRtcError::IncompatibleCapabilities)?;
+         *self.reserved_video_track.lock()=Some(ReservedVideoTrack { track,ssrc,transceiver });
+         Ok(())
+     }
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session.rs b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -93,6 +93,8 @@
+     reserved_video_track: SyncMutex<Option<reserved_video::ReservedVideoTrack>>,
+     video_feedback: Arc<tokio::sync::Notify>,
+     video_repair_requests: Arc<super::handler::VideoRepairRequests>,
++    reserved_video_feedback: Arc<std::sync::OnceLock<super::handler::ReservedVideoFeedback>>,
++    reserved_video_feedback_binding: std::sync::OnceLock<(std::sync::Weak<TrackLocalStaticRTP>, u32)>,
+     gather_timeout: Duration,
+     trickle_ice: bool,
+     drops: Arc<HandlerDropCounters>,
+@@ -126,6 +128,7 @@
+         let video_feedback = Arc::clone(&channels.video_feedback);
+         let video_repair_requests = Arc::clone(&channels.video_repair_requests);
+         let local_video_ssrc = Arc::clone(&channels.local_video_ssrc);
++        let reserved_video_feedback = channels.reserved_video_feedback.clone();
+         let handler = ConnectionHandler::new(channels);
+         let sender_clock = rtc::interceptor::SenderClockHandle::default();
+         let primary_audio_encoding =
+@@ -183,6 +186,8 @@
+             reserved_video_track: SyncMutex::new(None),
+             video_feedback,
+             video_repair_requests,
++            reserved_video_feedback,
++            reserved_video_feedback_binding: std::sync::OnceLock::new(),
+             gather_timeout,
+             trickle_ice: config.trickle_ice,
+             drops,
+@@ -935,6 +940,22 @@
+ 
+     pub fn local_video_ssrc(&self) -> Option<u32> {
+         *self.local_video_ssrc.lock()
++    }
++
++    // Exact role lookup only. Existing public preview APIs retain their
++    // original channels; reserved B never wakes or drains those consumers.
++    #[cfg(test)]
++    pub(crate) fn video_feedback_for(
++        &self,
++        ssrc: u32,
++    ) -> Option<Arc<super::handler::VideoFeedbackSignals>> {
++        if self.local_video_ssrc() == Some(ssrc) {
++            Some(Arc::new(super::handler::VideoFeedbackSignals::preview(
++                self.video_keyframe_requests(), self.video_repair_requests(),
++            )))
++        } else {
++            self.reserved_video_feedback.get().and_then(|slot| slot.signals_for(ssrc))
++        }
+     }
+ 
+     /// Create a labeled SCTP data channel (must be called before offer for offerer).

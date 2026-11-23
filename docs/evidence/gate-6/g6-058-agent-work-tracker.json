@@ -8868,7 +8868,7 @@
     "future_strict_Firefox": null,
     "all7_final_source_scopes_required": true
   },
-  "updated": "2026-11-23T01:28:00.242064+00:00",
+  "updated": "2026-11-23T14:08:48+00:00",
   "v219_g570_exact_clock_component": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g570-exact-clock-component-progress.json",
     "sha256": "3d910638366c09869326694d91964eba1e8da2537b08c870f70ac2e5e1f818ef",
@@ -10141,5 +10141,63 @@
     "local_progress_document": ".local/gate-6/g6-058-workplan.html",
     "new_firefox_runtime_proof": null,
     "ready_for_32": false
+  },
+  "checkpoint181_reserved_feedback_and_audio_cut_controls": {
+    "dependency_generation": 573,
+    "strict_firefox_proven_source": "e7dd3c763d3db1f9f49f5b75e55bb43c08416ddf",
+    "strict_firefox_passed": false,
+    "strict_firefox_outcome": {
+      "path": ".local/gate-6/checkpoint180-firefox-normal3-independent-actual-failed-audit/receipt.json",
+      "sha256": "fc4887b2ec2ed00dfb5a07e8b29574fd1d9bec55212bf0464bc1b5b17be39f8b"
+    },
+    "strict_firefox_wire": {
+      "moves_completed": 12,
+      "video_failures": 3,
+      "audio_identity_failures": 1,
+      "video_first_replacement_gap_ms": [
+        319.085,
+        400.957
+      ],
+      "video_missing_timestamp_frames": 5,
+      "video_detail": {
+        "path": ".local/gate-6/checkpoint180-firefox-normal3-wire-missing-detail.json",
+        "sha256": "7c2f32b265e545f5dc8dc8591dee43e026ae9c05a43835915027e5d58623dea2"
+      },
+      "audio_egress_gap_ms": 39.501,
+      "audio_wire": {
+        "path": ".local/gate-6/checkpoint180-firefox-normal3-audio-wire-diagnostics.json",
+        "sha256": "7b8e09582eda206fab4d7d831317ba59527efd74014170b6cee32ec25483cd81"
+      }
+    },
+    "fix": "Route authenticated PLI, FIR and unrepaired NACK to the exact installed native video writer. Keep separate bounded preview and reserved queues, reject unknown or retired identities and preserve current source feedback admission.",
+    "patch": {
+      "path": "patches/rvoip/connect-reserved-video-feedback-routing.patch",
+      "sha256": "a8bff27a3ece6f36d46c6fe73cde464631cee63c97312694c901fae86f81381a"
+    },
+    "preparation": {
+      "path": ".local/gate-6/checkpoint181-r2-root/normal573-runtime/receipt.json",
+      "sha256": "9007cb15fa17fc91192a36294c596a6d3c28f6a900f53f8504af00cb418185c3"
+    },
+    "focused": {
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "result": {
+        "path": ".local/gate-6/checkpoint181-r2-root/focused-controls/result.json",
+        "sha256": "b6f42e8a8979b0b8c9db9d33375e19f9207f06232ef4e20a7d9a4d4f865045ef"
+      },
+      "join": {
+        "path": ".local/gate-6/checkpoint181-r2-root/focused-controls/root-original-join.json",
+        "sha256": "68796b9ca18ae331ebf77e86a5fb2edd3db9bf1aa2290608870c4cd708f0a801"
+      },
+      "prior_fixture_failure": {
+        "path": ".local/gate-6/checkpoint181-batch-root/focused-controls/result.json",
+        "sha256": "c6adc28f96e75ab55a2bd2f77c0b63dee60cb14ba5f780180a6d982efbd25829"
+      }
+    },
+    "audio_baseline": "Fresh ordinary input before the first controlled post-cut mixer tick produced +160 RTP samples at 8 kHz. Input after that tick produced +320. The original private readiness audio remained isolated. An audio production fix is pending.",
+    "local_progress_document": ".local/gate-6/g6-058-workplan.html",
+    "ready_for_32": false,
+    "matrix_credit": false
   }
 }

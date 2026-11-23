@@ -3046,6 +3046,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-public-video-bootstrap-recovery.patch",
       "sha256": "090ee7e7471e74d5b2331667ab9acc582a20b8c8d4c630789babca0e4290f42a"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-reserved-video-feedback-routing.patch",
+      "sha256": "a8bff27a3ece6f36d46c6fe73cde464631cee63c97312694c901fae86f81381a"
     }
   ]
 }
