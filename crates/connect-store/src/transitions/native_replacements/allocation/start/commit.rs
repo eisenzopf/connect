@@ -89,6 +89,20 @@ redacted!(
     NativeReplacementCommitUncertain
 );
 impl NativeReplacementCommitAttempt {
+    fn recorded_observation(&self, c: &Connection) -> Result<Option<String>> {
+        let p = &self.origin.started.attempt.allocated.attempt.prepared;
+        // Exact runtime, reservation, plan, attempt, effect and intended
+        // result. An operation ID by itself cannot identify this capture.
+        c.query_row(
+            "SELECT s.observation_json FROM native_replacements n JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='commit' JOIN operation_effects e ON e.id=s.effect_id WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4 AND s.attempt_id=?5 AND s.effect_id=?6 AND s.started=1 AND e.observation_json=?7",
+            params![p.record,p.runtime,p.reservation,p.hash,self.attempt,self.effect,self.expected],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(|_| Error::storage())?
+        .ok_or_else(Error::forbidden)
+    }
+
     /// Installation metadata for this exact once-only reservation, never IO authority.
     pub fn activation(&self) -> &Arc<crate::NativeReplacementActivation> {
         &self.activation
@@ -732,13 +746,6 @@ impl Store {
         &self,
         captured: &NativeReplacementCommitted,
     ) -> Result<OperationRecord> {
-        // Re-observing an already recorded immutable outcome is a fresh read,
-        // not a current-state mutation. In particular, the preparation watcher
-        // may arrive after public activation; reserving a Writer here would
-        // revoke unrelated queued media even though no SQL row changes.
-        if let Some(record) = self.read_recorded_replacement_commit(captured)? {
-            return Ok(record);
-        }
         self.record_replacement_commit(
             &captured.attempt,
             Some(&captured.observation),
@@ -750,7 +757,7 @@ impl Store {
     fn read_recorded_replacement_commit(
         &self,
         captured: &NativeReplacementCommitted,
-    ) -> Result<Option<OperationRecord>> {
+    ) -> Result<OperationRecord> {
         let a = &captured.attempt;
         let p = &a.origin.started.attempt.allocated.attempt.prepared;
         local_owner(self, &p.owner, &p.runtime)?;
@@ -768,25 +775,14 @@ impl Store {
         })?;
         let row = rows::by_record(&c, &p.record)?;
         admission::require_row(self, &held, &row)?;
-        // Exact original runtime, reservation, plan, attempt, effect and expected
-        // result remain required. Equal operation IDs alone cannot use this path.
-        let old: Option<Option<String>> = c.query_row(
-            "SELECT s.observation_json FROM native_replacements n JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='commit' JOIN operation_effects e ON e.id=s.effect_id WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4 AND s.attempt_id=?5 AND s.effect_id=?6 AND s.started=1 AND e.observation_json=?7",
-            params![p.record,p.runtime,p.reservation,p.hash,a.attempt,a.effect,a.expected],
-            |r| r.get(0),
-        ).optional().map_err(|_| Error::storage())?;
-        let Some(old) = old.ok_or_else(Error::forbidden)? else {
-            // No outcome yet: this scope releases SQL and every Read before
-            // the existing Writer path rechecks everything and records once.
-            return Ok(None);
-        };
+        let old = a.recorded_observation(&c)?.ok_or_else(Error::forbidden)?;
         if old != captured.observation {
             return Err(conflict());
         }
         if let Some(audience) = &captured.audience {
             audience.require_recorded(&c, &a.effect)?;
         }
-        Ok(Some(row.record))
+        Ok(row.record)
     }
     pub fn native_replacement_commit_uncertain(
         &self,
@@ -804,15 +800,26 @@ impl Store {
     ) -> Result<OperationRecord> {
         let p = &a.origin.started.attempt.allocated.attempt.prepared;
         local_owner(self, &p.owner, &p.runtime)?;
-        // This effect-free preview chooses only a provisional footprint. Its
-        // full policy derivation must not consume the shared five-millisecond
-        // SQL/file admission window. The immediate SQL try adds no wait, and
-        // its guard drops here before that original admission window starts.
-        let (preview, preview_required) = if let Some(capture) = positive {
-            let c = self.try_connection()?;
-            crate::authority_writer_boundary::phase_ledger::commit::admission_preview(
-                self, &c, capture,
-            )?
+        // Inspect the immutable outcome and derive the provisional footprint
+        // under a single SQL acquisition. On first capture there is no recorded
+        // result to authorize or disclose, so no preliminary Read admission is
+        // needed. The transaction below still revalidates every actual fact.
+        let (preview, preview_required, remaining) = if let Some(capture) = positive {
+            let (preview, remaining) = self.try_replacement_metadata_preview(diagnostics, |c| {
+                if a.recorded_observation(c)?.is_some() {
+                    return Ok(None);
+                }
+                crate::authority_writer_boundary::phase_ledger::commit::admission_preview(
+                    self, c, capture,
+                )
+                .map(Some)
+            })?;
+            let Some((decision, required)) = preview else {
+                // Replay must make a fresh authorized Read. A Writer after
+                // public activation can invalidate unrelated queued media.
+                return self.read_recorded_replacement_commit(capture);
+            };
+            (decision, required, Some(remaining))
         } else {
             (
                 crate::authority_writer_boundary::phase_ledger::commit::Decision {
@@ -820,9 +827,10 @@ impl Store {
                     reason: "non-positive-observation",
                 },
                 Vec::new(),
+                None,
             )
         };
-        let (held, mut c) = self.try_replacement_capture_projection(diagnostics, |c| {
+        let derive = |c: &Connection| {
             let row = rows::by_record(c, &p.record)?;
             // This hint grants nothing. The actual transaction below repeats
             // complete current validation and refuses a stale Read footprint.
@@ -851,7 +859,16 @@ impl Store {
                 )?);
             }
             AuthorityScope::merged(&scopes)
-        })?;
+        };
+        let (held, mut c) = if preview.reader {
+            // This exact positive scope uses immediate Read admission while
+            // retaining the current SQL unit. A busy guard returns both; it
+            // never parks SQL waiting for file authority or reacquires SQL
+            // while already holding the required Reads.
+            self.try_replacement_immediate_projection(diagnostics, remaining, derive)?
+        } else {
+            self.try_replacement_capture_projection(diagnostics, derive)?
+        };
         let mut timing = super::projection::TransactionTiming::new(diagnostics);
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -1073,7 +1090,7 @@ impl Store {
         let (hint, mut remaining) = if let Some(captured) =
             live.filter(|_| !stopped && p.facts.private_successor.is_none())
         {
-            self.try_replacement_publication_preview(
+            self.try_replacement_metadata_preview(
                 Some(&captured.activation_diagnostics),
                 |c| {
             let current:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM operations o JOIN native_replacements n ON n.operation_record_id=o.record_id WHERE o.record_id=?1 AND o.state='preparing' AND o.cancel_requested=0 AND o.tombstoned=0 AND o.expires_at>?2 AND n.expires_at>?2 AND n.runtime_epoch=?3 AND NOT EXISTS(SELECT 1 FROM connections WHERE id=n.candidate_connection_id) AND NOT EXISTS(SELECT 1 FROM native_replacement_candidates claim WHERE claim.operation_record_id=o.record_id OR claim.candidate_connection_id=n.candidate_connection_id))",params![p.record,crate::now(),self.runtime_epoch()],|r|r.get(0)).map_err(|_|Error::storage())?;
@@ -1144,7 +1161,7 @@ impl Store {
         }
         let activation = live.map(NativeReplacementCommitted::activation);
         let target = &p.facts.target;
-        let (held, mut c) = self.try_replacement_publication_projection(
+        let (held, mut c) = self.try_replacement_immediate_projection(
             live.map(|capture| &capture.activation_diagnostics),
             remaining,
             |c| {

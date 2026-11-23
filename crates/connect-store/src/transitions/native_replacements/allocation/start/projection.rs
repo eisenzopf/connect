@@ -227,12 +227,11 @@ impl Store {
         timing.admitted = true;
         Ok((held, c))
     }
-    /// Pure eligibility preview owns no authority. Initial SQL acquisition and
-    /// subsequent real admission share the existing five-millisecond budget;
-    /// only expensive pure fact CPU between them is uncharged. A successful
-    /// preview is counted by its real admission, while a refused preview is
-    /// recorded at the existing initial-derive boundary.
-    pub(super) fn try_replacement_publication_preview<T>(
+    /// Pure eligibility preview holds no authority. It uses bounded initial SQL
+    /// admission and also returns the remainder for callers sharing that bound
+    /// with the subsequent admission. A refused preview is counted at the
+    /// initial-derive boundary; the real admission counts the successful path.
+    pub(super) fn try_replacement_metadata_preview<T>(
         &self,
         counters: Option<&AdmissionCounters>,
         preview: impl FnOnce(&Connection) -> Result<T>,
@@ -258,12 +257,12 @@ impl Store {
         }
         result
     }
-    /// Final replacement publication (ready or stopped) keeps its SQL Unit through immediate
-    /// full Writer admission. There is no primary-SQL reacquire gap after the
-    /// WriterNotice. Kernel/file admission NEVER waits while SQL is owned;
+    /// Scoped positive capture and final replacement publication keep the SQL
+    /// unit through immediate authority admission. There is no primary-SQL
+    /// reacquire gap. Kernel/file admission never waits while SQL is owned;
     /// registry metadata mutexes and filesystem validation remain synchronous.
     /// A miss releases the entire Unit/proof before Service's same-capture retry.
-    pub(super) fn try_replacement_publication_projection<'a>(
+    pub(super) fn try_replacement_immediate_projection<'a>(
         &'a self,
         counters: Option<&AdmissionCounters>,
         remaining: Option<std::time::Duration>,
