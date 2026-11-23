@@ -1,5 +1,8 @@
 //! Grant-free waiting only; callers must have dropped every final-turn alias.
 use super::*;
+
+pub(super) const MANAGED_METADATA_RETRY_DELAY: Duration = Duration::from_millis(2);
+
 impl crate::canonical_runtime::Runtime {
     /// Pure metadata hint only. It cannot authorize or reserve a final cut.
     pub(crate) fn observe_managed_retry_model(
@@ -25,7 +28,7 @@ impl crate::canonical_runtime::Runtime {
             _=self.stop.cancelled()=>Err(connect_protocol::Error::forbidden()),
             _=cancel.cancelled()=>Err(connect_protocol::Error::forbidden()),
             _=tokio::time::sleep_until(until)=>Err(connect_protocol::Error::forbidden()),
-            _=tokio::time::sleep_until(until.min(tokio::time::Instant::now()+Duration::from_millis(2)))=>Ok(()),
+            _=tokio::time::sleep_until(until.min(tokio::time::Instant::now()+MANAGED_METADATA_RETRY_DELAY))=>Ok(()),
         }
     }
 }

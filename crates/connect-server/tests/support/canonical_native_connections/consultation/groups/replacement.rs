@@ -11,6 +11,9 @@ pub(super) mod decoded_readiness;
 mod final_control;
 #[path = "replacement/start_replay.rs"]
 mod start_replay;
+#[cfg(feature = "test-support")]
+#[path = "replacement/successor_first.rs"]
+mod successor_first;
 async fn wait_prepared(f: &Fixture, key: &str, operation: &str) -> OperationRecord {
     let until = tokio::time::Instant::now() + Duration::from_secs(10);
     loop {
@@ -194,6 +197,10 @@ enum ActivationAudit {
     None,
     #[cfg(feature = "test-support")]
     FinalControl(final_control::Case),
+    #[cfg(feature = "test-support")]
+    SuccessorOriginal,
+    #[cfg(feature = "test-support")]
+    SuccessorNegative(successor_first::negatives::Case),
     #[cfg(feature = "test-support")]
     RouteEnrollment(activation::route_enrollment::Boundary),
     #[cfg(feature = "test-support")]
@@ -558,7 +565,12 @@ async fn exercise_replacement_with_av_transfer(
             payload_extensions: Default::default(),
         };
         #[cfg(feature = "test-support")]
-        let final_control_probe = if matches!(activation_audit, ActivationAudit::FinalControl(_)) {
+        let final_control_probe = if matches!(
+            activation_audit,
+            ActivationAudit::FinalControl(_)
+                | ActivationAudit::SuccessorOriginal
+                | ActivationAudit::SuccessorNegative(_)
+        ) {
             Some(f.server.service.arm_canonical_preparation_custody_probe_for_test(
                 &command.operation_id,if matches!(activation_audit,ActivationAudit::FinalControl(final_control::Case::PostPanic)) {connect_service::canonical_media_projection_fixture::PreparationCustodyPhase::ManagedPostPanic}else{connect_service::canonical_media_projection_fixture::PreparationCustodyPhase::ManagedFinalPrepared}).unwrap())
         } else {
@@ -1105,6 +1117,54 @@ async fn exercise_replacement_with_av_transfer(
                 )
                 .await
             };
+            #[cfg(feature = "test-support")]
+            if let ActivationAudit::SuccessorNegative(case) = activation_audit {
+                let evidence = successor_first::negatives::verify(
+                    &f,
+                    &key.id,
+                    &command,
+                    plan["candidate_runtime_id"].as_str().unwrap(),
+                    &mut peers,
+                    &mut controller,
+                    final_control_probe.as_ref().unwrap(),
+                    case,
+                )
+                .await;
+                // SAME all-original-owner cleanup as the positive packet audit.
+                for peer in peers {
+                    let _ = peer.client.shutdown().await;
+                }
+                wait_slots(&f, 0).await;
+                let movement_controller = super::sdk_movements::before_shutdown(&f).await;
+                f.server.shutdown().await.unwrap();
+                super::sdk_movements::shutdown_joined(movement_controller);
+                evidence
+                    .expect("negative successor evidence only qualifies after original joins")
+                    .validate();
+                continue;
+            }
+            #[cfg(feature = "test-support")]
+            if matches!(activation_audit, ActivationAudit::SuccessorOriginal) {
+                let evidence = successor_first::verify(
+                    &f,
+                    &key.id,
+                    &command,
+                    plan["candidate_runtime_id"].as_str().unwrap(),
+                    &mut peers,
+                    final_control_probe.as_ref().unwrap(),
+                )
+                .await;
+                // Release is unconditional inside verify, including Result errors.
+                for peer in peers {
+                    let _ = peer.client.shutdown().await;
+                }
+                wait_slots(&f, 0).await;
+                let movement_controller = super::sdk_movements::before_shutdown(&f).await;
+                f.server.shutdown().await.unwrap();
+                super::sdk_movements::shutdown_joined(movement_controller);
+                evidence.expect("actual signed/native reserved successor must qualify only after all original joins").validate();
+                continue;
+            }
             #[cfg(feature = "test-support")]
             let mut final_control_observation = None;
             #[cfg(feature = "test-support")]

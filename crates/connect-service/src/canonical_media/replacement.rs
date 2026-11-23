@@ -687,6 +687,28 @@ impl super::Policy {
         }))
     }
 }
+fn retry_dormant_unary<T>(
+    unary: bool,
+    until: tokio::time::Instant,
+    current: impl Fn() -> bool,
+    mut attempt: impl FnMut() -> connect_protocol::Result<T>,
+) -> connect_protocol::Result<T> {
+    while current() {
+        match attempt() {
+            Err(error) if unary && error.code == "authority-busy" => {
+                // This is the existing off-media Store worker. Each attempt
+                // has returned without retaining a route, phase or Store guard.
+                let remaining = until.saturating_duration_since(tokio::time::Instant::now());
+                std::thread::sleep(
+                    remaining.min(super::final_control::MANAGED_METADATA_RETRY_DELAY),
+                );
+            }
+            result => return result,
+        }
+    }
+    Err(connect_protocol::Error::forbidden())
+}
+
 impl ReplacementAdoption {
     #[cfg(feature = "test-support")]
     pub(crate) fn route_fixture_continuation(
@@ -818,11 +840,12 @@ impl ReplacementAdoption {
             .root
             .upgrade()
             .ok_or_else(connect_protocol::Error::forbidden)?;
+        let until = until.min(root.deadline);
         let current = || {
             !stop.is_cancelled()
                 && !root.handle.cancellation().is_cancelled()
                 && root.handle.is_committed()
-                && tokio::time::Instant::now() < until.min(root.deadline)
+                && tokio::time::Instant::now() < until
         };
         let mut first_error = None;
         let mut active = Vec::new();
@@ -831,7 +854,9 @@ impl ReplacementAdoption {
             if !current() {
                 return Err(connect_protocol::Error::forbidden());
             }
-            match route.activate_and_publish(&self.target.base.store) {
+            match retry_dormant_unary(route.is_unary(), until, &current, || {
+                route.activate_and_publish(&self.target.base.store)
+            }) {
                 Ok(Some(route)) => active.push(route),
                 Ok(None) => existing += 1,
                 Err(error) => {
@@ -845,7 +870,9 @@ impl ReplacementAdoption {
             if !current() {
                 return Err(connect_protocol::Error::forbidden());
             }
-            match route.prepare_current(&self.target.base.store) {
+            match retry_dormant_unary(route.is_unary(), until, &current, || {
+                route.prepare_current(&self.target.base.store)
+            }) {
                 Ok(()) => prepared += 1,
                 Err(error) => {
                     first_error.get_or_insert(error);

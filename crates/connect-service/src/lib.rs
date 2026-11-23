@@ -1287,3 +1287,17 @@ pub mod canonical_media_projection_fixture {
     };
     pub use crate::canonical_media::video_preparation_fixture::VideoPreparationProbe;
 }
+
+#[cfg(feature = "test-support")]
+impl Service {
+    /// Read-only exact production reservation; cannot arm/release or grant IO.
+    pub fn canonical_replacement_successor_observer_for_test(
+        &self,
+        record: &str,
+    ) -> Result<rvoip_core::staged_streams::SuccessorIngressObserverForTest> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .replacement_successor_observer_for_test(record)
+    }
+}

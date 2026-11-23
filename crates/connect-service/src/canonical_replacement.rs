@@ -1039,3 +1039,29 @@ impl Runtime {
         })
     }
 }
+
+#[cfg(feature = "test-support")]
+impl Runtime {
+    pub(crate) fn replacement_successor_observer_for_test(
+        &self,
+        record: &str,
+    ) -> Result<rvoip_core::staged_streams::SuccessorIngressObserverForTest> {
+        let root = {
+            self.replacements
+                .try_lock()
+                .map_err(|_| Error::new("authority-busy", "Replacement metadata busy"))?
+                .get(record)
+                .cloned()
+        }
+        .ok_or_else(Error::forbidden)?;
+        let controller = self.connection_media_controller(&root.handle.intent().replacement)?;
+        controller
+            .successor_ingress_observer_for_test()
+            .map_err(|e| match e {
+                rvoip_core::staged_streams::StreamControlError::MetadataBusy => {
+                    Error::new("authority-busy", "Successor observation busy")
+                }
+                _ => Error::forbidden(),
+            })
+    }
+}

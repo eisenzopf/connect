@@ -148,8 +148,12 @@ impl RouteSnapshot {
     }
 }
 impl DormantRoute {
+    pub(super) fn is_unary(&self) -> bool {
+        self.registered.source.is_none()
+    }
+
     pub(super) fn activate_and_publish(
-        self,
+        &self,
         store: &Arc<Store>,
     ) -> connect_protocol::Result<Option<ActiveRoutePreparation>> {
         let target = self
@@ -186,13 +190,17 @@ impl DormantRoute {
             target=target.origin.runtime_connection_id(),unary=self.registered.source.is_none(),
             "Armed route descriptor published; fresh authority is still required");
         Ok(Some(ActiveRoutePreparation {
-            target: self.target,
-            registered: self.registered,
+            target: self.target.clone(),
+            registered: self.registered.clone(),
         }))
     }
 }
 impl ActiveRoutePreparation {
-    pub(super) fn prepare_current(self, store: &Arc<Store>) -> connect_protocol::Result<()> {
+    pub(super) fn is_unary(&self) -> bool {
+        self.registered.source.is_none()
+    }
+
+    pub(super) fn prepare_current(&self, store: &Arc<Store>) -> connect_protocol::Result<()> {
         let target = self
             .target
             .upgrade()

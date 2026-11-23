@@ -10275,5 +10275,72 @@
     "still_pending": "Exact reserved original through actual signed/native decode and strict Firefox A/V continuity. The signed admission controls cover unary Publish.",
     "ready_for_32": false,
     "matrix_credit": false
+  },
+  "checkpoint189_reserved_original_and_unary_retry": {
+    "dependency_generation": 575,
+    "predecessor": "1ce431e2ca5db4128c925c0547ea04e608ec0615",
+    "scope": "Original successor audio across an actual managed signed native cut; exact dormant unary route activation under local Store contention.",
+    "core_controls": {
+      "passes": 5,
+      "result": {
+        "path": ".local/gate-6/checkpoint184-signed-successor-batch-formatted/focused-core/result.json",
+        "sha256": "99d54d60fed5583deb4591cd4507886df4e5b05902591677d8bf630cad8bc875"
+      }
+    },
+    "signed_native": {
+      "passes": 7,
+      "result": {
+        "path": ".local/gate-6/checkpoint189-signed-route-retry-batch/result.json",
+        "sha256": "c5611a5de9e9e340448d550cb0613f8445644be851d5d4064cf54c6bf52addc5"
+      },
+      "source": {
+        "path": ".local/gate-6/checkpoint189-signed-route-retry-batch/source-before.json",
+        "sha256": "5edb6a4abe3467b90a102948f2ba71ea6f216f06b5eec825ce25857c24705389"
+      },
+      "original_join": {
+        "path": ".local/gate-6/checkpoint189-signed-route-retry-batch/root-original-join.json",
+        "sha256": "6dab0e08e6128c7c5038a79eb3da5b9923ad65c9edafc1b36debf68a44b1bccc"
+      }
+    },
+    "actual_positive": {
+      "capture": 1,
+      "release": 1,
+      "queued": 1,
+      "current_packet_epoch": true,
+      "original_media_age_microseconds": 51369,
+      "exact_target_contribution": 1,
+      "wire_output_matches_first_retained_packet": true
+    },
+    "actual_negative": {
+      "cases": [
+        "actor-revocation",
+        "signed-abort",
+        "subscription-withdrawal"
+      ],
+      "original_release_or_delivery": 0
+    },
+    "traced_predecessor_issue": {
+      "path": ".local/gate-6/checkpoint188-signed-prepared-pending-traced-repeat/result.json",
+      "sha256": "ca1f2194b5dc59168ef69ab9fa9d320d4aea207e3e582029e64c74be82e08b4e"
+    },
+    "prepared_dependencies": {
+      "path": ".local/gate-6/checkpoint184-signed-successor-batch-formatted/normal575-runtime/receipt.json",
+      "sha256": "dce6e6676c67e3c3e80ef3d2c6541edc0346c08eb84a11ac38ecf8903cdc7b73"
+    },
+    "next": "Same committed source contract and regression requalification, strict Firefox and remaining readiness scopes.",
+    "ready_for_32": false,
+    "matrix_credit": false,
+    "same_binary_warm_repeats": {
+      "passed": 3,
+      "result": {
+        "path": ".local/gate-6/checkpoint190-signed-route-retry-repeat/result.json",
+        "sha256": "6f9526deaeba4d43a3dacf4b37d51443d1ed49628828224fc87e88b703e3781e"
+      },
+      "original_tool_session": 39268
+    },
+    "independent_actual_audit": {
+      "path": ".local/gate-6/checkpoint189-signed-route-retry-independent-actual-audit/receipt.json",
+      "sha256": "b882bee24b376906b818ab7c1d30cd8ade33f5a52bbe92009dfed59b9406c2c0"
+    }
   }
 }

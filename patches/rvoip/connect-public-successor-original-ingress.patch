@@ -1,0 +1,1341 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+index 9ebffd8..b72bc90 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -604,6 +604,9 @@ struct PortState {
+ mod diagnostics;
+ mod directional_ticket;
+ use directional_ticket::{PortTicketChange, TicketSide};
++mod successor_ingress;
++#[cfg(feature="test-support")]
++pub use successor_ingress::{SuccessorIngressObserverForTest,SuccessorIngressSnapshotForTest};
+ mod native_activation;
+ pub use native_activation::{
+     NativeVideoPhysicalDomain,NativeVideoRegistrationBatch,
+@@ -979,6 +982,11 @@ impl AdapterMediaPort {
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)?;
+         if data.is_none() && held.is_none() && self.0.kind() == StreamKind::Audio {
++            // The original-capsule producer owns the earlier source interval.
++            // A concurrent direct call cannot overtake it into the ordinary FIFO.
++            if owner.successor_original_pending(&self.0) {
++                return Err(StreamControlError::MetadataBusy);
++            }
+             if tracing::enabled!(target: "rvoip_core::guarded_frame", tracing::Level::TRACE) {
+                 let muted = owner.state.try_lock().ok().and_then(|state| {
+                     state
+@@ -1110,6 +1118,7 @@ impl WeakAdapterMediaPort {
+ struct PacketAdmissionMetadata {
+     active: arc_swap::ArcSwapOption<ActivePacketRead>,
+     epoch: std::sync::OnceLock<Arc<dyn PacketEpoch>>,
++    successor: std::sync::OnceLock<Arc<successor_ingress::Provenance>>,
+ }
+ struct ActivePacketRead(Weak<dyn Any + Send + Sync>);
+ #[derive(Clone, Default)]
+@@ -1141,6 +1150,7 @@ impl PacketCustody {
+     }
+     fn current(&self) -> bool {
+         self.0.epoch.get().is_none_or(|epoch| epoch.current())
++            && self.0.successor.get().is_none_or(|proof| proof.current())
+     }
+     fn require_current(&self) -> ControlResult<()> {
+         if self.current() {
+@@ -1599,6 +1609,12 @@ impl QueuedMedia {
+             && !tokens.iter().any(CancellationToken::is_cancelled)
+             && tokio::time::Instant::now() < deadline
+         {
++            #[cfg(feature="test-support")]
++            for source in &self.sources {
++                if let Some(proof)=source.custody.0.successor.get() {
++                    proof.note_delivery_for_test(target,&self.target,&self.frame,self.sources.len());
++                }
++            }
+             if let (Some(stamp), Some(subscription)) = (&self.target_consumer, &self.subscription) {
+                 if let Some(consumer) = target
+                     .audio_consumer
+@@ -2403,6 +2419,7 @@ pub struct StreamController {
+     state: Mutex<State>,
+     audio_consumer: Mutex<Option<Weak<audio_consumer::AudioConsumer>>>,
+     audio_preparation: Mutex<Option<Weak<endpoint_preparation::Probe>>>,
++    successor_ingress: arc_swap::ArcSwapOption<successor_ingress::Registration>,
+     scene_consumer: Mutex<Option<Weak<scene_consumer::SceneConsumer>>>,
+     direct_subscriptions: Arc<direct_subscriptions::DirectGate>,
+     selection_changed: Mutex<Option<Weak<subscription_plan::SelectionChangeSignal>>>,
+@@ -2866,6 +2883,7 @@ impl StreamController {
+             }),
+             audio_consumer: Mutex::new(None),
+             audio_preparation: Mutex::new(None),
++            successor_ingress: arc_swap::ArcSwapOption::empty(),
+             scene_consumer: Mutex::new(None),
+             direct_subscriptions: direct_subscriptions::DirectGate::new(lifetime.child_token()),
+             selection_changed: Mutex::new(None),
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audience.rs b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+index 04ae163..02a3cff 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -1182,6 +1182,7 @@ pub(crate) struct PreparedAudienceCut {
+     freeze: Option<super::old_video_freeze::OldVideoFreezeCutFacts>,
+     audio_adoption: Option<AudioAdoption>,
+     public_adoptions: Vec<(Arc<StreamController>, super::direct_subscriptions::PublicVideoAdoption)>,
++    successor_ingress: Option<super::successor_ingress::Owner>,
+     deadline: tokio::time::Instant, cancellation: CancellationToken,
+     #[cfg(test)] pub(crate) test_panic_at:Option<u8>,
+ }
+@@ -1527,6 +1528,39 @@ impl GuardedMediaScene {
+                 let index=prepared.targets.iter().position(|target|target.controller.connection==replacement.request.admitted).ok_or(StreamControlError::Authority)?;
+                 native_activation::capture_cut(replacement,&prepared.targets[index].controller,&states[index],!plan.group.origins.is_empty(),&prepared.targets[index].inherited_gates,revisions[&replacement.request.admitted],turn.native_capabilities[&prepared.targets[index].controller.connection],&ports)
+             }).transpose()?;
++            let successor_index = prepared.successor_ingress.as_ref().map(|_| {
++                let replacement = plan.replacement.as_ref().ok_or(StreamControlError::Authority)?;
++                prepared.targets.iter().position(|target| target.controller.connection == replacement.request.admitted)
++                    .ok_or(StreamControlError::Authority)
++            }).transpose()?;
++            // Only actual selected AUDIO receivers need a pre-start exception.
++            // Video-only/future/no-stream targets and OLD/self remain unchanged.
++            let mut successor_targets = Vec::new();
++            let mut successor_source = None;
++            let mut successor_proof = if let (Some(owner), Some(index)) = (&prepared.successor_ingress, successor_index) {
++                let replacement = plan.replacement.as_ref().ok_or(StreamControlError::Authority)?;
++                let source = &prepared.targets[index];
++                let source_port = states[index].active.get(&replacement.new_logical).ok_or(StreamControlError::NotReady)?.clone();
++                let source_consumer = turn.members[&source.controller.connection].audio_consumer.clone();
++                let mut targets = Vec::with_capacity(prepared.targets.len());
++                successor_targets.reserve(prepared.targets.len());
++                for (at, ((target, state), commit)) in prepared.targets.iter().zip(&states).zip(&audio).enumerate() {
++                    if target.controller.connection == replacement.request.source
++                        || target.controller.origin_member.participant() == source.controller.origin_member.participant()
++                        || !plan.request.receivers.contains_key(&target.controller.connection)
++                        || !commit.selects_source(&target.audio, &source.controller, &replacement.new_logical)
++                    { continue; }
++                    let consumer = &turn.members[&target.controller.connection].audio_consumer;
++                    let Some(logical) = consumers.logical(consumer)? else { continue; };
++                    let Some(port) = state.active.get(&logical) else { continue; };
++                    if port.kind() != StreamKind::Audio { continue; }
++                    targets.push((target.controller.clone(), port.clone(), consumers.snapshot(consumer)?, commit.snapshot(&target.audio)));
++                    successor_targets.push((at, port.clone(), consumer.clone()));
++                }
++                let proof = owner.prepare_release(&source_consumer, &source.audio, &audio[index], &consumers, targets)?;
++                successor_source = Some((source_port, source_consumer));
++                Some(proof)
++            } else { None };
+             #[cfg(test)] if prepared.test_panic_at==Some(0) {panic!("actual managed audience before first effect");}
+             self.structural_epoch.invalidate_before_effect();
+             // No new lock, policy/adapter call, resource preparation or retry
+@@ -1580,6 +1614,19 @@ impl GuardedMediaScene {
+                         else {target.gate.is_some()&&target.ports.iter().any(|change|&change.port.binding.negotiated.requested.logical_id==*id)}
+                     }).map(|(_,stream)|stream.clone()).collect()})
+             }).collect()};
++            if let (Some(owner), Some(index), Some(proof)) = (&prepared.successor_ingress, successor_index, successor_proof.as_mut()) {
++                let proof_mut = Arc::get_mut(proof).expect("unreleased successor provenance");
++                for (at, (index, port, consumer)) in successor_targets.iter().enumerate() {
++                    let target = &prepared.targets[*index];
++                    proof_mut.update_target(at, consumers.snapshot(consumer).expect("preflighted held consumer"),
++                        audio[*index].snapshot(&target.audio), port.ticket(TicketSide::Egress));
++                }
++                let source = &prepared.targets[index];
++                let (port, consumer) = successor_source.as_ref().expect("preflighted exact successor resources");
++                proof_mut.update_source(consumers.snapshot(consumer).expect("preflighted held successor"),
++                    audio[index].snapshot(&source.audio), port.ticket(TicketSide::Ingress));
++                owner.release(successor_proof.take().expect("same original release proof"));
++            }
+             Ok((AudioAudienceOutcome {operation_id:plan.request.operation_id.clone(),audience_revision:registry.revision,receiver_revisions:revisions,restored:plan.restore.is_some(),replacement_activation,departed_connections:departed,participant_handoff:observations.handoff,participant_replacement:observations.replacement},commit,Instant::now()))
+         }));
+         let attempt=match caught {Ok(attempt)=>attempt,Err(_)=>Err(StreamControlError::CleanupUnconfirmed)};
+@@ -1651,9 +1698,50 @@ impl GuardedMediaScene {
+             }
+             if replacement.public_video_warm_started.load(Ordering::Acquire) && public_adoptions.len()!=1 { return Err(StreamControlError::Authority); }
+         }
++        let successor_ingress = if let Some(replacement) = &plan.replacement {
++            let target = &members[&replacement.request.admitted];
++            if replacement.restoration.is_none() && replacement.old_speaks && plan.group.origins.is_empty()
++                && prepared.iter().any(|receiver| {
++                    let id = &receiver.controller.connection;
++                    receiver.controller.origin_member.participant() != target.controller.origin_member.participant()
++                        && id != &replacement.request.source && plan.request.receivers.contains_key(id)
++                        && receiver.audio.prepared_selects_source(&target.controller, &replacement.new_logical)
++                        && members.get(id).is_some_and(|member| member.view().current_logical()
++                            .and_then(|logical| member.state.active.get(&logical))
++                            .is_some_and(|port| port.kind() == StreamKind::Audio))
++                })
++                && matches!(target.controller.origin_endpoint.transport(),
++                    crate::connection::Transport::Quic | crate::connection::Transport::WebTransport
++                        | crate::connection::Transport::WebRtc)
++            {
++                if let Some(port) = target.state.active.get(&replacement.new_logical).filter(|port| port.kind() == StreamKind::Audio) {
++                    // Optional optimization: absence of concrete audio is not
++                    // a new reason to reject an otherwise legitimate cut.
++                    // All existing cold readiness/plans already succeeded.
++                    let scene = loop {
++                        match target.consumer.try_stamp() {
++                            Err(StreamControlError::MetadataBusy) => super::media_subscriptions::metadata_wait(
++                                target.controller.shutdown.clone(), cancellation.clone(), cancellation.clone(), deadline).await?,
++                            result => break Some(result?),
++                        }
++                    };
++                    let credential = &prepared.iter().find(|candidate|
++                        Arc::ptr_eq(&candidate.controller, &target.controller))
++                        .ok_or(StreamControlError::Authority)?.credential;
++                    loop {
++                        match super::successor_ingress::Owner::arm(&plan, &target.controller, port,
++                            credential, scene.clone(), deadline, &cancellation) {
++                            Err(StreamControlError::MetadataBusy) => super::media_subscriptions::metadata_wait(
++                                target.controller.shutdown.clone(), cancellation.clone(), cancellation.clone(), deadline).await?,
++                            result => break Some(result?),
++                        }
++                    }
++                } else { None }
++            } else { None }
++        } else { None };
+         Ok(PreparedAudienceCut {
+             #[cfg(test)] test_panic_at:None, plan, members, targets: prepared, next_groups, muted_source,
+-            original, receiver_origins, roles, freeze, audio_adoption, public_adoptions, deadline, cancellation })
++            original, receiver_origins, roles, freeze, audio_adoption, public_adoptions, successor_ingress, deadline, cancellation })
+     }
+ 
+     pub(crate) fn begin_audience_final_turn(
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+index ad721b4..3a5040d 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+@@ -260,6 +260,11 @@ pub(super) struct ConsumerStamp {
+     pub(super) cancellation: CancellationToken,
+ }
+ impl ConsumerStamp {
++    pub(super) fn same_generation(&self, other: &Self) -> bool {
++        Weak::ptr_eq(&self.owner, &other.owner) && self.epoch == other.epoch
++            && self.started == other.started && self.ticket.same_generation(&other.ticket)
++    }
++
+     /// Cold freeze only: the caller already validated the complete original
+     /// role under metadata guards and retains every original controller flight
+     /// plus the unchanged authoritative scene epoch. This is not a grant.
+@@ -329,6 +334,12 @@ pub(super) struct ConsumerCutGuards<'a> {
+     states: Vec<(&'a Arc<AudioConsumer>, std::sync::MutexGuard<'a, ConsumerState>)>,
+ }
+ impl<'a> ConsumerCutGuards<'a> {
++    pub(super) fn snapshot(&self, consumer: &Arc<AudioConsumer>) -> ControlResult<ConsumerStamp> {
++        let state = self.get(consumer)?;
++        Ok(ConsumerStamp { owner: Arc::downgrade(consumer), ticket: state.ticket.clone(),
++            epoch: state.epoch, started: state.started, cancellation: consumer.cancellation.clone() })
++    }
++
+     pub(super) fn logical(&self,consumer:&Arc<AudioConsumer>)->ControlResult<Option<StreamId>> {Ok(self.get(consumer)?.logical.clone())}
+ 
+     pub(super) fn try_acquire(consumers: &'a [Arc<AudioConsumer>]) -> ControlResult<Self> {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+index d9f900d..bbbce3c 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+@@ -359,6 +359,12 @@ pub(super) struct SubscriptionDelivery {
+     _private: Option<PeerDeliveryGuard>,
+ }
+ impl SubscriptionStamp {
++    pub(super) fn same_generation(&self, other: &Self) -> bool {
++        Weak::ptr_eq(&self.gate, &other.gate) && self.started == other.started
++            && self.ticket.same_generation(&other.ticket)
++            && self.preparation.is_none() && other.preparation.is_none()
++    }
++
+     pub(super) fn cut_ticket(&self) -> PeerRouteTicket { self.ticket.clone() }
+     /// Complete ticket dependencies of the same guarded currentness predicate.
+     /// Preroll keeps its original and target programme fences in addition to
+@@ -889,6 +895,11 @@ impl AudioPlanFacts {
+     }
+ }
+ impl AudioPlan {
++    // Eligibility hint only; final held state and normal receive admission
++    // still enforce all inherited audience rules and current policy.
++    pub(super) fn prepared_selects_source(&self, source: &StreamController, logical: &StreamId) -> bool {
++        self.program.allows(source, logical)
++    }
+     pub(super) fn selects_output(&self)->bool {!self.program.selections.is_empty()}
+ 
+     pub(super) fn selected_resource_sources(&self,members:&std::collections::HashMap<ConnectionId,super::control_snapshot::CapturedMember>)->ControlResult<Vec<crate::orchestrator::participant_control::ManagedReceiveResourceRequirement>> {
+@@ -1279,6 +1290,15 @@ impl AudioPlan {
+ }
+ pub(super) struct AudioCommit<'a>(std::sync::MutexGuard<'a, GateState>);
+ impl AudioCommit<'_> {
++    pub(super) fn selects_source(&self, plan: &AudioPlan, source: &StreamController, logical: &StreamId) -> bool {
++        plan.program.allows(source, logical)
++            && plan.rules.as_ref().unwrap_or(&self.0.rules).iter().all(|rule| rule.allows(source))
++    }
++    pub(super) fn snapshot(&self, plan: &AudioPlan) -> SubscriptionStamp {
++        SubscriptionStamp { gate: Arc::downgrade(&plan.gate), ticket: self.0.ticket.clone(),
++            started: self.0.started, cancel: plan.gate.cancel.clone(), preparation: None }
++    }
++
+ 
+     pub(super) fn validate_cut(&self,plan:&AudioPlan,tickets:&rvoip_core_traits::peer_switch::PeerRouteGuardSet<'_>)->ControlResult<()> {
+         if plan.gate.cancel.is_cancelled() || !self.0.ticket.same_generation(&plan.old.ticket) || !tickets.is_current(&plan.old.ticket) {return Err(StreamControlError::Cancelled);}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
+index 3f97f4b..1dfeb87 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
+@@ -55,7 +55,11 @@ impl PendingAudioQuantum {
+                 continue;
+             }
+             for segment in segments {
+-                if segment.admitted_at < member.target_started.max(subscription.started) {
++                if segment.admitted_at < member.target_started.max(subscription.started)
++                    && !segment.origin.custody.0.successor.get().is_some_and(|proof|
++                        proof.target_matches(&member.controller, &member.port, &member.stamp,
++                            &subscription, &target_ticket, &segment.origin.source))
++                {
+                     member.observations.note(
+                         AudioStage::TargetBeforeStart,
+                         None,
+@@ -180,7 +184,12 @@ impl PendingAudioQuantum {
+             && self
+                 .target_consumer
+                 .as_ref()
+-                .is_none_or(|stamp| stamp.active_at(self.admitted_at))
++                .is_none_or(|stamp| stamp.active_at(self.admitted_at)
++                    || stamp.is_current() && self.sources.iter().all(|source|
++                        source.admitted_at >= stamp.started
++                        || source.origin.custody.0.successor.get().is_some_and(|proof|
++                            proof.target_matches(target, &self.target, stamp, &self.subscription,
++                                &self.target_ticket, &source.origin.source))))
+             && self
+                 .target_scene
+                 .as_ref()
+@@ -193,7 +202,9 @@ impl PendingAudioQuantum {
+                         .origin
+                         .consumer
+                         .as_ref()
+-                        .is_none_or(|stamp| stamp.active_at(source.admitted_at))
++                        .is_none_or(|stamp| stamp.active_at(source.admitted_at)
++                            || source.origin.custody.0.successor.get().is_some_and(|proof|
++                                proof.source_consumer_matches(&source.origin.source, stamp)))
+                     && source
+                         .origin
+                         .scene
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs b/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
+index 6fd54a1..b551835 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
+@@ -5,6 +5,7 @@ use super::*;
+ pub mod native_observation;
+ 
+ pub(super) struct OriginalStamp {
++    successor: Option<Arc<super::successor_ingress::Provenance>>,
+     audio_programme: Option<audio_subscriptions::SubscriptionStamp>,
+     #[cfg(test)]
+     captured_revision: Option<u64>,
+@@ -15,6 +16,14 @@ pub(super) struct OriginalStamp {
+ }
+ impl OriginalStamp {
+     pub(super) fn validate(&self, owner: &StreamController, _state: &State) -> ControlResult<()> {
++        if let Some(proof) = &self.successor {
++            if !proof.current() || self.received_at.elapsed() >= Duration::from_millis(200)
++                || self.audio_programme.as_ref().is_none_or(|stamp| !stamp.same_generation(&proof.programme) || !stamp.is_current())
++                || self.consumer.as_ref().is_none_or(|stamp| !stamp.same_generation(&proof.consumer) || !stamp.is_current())
++                || self.scene.as_ref().is_some_and(|stamp| !stamp.active_at(self.received_at))
++            { return Err(StreamControlError::Authority); }
++            return owner.check_credential_snapshot(&self.credential);
++        }
+         // Exact original AUDIO programme, not an opportunistic whole-model
+         // revision that also advances for unrelated video/signaling changes.
+         if self.audio_programme.as_ref().is_some_and(|stamp|
+@@ -44,6 +53,7 @@ pub struct OriginalIngress {
+     original_video_frame: Option<Arc<OriginalVideoFrame>>,
+     ticket: PeerRouteTicket,
+     stamp: OriginalStamp,
++    successor: Option<super::successor_ingress::Claim>,
+     received_at: Instant,
+     deadline: tokio::time::Instant,
+     finished: bool,
+@@ -118,6 +128,21 @@ impl AdapterMediaPort {
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)?;
+         if self.0.kind() == StreamKind::Audio {
++            // Arm is installed only after actual private readiness/cold plans.
++            // Capture BEFORE Probe::observe: these bytes were never decoded by
++            // that private observer and can never serve its Ready evidence.
++            if let Some(claim) = super::successor_ingress::Claim::capture(&owner, &self.0, received_at)? {
++                return Ok(Some(OriginalIngress {
++                    port: self.clone(), frame, original_video_frame: None,
++                    ticket: self.0.ticket(TicketSide::Ingress),
++                    stamp: OriginalStamp { successor: None, audio_programme: None,
++                        #[cfg(test)] captured_revision: None,
++                        received_at, credential: owner.credential_snapshot(), consumer: None, scene: None },
++                    successor: Some(claim), received_at,
++                    deadline: (received_at + Duration::from_millis(200)).into(), finished: false,
++                    #[cfg(feature = "test-support")] native_wire: None,
++                }));
++            }
+             let probe = owner
+                 .audio_preparation
+                 .lock()
+@@ -188,6 +213,7 @@ impl AdapterMediaPort {
+         // Every attempt still validates CURRENT model before/after fresh policy;
+         // no cached grant survives capture or retry.
+         let stamp = OriginalStamp {
++            successor: None,
+             audio_programme,
+             #[cfg(test)]
+             captured_revision: state.as_ref().map(|s| s.model.revision()),
+@@ -202,6 +228,7 @@ impl AdapterMediaPort {
+             original_video_frame: None,
+             ticket,
+             stamp,
++            successor: None,
+             received_at,
+             deadline: (received_at + Duration::from_millis(200)).into(),
+             finished: false,
+@@ -237,6 +264,9 @@ impl OriginalIngress {
+                 ssrc,
+                 timestamp,
+             });
++        if let (Some(claim),Some(wire))=(&self.successor,&self.native_wire) {
++            claim.note_native_for_test(wire,&self.frame.payload);
++        }
+     }
+ 
+     #[cfg(test)]
+@@ -290,6 +320,22 @@ impl OriginalIngress {
+             .owner
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)?;
++        if let Some(claim) = &self.successor {
++            let proof = claim.ready(self.received_at)?;
++            if !proof.source_matches(&owner, &self.port.0) { return Err(StreamControlError::Authority); }
++            // Freeze only the actual committed successor, never discover a
++            // later generation on retry. This marker grants no Publish lease.
++            if self.stamp.successor.is_none() {
++                self.ticket = proof.ticket.clone();
++                self.stamp = OriginalStamp {
++                    successor: Some(proof.clone()), audio_programme: Some(proof.programme.clone()),
++                    #[cfg(test)] captured_revision: None,
++                    received_at: self.received_at, credential: proof.credential.clone(),
++                    consumer: Some(proof.consumer.clone()), scene: proof.scene.clone(),
++                };
++                self.deadline = self.deadline.min(proof.deadline());
++            }
++        }
+         if !self.ticket.is_current() {
+             return Err(StreamControlError::NotReady);
+         }
+@@ -316,13 +362,28 @@ impl OriginalIngress {
+         if tokio::time::Instant::now() >= deadline {
+             return Err(StreamControlError::Deadline);
+         }
++        let custody = if self.port.0.kind() == StreamKind::Audio {
++            PacketCustody::from_lease(lease.as_ref())
++        } else { PacketCustody::default() };
++        if self.successor.is_some() && custody.0.epoch.get().is_none_or(|epoch| !epoch.current()) {
++            // This new transition mode requires actual queued packet custody;
++            // a control/private/default lease cannot authorize its raw input.
++            return Err(StreamControlError::Authority);
++        }
++        if let Some(proof) = &self.stamp.successor {
++            let _ = custody.0.successor.set(proof.clone());
++        }
++        #[cfg(feature="test-support")]
++        if let Some(claim)=&self.successor {
++            claim.note_admitted_for_test(custody.0.epoch.get().is_some_and(|epoch|epoch.current()),self.received_at.elapsed());
++        }
+         // Pin only the original own-programme epoch across synchronous enqueue.
+         // A concurrent real audio selection change drains this SAME old gate;
+         // no scope/ticket/permission is recaptured and no guard crosses a wait.
+         let _programme=self.stamp.audio_programme.as_ref().map(|stamp|stamp.begin_local(&owner)).transpose()?;
+         let mut frame = self.frame.clone();
+         frame.source_clock = observe(self.port.clock_liveness(self.ticket.clone(), &admission));
+-        self.port
++        let result = self.port
+             .0
+             .enqueue_ingress(MediaPacket {
+                 original_video_frame: self
+@@ -340,7 +401,7 @@ impl OriginalIngress {
+                 consumer: admission.consumer.clone(),
+                 scene: admission.scene.clone(),
+                 custody: if self.port.0.kind() == StreamKind::Audio {
+-                    PacketCustody::from_lease(lease.as_ref())
++                    custody
+                 } else {
+                     PacketCustody::default()
+                 },
+@@ -348,6 +409,12 @@ impl OriginalIngress {
+             .map_err(|e| match e {
+                 mpsc::error::TrySendError::Full(_) => StreamControlError::Backpressure,
+                 mpsc::error::TrySendError::Closed(_) => StreamControlError::NotReady,
+-            })
++            });
++        if result.is_ok() { if let Some(claim) = &self.successor {
++            claim.queued();
++            #[cfg(feature="test-support")]
++            claim.note_queued_for_test();
++        } }
++        result
+     }
+ }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs b/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
+index 898ae66..b18dd90 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
+@@ -54,6 +54,11 @@ impl SceneConsumer {
+                 s.scene == self.scene && !s.cancel.is_cancelled() && s.ticket.is_current()
+             })
+     }
++    pub(super) fn try_stamp(self: &Arc<Self>) -> ControlResult<SceneStamp> {
++        let s = super::control_metadata::try_lock(&self.state)?;
++        Ok(SceneStamp { owner: Arc::downgrade(self), ticket: s.ticket.clone(),
++            scene: self.scene, started: s.started, cancel: self.cancel.clone() })
++    }
+     fn stamp(self: &Arc<Self>) -> SceneStamp {
+         let s = self.state.lock().unwrap_or_else(|p| p.into_inner());
+         SceneStamp {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/successor_ingress.rs b/crates/foundation/rvoip-core/src/staged_streams/successor_ingress.rs
+new file mode 100644
+index 0000000..1853949
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/successor_ingress.rs
+@@ -0,0 +1,515 @@
++//! One bounded, never-private-consumed original across an actual public cut.
++//! This owns provenance only. Publication still obtains a fresh packet-purpose
++//! lease and a real queued epoch after the final Writer has ended.
++use super::*;
++use audio_consumer::{ConsumerCutGuards, ConsumerStamp};
++use audio_subscriptions::{AudioCommit, AudioPlan, SubscriptionStamp};
++use std::sync::atomic::AtomicU8;
++
++const ARMED: u8 = 0;
++const HELD: u8 = 1;
++const RELEASED: u8 = 2;
++const QUEUED: u8 = 3;
++const CLOSED: u8 = 4;
++
++pub(super) struct Registration(Weak<Slot>);
++pub(super) struct Owner(Arc<Slot>);
++pub(super) struct Claim(Arc<Slot>);
++struct Slot {
++    controller: Weak<StreamController>,
++    port: Weak<Port>,
++    credential: CredentialSnapshot,
++    scene: Option<scene_consumer::SceneStamp>,
++    armed_at: Instant,
++    deadline: tokio::time::Instant,
++    cancellation: CancellationToken,
++    phase: AtomicU8,
++    released: std::sync::OnceLock<Arc<Provenance>>,
++    #[cfg(feature="test-support")]
++    observation: Arc<SuccessorObservation>,
++}
++
++// Only the actual successful managed cut constructs/releases this metadata.
++// No Reader/lease, PCM, controller or mutable permission is retained here.
++pub(super) struct Provenance {
++    controller: Weak<StreamController>,
++    port: Weak<Port>,
++    pub(super) credential: CredentialSnapshot,
++    pub(super) scene: Option<scene_consumer::SceneStamp>,
++    pub(super) consumer: ConsumerStamp,
++    pub(super) programme: SubscriptionStamp,
++    pub(super) ticket: PeerRouteTicket,
++    targets: Vec<Target>,
++    #[cfg(feature="test-support")]
++    observation: Arc<SuccessorObservation>,
++    committed_at: Instant,
++    armed_at: Instant,
++    deadline: tokio::time::Instant,
++    cancellation: CancellationToken,
++}
++struct Target {
++    controller: Weak<StreamController>,
++    port: Weak<Port>,
++    consumer: ConsumerStamp,
++    programme: SubscriptionStamp,
++    ticket: PeerRouteTicket,
++}
++
++impl Owner {
++    pub(super) fn arm(
++        plan: &audience::AudioAudiencePlan,
++        controller: &Arc<StreamController>,
++        port: &Arc<Port>,
++        credential: &CredentialSnapshot,
++        scene: Option<scene_consumer::SceneStamp>,
++        deadline: tokio::time::Instant,
++        cancellation: &CancellationToken,
++    ) -> ControlResult<Self> {
++        let replacement = plan
++            .replacement
++            .as_ref()
++            .ok_or(StreamControlError::Authority)?;
++        if plan.handoff.is_some()
++            || plan.restore.is_some()
++            || !plan.group.origins.is_empty()
++            || replacement.restoration.is_some()
++            || !replacement.old_speaks
++            || replacement.request.admitted != controller.connection
++            || replacement.new_logical != port.binding.negotiated.requested.logical_id
++            || !plan
++                .controllers
++                .get(&controller.connection)
++                .is_some_and(|expected| Weak::ptr_eq(expected, &Arc::downgrade(controller)))
++        {
++            return Err(StreamControlError::Authority);
++        }
++        Self::arm_exact(controller, port, credential, scene, deadline, cancellation)
++    }
++    fn arm_exact(
++        controller: &Arc<StreamController>,
++        port: &Arc<Port>,
++        credential: &CredentialSnapshot,
++        scene: Option<scene_consumer::SceneStamp>,
++        deadline: tokio::time::Instant,
++        cancellation: &CancellationToken,
++    ) -> ControlResult<Self> {
++        if !matches!(
++            controller.origin_endpoint.transport(),
++            crate::connection::Transport::Quic
++                | crate::connection::Transport::WebTransport
++                | crate::connection::Transport::WebRtc
++        ) || port.kind() != StreamKind::Audio
++            || controller.shutdown.is_cancelled()
++            || cancellation.is_cancelled()
++            || tokio::time::Instant::now() >= deadline
++        {
++            return Err(StreamControlError::Authority);
++        }
++        controller.check_credential_snapshot(credential)?;
++        let previous = controller.successor_ingress.load_full();
++        if previous
++            .as_ref()
++            .and_then(|r| r.0.upgrade())
++            .is_some_and(|slot| slot.phase.load(Ordering::Acquire) < QUEUED)
++        {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        let slot = Arc::new(Slot {
++            controller: Arc::downgrade(controller),
++            port: Arc::downgrade(port),
++            credential: credential.clone(),
++            scene,
++            armed_at: Instant::now(),
++            deadline,
++            cancellation: cancellation.clone(),
++            phase: AtomicU8::new(ARMED),
++            released: std::sync::OnceLock::new(),
++            #[cfg(feature="test-support")]
++            observation: Arc::new(SuccessorObservation::default()),
++        });
++        let next = Arc::new(Registration(Arc::downgrade(&slot)));
++        let saved = controller
++            .successor_ingress
++            .compare_and_swap(&previous, Some(next));
++        let same = match ((&*saved).as_ref(), previous.as_ref()) {
++            (None, None) => true,
++            (Some(a), Some(b)) => Arc::ptr_eq(a, b),
++            _ => false,
++        };
++        if !same {
++            return Err(StreamControlError::MetadataBusy);
++        }
++        Ok(Self(slot))
++    }
++
++    #[cfg(test)]
++    pub(super) fn arm_for_test(
++        controller: &Arc<StreamController>,
++        port: &Arc<Port>,
++        deadline: tokio::time::Instant,
++        cancellation: &CancellationToken,
++    ) -> ControlResult<Self> {
++        Self::arm_exact(
++            controller,
++            port,
++            &controller.credential_snapshot(),
++            controller.current_scene_stamp()?,
++            deadline,
++            cancellation,
++        )
++    }
++    #[cfg(test)]
++    pub(super) fn release_for_test(
++        &self,
++        consumer: &Arc<audio_consumer::AudioConsumer>,
++        targets: &[(
++            &Arc<StreamController>,
++            &Arc<Port>,
++            &Arc<audio_consumer::AudioConsumer>,
++        )],
++    ) {
++        let port = self.0.port.upgrade().expect("actual fixture source port");
++        let proof = Arc::new(Provenance {
++            controller: self.0.controller.clone(),
++            port: self.0.port.clone(),
++            credential: self.0.credential.clone(),
++            scene: self.0.scene.clone(),
++            #[cfg(feature="test-support")]
++            observation: self.0.observation.clone(),
++            consumer: consumer.stamp(),
++            programme: consumer.subscriptions.stamp(),
++            ticket: port.ticket(TicketSide::Ingress),
++            targets: targets
++                .iter()
++                .map(|(controller, port, consumer)| Target {
++                    controller: Arc::downgrade(controller),
++                    port: Arc::downgrade(port),
++                    consumer: consumer.stamp(),
++                    programme: consumer.subscriptions.stamp(),
++                    ticket: port.ticket(TicketSide::Egress),
++                })
++                .collect(),
++            committed_at: Instant::now(),
++            armed_at: self.0.armed_at,
++            deadline: self.0.deadline,
++            cancellation: self.0.cancellation.clone(),
++        });
++        self.release(proof);
++    }
++
++    // All allocations and metadata extraction precede the first effect. The
++    // held-state snapshots below do not re-enter ordinary consumer/gate locks.
++    pub(super) fn prepare_release(
++        &self,
++        source_consumer: &Arc<audio_consumer::AudioConsumer>,
++        source_programme: &AudioPlan,
++        source_commit: &AudioCommit<'_>,
++        consumers: &ConsumerCutGuards<'_>,
++        targets: Vec<(
++            Arc<StreamController>,
++            Arc<Port>,
++            ConsumerStamp,
++            SubscriptionStamp,
++        )>,
++    ) -> ControlResult<Arc<Provenance>> {
++        let port = self.0.port.upgrade().ok_or(StreamControlError::NotReady)?;
++        Ok(Arc::new(Provenance {
++            controller: self.0.controller.clone(),
++            port: self.0.port.clone(),
++            credential: self.0.credential.clone(),
++            scene: self.0.scene.clone(),
++            #[cfg(feature="test-support")]
++            observation: self.0.observation.clone(),
++            consumer: consumers.snapshot(source_consumer)?,
++            programme: source_commit.snapshot(source_programme),
++            ticket: port.ticket(TicketSide::Ingress),
++            targets: targets
++                .into_iter()
++                .map(|(controller, port, consumer, programme)| Target {
++                    controller: Arc::downgrade(&controller),
++                    port: Arc::downgrade(&port),
++                    consumer,
++                    programme,
++                    ticket: port.ticket(TicketSide::Egress),
++                })
++                .collect(),
++            committed_at: Instant::now(),
++            armed_at: self.0.armed_at,
++            deadline: self.0.deadline,
++            cancellation: self.0.cancellation.clone(),
++        }))
++    }
++
++    pub(super) fn release(&self, proof: Arc<Provenance>) {
++        // A cut with no reserved producer adds no exceptional input later.
++        // Once released, the producer must earn ordinary current Publish/epoch.
++        if self.0.phase.load(Ordering::Acquire) == ARMED {
++            let _ =
++                self.0
++                    .phase
++                    .compare_exchange(ARMED, CLOSED, Ordering::AcqRel, Ordering::Acquire);
++        }
++        if self.0.phase.load(Ordering::Acquire) == HELD {
++            assert!(
++                self.0.released.set(proof).is_ok(),
++                "one original successor release"
++            );
++            #[cfg(feature="test-support")]
++            self.0.observation.releases.fetch_add(1, Ordering::AcqRel);
++            let _ =
++                self.0
++                    .phase
++                    .compare_exchange(HELD, RELEASED, Ordering::AcqRel, Ordering::Acquire);
++        }
++    }
++}
++impl Drop for Owner {
++    fn drop(&mut self) {
++        // Refusal/abandonment/panic before a genuine complete release cannot
++        // keep a producer waiting or lend stamps from partial publication.
++        let _ = self
++            .0
++            .phase
++            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |phase| {
++                (phase < RELEASED).then_some(CLOSED)
++            });
++    }
++}
++impl Claim {
++    pub(super) fn capture(
++        controller: &Arc<StreamController>,
++        port: &Arc<Port>,
++        received_at: Instant,
++    ) -> ControlResult<Option<Self>> {
++        let Some(slot) = controller
++            .successor_ingress
++            .load_full()
++            .and_then(|r| r.0.upgrade())
++        else {
++            return Ok(None);
++        };
++        let phase = slot.phase.load(Ordering::Acquire);
++        if phase >= QUEUED {
++            return Ok(None);
++        }
++        if !Weak::ptr_eq(&slot.controller, &Arc::downgrade(controller))
++            || !Weak::ptr_eq(&slot.port, &Arc::downgrade(port))
++        {
++            return Ok(None);
++        }
++        if phase != ARMED {
++            return Err(StreamControlError::MetadataBusy);
++        }
++        if received_at < slot.armed_at
++            || slot.cancellation.is_cancelled()
++            || controller.shutdown.is_cancelled()
++            || tokio::time::Instant::now() >= slot.deadline
++        {
++            return Err(StreamControlError::Cancelled);
++        }
++        controller.check_credential_snapshot(&slot.credential)?;
++        slot.phase
++            .compare_exchange(ARMED, HELD, Ordering::AcqRel, Ordering::Acquire)
++            .map_err(|_| StreamControlError::MetadataBusy)?;
++        Ok(Some(Self(slot)))
++    }
++    pub(super) fn ready(&self, received_at: Instant) -> ControlResult<Arc<Provenance>> {
++        if self.0.cancellation.is_cancelled() || tokio::time::Instant::now() >= self.0.deadline {
++            return Err(StreamControlError::Deadline);
++        }
++        match self.0.phase.load(Ordering::Acquire) {
++            HELD => return Err(StreamControlError::MetadataBusy),
++            RELEASED => {}
++            _ => return Err(StreamControlError::Cancelled),
++        }
++        let proof = self.0.released.get().ok_or(StreamControlError::Authority)?;
++        if received_at < proof.armed_at || received_at > proof.committed_at || !proof.current() {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(proof.clone())
++    }
++    pub(super) fn queued(&self) {
++        let _ =
++            self.0
++                .phase
++                .compare_exchange(RELEASED, QUEUED, Ordering::AcqRel, Ordering::Acquire);
++    }
++}
++impl Drop for Claim {
++    fn drop(&mut self) {
++        let _ = self
++            .0
++            .phase
++            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |phase| {
++                (phase == HELD || phase == RELEASED).then_some(CLOSED)
++            });
++    }
++}
++impl Provenance {
++    pub(super) fn update_source(
++        &mut self,
++        consumer: ConsumerStamp,
++        programme: SubscriptionStamp,
++        ticket: PeerRouteTicket,
++    ) {
++        self.consumer = consumer;
++        self.programme = programme;
++        self.ticket = ticket;
++        self.committed_at = Instant::now();
++    }
++    pub(super) fn update_target(
++        &mut self,
++        index: usize,
++        consumer: ConsumerStamp,
++        programme: SubscriptionStamp,
++        ticket: PeerRouteTicket,
++    ) {
++        self.targets[index].consumer = consumer;
++        self.targets[index].programme = programme;
++        self.targets[index].ticket = ticket;
++    }
++    pub(super) fn deadline(&self) -> tokio::time::Instant {
++        self.deadline
++    }
++    pub(super) fn current(&self) -> bool {
++        !self.cancellation.is_cancelled() && tokio::time::Instant::now() < self.deadline
++    }
++    pub(super) fn source_matches(&self, controller: &StreamController, port: &Arc<Port>) -> bool {
++        self.current()
++            && self.controller.as_ptr() == controller as *const StreamController
++            && Weak::ptr_eq(&self.port, &Arc::downgrade(port))
++    }
++    pub(super) fn source_consumer_matches(
++        &self,
++        port: &Arc<Port>,
++        consumer: &ConsumerStamp,
++    ) -> bool {
++        self.current()
++            && Weak::ptr_eq(&self.port, &Arc::downgrade(port))
++            && self.consumer.same_generation(consumer)
++            && consumer.is_current()
++    }
++    pub(super) fn target_matches(
++        &self,
++        controller: &Arc<StreamController>,
++        port: &Arc<Port>,
++        consumer: &ConsumerStamp,
++        programme: &SubscriptionStamp,
++        ticket: &PeerRouteTicket,
++        source: &Arc<Port>,
++    ) -> bool {
++        self.current()
++            && Weak::ptr_eq(&self.port, &Arc::downgrade(source))
++            && self.targets.iter().any(|target| {
++                Weak::ptr_eq(&target.controller, &Arc::downgrade(controller))
++                    && Weak::ptr_eq(&target.port, &Arc::downgrade(port))
++                    && target.consumer.same_generation(consumer)
++                    && target.programme.same_generation(programme)
++                    && target.ticket.same_generation(ticket)
++            })
++    }
++}
++impl StreamController {
++    pub(super) fn successor_original_pending(&self, port: &Arc<Port>) -> bool {
++        self.successor_ingress
++            .load_full()
++            .and_then(|r| r.0.upgrade())
++            .is_some_and(|slot| {
++                Weak::ptr_eq(&slot.port, &Arc::downgrade(port))
++                    && matches!(slot.phase.load(Ordering::Acquire), HELD | RELEASED)
++            })
++    }
++}
++
++// Closed metadata-only observation of an actual production reservation. No
++// test arm/release API, payload, strong Controller/Port or authority is exposed.
++#[cfg(feature="test-support")]
++#[derive(Clone,Debug)]
++pub struct SuccessorNativeCaptureForTest {
++    pub connection:String, pub stream_local_id:u16,
++    pub connection_generation:u64, pub stream_generation:u64,
++    pub sequence:u32, pub ssrc:u32, pub timestamp:u32,
++    pub payload_len:usize, pub payload_fingerprint:u64, pub original_owner_exact:bool,
++}
++#[cfg(feature="test-support")]
++#[derive(Clone,Debug)]
++pub struct SuccessorNativeOutputForTest {
++    pub target:String, pub stream_local_id:u16, pub timestamp:u32,
++    pub payload_len:usize, pub payload_fingerprint:u64, pub contribution_count:usize, pub selected_exact_target:bool,
++}
++#[cfg(feature="test-support")]
++#[derive(Default)]
++struct SuccessorObservationData {
++    captures:u64, wire:Option<SuccessorNativeCaptureForTest>,
++    outputs:Vec<SuccessorNativeOutputForTest>,
++}
++#[cfg(feature="test-support")]
++#[derive(Default)]
++struct SuccessorObservation {
++    data:Mutex<SuccessorObservationData>, missed:std::sync::atomic::AtomicU64,
++    releases:std::sync::atomic::AtomicU64, queued:std::sync::atomic::AtomicU64,
++    epoch_current:std::sync::atomic::AtomicBool, admitted_age_us:std::sync::atomic::AtomicU64,
++}
++#[cfg(feature="test-support")]
++pub struct SuccessorIngressObserverForTest {slot:Weak<Slot>,observation:Arc<SuccessorObservation>}
++#[cfg(feature="test-support")]
++#[derive(Clone,Debug)]
++pub struct SuccessorIngressSnapshotForTest {
++    pub phase:Option<&'static str>, pub captures:u64,
++    pub wire:Option<SuccessorNativeCaptureForTest>, pub releases:u64, pub queued:u64,
++    pub packet_epoch_current_at_admission:bool, pub original_admitted_age_us:u64,
++    pub outputs:Vec<SuccessorNativeOutputForTest>, pub missed:u64,
++}
++#[cfg(feature="test-support")]
++fn diagnostic_fingerprint(bytes:&[u8])->u64 {
++    bytes.iter().fold(0xcbf29ce484222325u64,|h,b|(h^u64::from(*b)).wrapping_mul(0x100000001b3))
++}
++#[cfg(feature="test-support")]
++impl SuccessorIngressObserverForTest {
++    pub fn snapshot(&self)->ControlResult<SuccessorIngressSnapshotForTest> {
++        let data=self.observation.data.try_lock().map_err(|_|StreamControlError::MetadataBusy)?;
++        let phase=self.slot.upgrade().map(|s|match s.phase.load(Ordering::Acquire) {ARMED=>"armed",HELD=>"held",RELEASED=>"released",QUEUED=>"queued",_=>"closed"});
++        Ok(SuccessorIngressSnapshotForTest {phase,captures:data.captures,wire:data.wire.clone(),
++            releases:self.observation.releases.load(Ordering::Acquire),queued:self.observation.queued.load(Ordering::Acquire),
++            packet_epoch_current_at_admission:self.observation.epoch_current.load(Ordering::Acquire),
++            original_admitted_age_us:self.observation.admitted_age_us.load(Ordering::Acquire),
++            outputs:data.outputs.clone(),missed:self.observation.missed.load(Ordering::Acquire)})
++    }
++}
++#[cfg(feature="test-support")]
++impl StreamController {
++    pub fn successor_ingress_observer_for_test(&self)->ControlResult<SuccessorIngressObserverForTest> {
++        let slot=self.successor_ingress.load_full().and_then(|r|r.0.upgrade()).ok_or(StreamControlError::NotReady)?;
++        Ok(SuccessorIngressObserverForTest {slot:Arc::downgrade(&slot),observation:slot.observation.clone()})
++    }
++}
++#[cfg(feature="test-support")]
++impl Claim {
++    pub(super) fn note_native_for_test(&self,wire:&super::original_ingress::native_observation::Frame,payload:&[u8]) {
++        let exact=self.0.controller.upgrade().is_some_and(|c|wire.matches(&c.original_ingress_owner_for_test(),&c.connection,
++            wire.stream_local_id,wire.sequence,wire.ssrc,wire.timestamp));
++        if let Ok(mut data)=self.0.observation.data.try_lock() {
++            data.captures+=1;
++            if data.wire.is_none() {data.wire=Some(SuccessorNativeCaptureForTest {connection:wire.connection.as_str().into(),
++                stream_local_id:wire.stream_local_id,connection_generation:wire.connection_generation,stream_generation:wire.stream_generation,
++                sequence:wire.sequence,ssrc:wire.ssrc,timestamp:wire.timestamp,payload_len:payload.len(),
++                payload_fingerprint:diagnostic_fingerprint(payload),original_owner_exact:exact});}
++        } else {self.0.observation.missed.fetch_add(1,Ordering::Relaxed);}
++    }
++    pub(super) fn note_admitted_for_test(&self,current:bool,age:Duration) {
++        self.0.observation.epoch_current.store(current,Ordering::Release);
++        self.0.observation.admitted_age_us.store(u64::try_from(age.as_micros()).unwrap_or(u64::MAX),Ordering::Release);
++    }
++    pub(super) fn note_queued_for_test(&self) {self.0.observation.queued.fetch_add(1,Ordering::AcqRel);}
++}
++#[cfg(feature="test-support")]
++impl Provenance {
++    pub(super) fn note_delivery_for_test(&self,target:&Arc<StreamController>,port:&Arc<Port>,frame:&MediaFrame,contribution_count:usize) {
++        if let Ok(mut data)=self.observation.data.try_lock() {
++            if data.outputs.len()>=8 {self.observation.missed.fetch_add(1,Ordering::Relaxed);return;}
++            let selected=self.targets.iter().any(|t|Weak::ptr_eq(&t.controller,&Arc::downgrade(target))&&Weak::ptr_eq(&t.port,&Arc::downgrade(port)));
++            data.outputs.push(SuccessorNativeOutputForTest {target:target.connection.as_str().into(),stream_local_id:port.binding.stream_local_id,
++                timestamp:frame.timestamp_rtp,payload_len:frame.payload.len(),payload_fingerprint:diagnostic_fingerprint(&frame.payload),contribution_count,selected_exact_target:selected});
++        } else {self.observation.missed.fetch_add(1,Ordering::Relaxed);}
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+index 12e812c..93f85ab 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2952,3 +2952,6 @@ mod quarantined_selected;
+ 
+ #[path = "tests/av_messages_only.rs"]
+ mod av_messages_only;
++
++#[path = "tests/successor_ingress.rs"]
++mod successor_ingress_controls;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/successor_ingress.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/successor_ingress.rs
+new file mode 100644
+index 0000000..bdb9e4b
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/successor_ingress.rs
+@@ -0,0 +1,317 @@
++//! Primitive original/epoch boundary controls. These do not replace actual
++//! ManagedCut/Store/Service or strict Firefox continuity qualification.
++use super::*;
++use crate::staged_streams::{audio_consumer::AudioConsumer, successor_ingress::Owner};
++
++struct Epoch(AtomicBool);
++impl PacketEpoch for Epoch {
++    fn current(&self) -> bool {
++        self.0.load(Ordering::Acquire)
++    }
++}
++struct Lease {
++    inner: Box<dyn MediaAuthorityLease>,
++    epoch: Option<Arc<Epoch>>,
++}
++impl MediaAuthorityLease for Lease {
++    fn authority(&self) -> &MediaOwner {
++        self.inner.authority()
++    }
++    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
++        self.inner.expires_at()
++    }
++    fn packet_epoch(&self) -> Option<Arc<dyn PacketEpoch>> {
++        self.epoch.clone().map(|e| e as Arc<dyn PacketEpoch>)
++    }
++}
++struct Admission {
++    inner: Arc<Policy>,
++    epoch: Arc<Epoch>,
++    busy: Arc<AtomicBool>,
++    no_epoch: Arc<AtomicBool>,
++    calls: Arc<AtomicUsize>,
++}
++impl MediaPolicy for Admission {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        Ok(Box::new(Lease {
++            inner: self.inner.current(scope)?,
++            epoch: (!self.no_epoch.load(Ordering::Acquire)).then(|| self.epoch.clone()),
++        }))
++    }
++    fn current_original_ingress(
++        &self,
++        scope: &MediaScope<'_>,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.calls.fetch_add(1, Ordering::AcqRel);
++        if self.busy.load(Ordering::Acquire) {
++            return Err(StreamControlError::MetadataBusy);
++        }
++        self.current(scope)
++    }
++}
++struct Ready {
++    f: Fixture,
++    source: Arc<AudioConsumer>,
++    target: Arc<AudioConsumer>,
++    epoch: Arc<Epoch>,
++    busy: Arc<AtomicBool>,
++    no_epoch: Arc<AtomicBool>,
++    calls: Arc<AtomicUsize>,
++}
++async fn ready() -> Ready {
++    let epoch = Arc::new(Epoch(AtomicBool::new(true)));
++    let busy = Arc::new(AtomicBool::new(false));
++    let no_epoch = Arc::new(AtomicBool::new(false));
++    let calls = Arc::new(AtomicUsize::new(0));
++    let capture = (epoch.clone(), busy.clone(), no_epoch.clone(), calls.clone());
++    let f = Fixture::with_policy(
++        8,
++        Some(Box::new(move |inner| {
++            Arc::new(Admission {
++                inner,
++                epoch: capture.0,
++                busy: capture.1,
++                no_epoch: capture.2,
++                calls: capture.3,
++            })
++        })),
++    );
++    f.start(&[Medium::Audio]).await;
++    let source = AudioConsumer::optional(Some(desired(Medium::Audio).logical_id), 8000);
++    let target = AudioConsumer::optional(Some(desired(Medium::Audio).logical_id), 8000);
++    source.activate(true);
++    target.activate(true);
++    *f.a.audio_consumer.lock().unwrap() = Some(Arc::downgrade(&source));
++    *f.b.audio_consumer.lock().unwrap() = Some(Arc::downgrade(&target));
++    Ready {
++        f,
++        source,
++        target,
++        epoch,
++        busy,
++        no_epoch,
++        calls,
++    }
++}
++
++#[tokio::test]
++async fn public_successor_original_waits_without_grant_then_queues_exact_age_once() {
++    let r = ready().await;
++    let port = r.f.aa.port(Medium::Audio);
++    let target_port = r.f.ba.port(Medium::Audio);
++    let cancel = CancellationToken::new();
++    let owner = Owner::arm_for_test(&r.f.a, &port.0, deadline(), &cancel).unwrap();
++    let at = Instant::now();
++    let frame = frame(&port, 160);
++    let mut input =
++        r.f.a
++            .take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut original = port
++        .retain_original_ingress(frame.clone(), at)
++        .unwrap()
++        .unwrap();
++    assert!(matches!(
++        original.try_publish_clocked(|_| panic!("clock before fresh admission")),
++        Err(StreamControlError::MetadataBusy)
++    ));
++    assert_eq!(r.calls.load(Ordering::Acquire), 0);
++    assert!(input.try_recv().is_err());
++    assert!(
++        matches!(
++            port.try_publish(&frame),
++            Err(StreamControlError::MetadataBusy)
++        ),
++        "later direct input cannot overtake"
++    );
++    assert!(matches!(
++        port.retain_original_ingress(frame.clone(), Instant::now()),
++        Err(StreamControlError::MetadataBusy)
++    ));
++    drop(
++        r.f.policy
++            .0
++            .try_write()
++            .expect("no positive authority across wait"),
++    );
++    // Real role-generation transitions reproduce the start-after-arrival seam.
++    r.source
++        .prepare_role(deadline(), cancel.clone())
++        .await
++        .unwrap()
++        .commit(true);
++    r.target
++        .prepare_role(deadline(), cancel.clone())
++        .await
++        .unwrap()
++        .commit(true);
++    owner.release_for_test(&r.source, &[(&r.f.b, &target_port.0, &r.target)]);
++    r.busy.store(true, Ordering::Release);
++    assert!(matches!(
++        original.try_publish_clocked(|_| panic!("clock on policy Busy")),
++        Err(StreamControlError::MetadataBusy)
++    ));
++    drop(
++        r.f.policy
++            .0
++            .try_write()
++            .expect("fresh refused turn released policy"),
++    );
++    r.busy.store(false, Ordering::Release);
++    let clocks = std::cell::Cell::new(0);
++    original
++        .try_publish_clocked(|current| {
++            assert!(current());
++            clocks.set(clocks.get() + 1);
++            None
++        })
++        .unwrap();
++    assert_eq!(clocks.get(), 1);
++    assert_eq!(r.calls.load(Ordering::Acquire), 2);
++    let packet = receive(&mut input).await;
++    assert_eq!(packet.admitted_at, at);
++    assert_eq!(packet.frame.timestamp_rtp, frame.timestamp_rtp);
++    assert_eq!(packet.frame.captured_at, frame.captured_at);
++    assert_eq!(packet.frame.payload, frame.payload);
++    let proof = packet
++        .custody
++        .0
++        .successor
++        .get()
++        .expect("exact one original handover provenance");
++    assert!(proof.target_matches(
++        &r.f.b,
++        &target_port.0,
++        &r.target.stamp(),
++        &r.target.subscriptions.stamp(),
++        &target_port.0.ticket(TicketSide::Egress),
++        &port.0
++    ));
++    assert!(!proof.target_matches(
++        &r.f.a,
++        &port.0,
++        &r.source.stamp(),
++        &r.source.subscriptions.stamp(),
++        &port.0.ticket(TicketSide::Egress),
++        &port.0
++    ));
++    // Provenance is not selection permission, even for its exact target.
++    assert!(
++        r.target
++            .subscriptions
++            .stamp()
++            .begin(&r.f.a, &desired(Medium::Audio).logical_id)
++            .is_err()
++    );
++    assert!(matches!(
++        original.try_publish_clocked(|_| None),
++        Err(StreamControlError::Cancelled)
++    ));
++    assert!(
++        input.try_recv().is_err(),
++        "one reserved original, no replay"
++    );
++    drop(
++        r.f.policy
++            .0
++            .try_write()
++            .expect("queue holds epoch metadata, not policy reader"),
++    );
++    r.epoch.0.store(false, Ordering::Release);
++    assert!(
++        !packet.custody.current(),
++        "actual queued epoch revocation remains terminal"
++    );
++}
++
++#[tokio::test]
++async fn public_successor_original_refuses_cancel_expiry_rebind_and_missing_epoch() {
++    for action in 0..7 {
++        let r = ready().await;
++        let port = r.f.aa.port(Medium::Audio);
++        let cancel = CancellationToken::new();
++        let owner = Owner::arm_for_test(&r.f.a, &port.0, deadline(), &cancel).unwrap();
++        let mut input =
++            r.f.a
++                .take_ingress(&desired(Medium::Audio).logical_id)
++                .unwrap();
++        let mut original = port
++            .retain_original_ingress(frame(&port, 160), Instant::now())
++            .unwrap()
++            .unwrap();
++        assert!(matches!(
++            original.try_publish_clocked(|_| None),
++            Err(StreamControlError::MetadataBusy)
++        ));
++        owner.release_for_test(&r.source, &[]);
++        match action {
++            0 => cancel.cancel(),
++            1 => {
++                r.f.policy
++                    .0
++                    .try_write()
++                    .unwrap()
++                    .revoked
++                    .insert("alice".into());
++            }
++            2 => r.f.a.credential.lock().unwrap().revision += 1,
++            3 => r.epoch.0.store(false, Ordering::Release),
++            4 => r.no_epoch.store(true, Ordering::Release),
++            5 => r
++                .source
++                .prepare_role(deadline(), cancel.clone())
++                .await
++                .unwrap()
++                .commit(true),
++            _ => tokio::time::sleep(Duration::from_millis(205)).await,
++        }
++        assert!(
++            original
++                .try_publish_clocked(|_| panic!("terminal input reached clock/queue"))
++                .is_err(),
++            "action={action}"
++        );
++        assert!(input.try_recv().is_err(), "action={action}");
++        drop(
++            r.f.policy
++                .0
++                .try_write()
++                .expect("refusal retained authority"),
++        );
++    }
++}
++
++#[tokio::test]
++async fn public_successor_reservation_cannot_relabel_ordinary_or_survive_abandonment() {
++    let r = ready().await;
++    let port = r.f.aa.port(Medium::Audio);
++    let mut input =
++        r.f.a
++            .take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut ordinary = port
++        .retain_original_ingress(frame(&port, 160), Instant::now())
++        .unwrap()
++        .unwrap();
++    let cancel = CancellationToken::new();
++    let owner = Owner::arm_for_test(&r.f.a, &port.0, deadline(), &cancel).unwrap();
++    let mut reserved = port
++        .retain_original_ingress(frame(&port, 320), Instant::now())
++        .unwrap()
++        .unwrap();
++    drop(owner);
++    assert!(matches!(
++        reserved.try_publish_clocked(|_| None),
++        Err(StreamControlError::Cancelled)
++    ));
++    r.source
++        .prepare_role(deadline(), cancel)
++        .await
++        .unwrap()
++        .commit(true);
++    assert!(
++        ordinary.try_publish_clocked(|_| None).is_err(),
++        "normal original age/generation rule stays strict"
++    );
++    assert!(input.try_recv().is_err());
++}

@@ -18,6 +18,9 @@ async fn production_prepared_pending_dormant_route_first_fresh_packet_admits_bef
     exercise(Boundary::PreparedPending).await;
 }
 async fn exercise(boundary: Boundary) {
+    if let Ok(filter) = tracing_subscriber::EnvFilter::try_from_default_env() {
+        let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
+    }
     exercise_replacement_with_av_control(
         true,
         true,

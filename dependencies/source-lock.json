@@ -3056,6 +3056,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-managed-audio-cut-cadence-controls.patch",
       "sha256": "2e152a727ed44500e28cf9b951960265db7be00ded3e6a346fb717d660956a15"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-public-successor-original-ingress.patch",
+      "sha256": "c0c01dc0d29fc1759eef953211cd3a0cbca22edc3d5af2bb2bf89cfac561716b"
     }
   ]
 }
