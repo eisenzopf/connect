@@ -1,8 +1,8 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-23T08:34:50.546016+00:00",
-  "revision": 177,
-  "status": "Checkpoint 177. The affected regression passed 4,372 tests and exposed one Python resource-handshake fixture failure. The test-only correction passed all 33 Python tests and three unchanged Node bridge controls. Full current-source readiness verification remains pending.",
+  "updated_at": "2026-11-23T09:05:54.669841+00:00",
+  "revision": 178,
+  "status": "Checkpoint 178. The full retest passed 4,372 tests and failed one DTMF capture fixture. The pinned test-only correction passed all four original adapter cases. Full current-source readiness verification remains pending.",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
@@ -10043,6 +10043,47 @@
     "retired_cache_cleanup": {
       "path": ".local/gate-6/g875-retired-10gib-cleanup-root-v2/result.json",
       "sha256": "2243c9bda8bd95708102be246f82bdafaaccc26b304ac9856825c5add5840cc7"
+    },
+    "ready_for_32": false
+  },
+  "checkpoint178_dtmf_capture_fixture": {
+    "dependency_generation": 571,
+    "regression_source": "d200a02f6f59bf9b1cfb34467f75eb0abccfc0b1",
+    "original_regression": {
+      "passed": 4372,
+      "failed": 1,
+      "skipped": 0,
+      "result": {
+        "path": ".local/gate-6/g878-readiness2-full-root/cohort/component-result.json",
+        "sha256": "d6a62606fb17829d5db91349294d0dadaef1207d172f47a298e98346598f0598"
+      },
+      "audit": {
+        "path": ".local/gate-6/g878-actual-full-independent-audit/receipt.json",
+        "sha256": "7dcbd55f4096005febbec2ba6af7f81f7b701f75e295a978ede1123c124494d3"
+      }
+    },
+    "root_cause": "The fixture unwrapped a transient MetadataBusy before the request assigned an event sequence.",
+    "fix": "Retry only typed MetadataBusy on the same capture under its original preparation deadline, before advancing answer or media state.",
+    "patch": {
+      "path": "patches/rvoip/connect-test-adapter-capture-metadata-deferral.patch",
+      "sha256": "f1a2653d1a268acca5d3f5f781d82ba85a31dbe9e322341fa8276de4eefde25e"
+    },
+    "preparation": {
+      "path": ".local/gate-6/g879-normal571-root-v2/normal571-runtime/receipt.json",
+      "sha256": "fd8bf07e48e4e6e438debbaafebec715b2067fd122441ac0a936693eee1cb42b"
+    },
+    "focused": {
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "result": {
+        "path": ".local/gate-6/g880-targeted571-adapter-root/result.json",
+        "sha256": "9d732b635286ade83b58abcda5fb2173a2542a47b625bba6302f88ec23abcdc5"
+      },
+      "join": {
+        "path": ".local/gate-6/g880-targeted571-adapter-root/root-original-join.json",
+        "sha256": "0a7644c8ad1d38119aa7a8e7d2533a9884febd146611a42be4f9abad7966ebb4"
+      }
     },
     "ready_for_32": false
   }

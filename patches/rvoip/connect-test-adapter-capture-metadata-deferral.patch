@@ -1,0 +1,78 @@
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter.rs
+@@ -452,16 +452,32 @@
+             caller_cancel,
+         }
+     }
+-    async fn event(&self, s: &Scene, event: DeviceReplacementEndpointEvent) -> Observation {
+-        let captured = s
+-            .core
+-            .orch
+-            .capture_device_replacement_event(
++    async fn capture(&self, s: &Scene, event: DeviceReplacementEndpointEvent) -> DeviceReplacementEvent {
++        let cancellation = self.pending.cancellation();
++        loop {
++            match s.core.orch.capture_device_replacement_event(
+                 &self.pending,
+                 DeviceReplacementSignalSource::Adapter(self.adapter.context.clone()),
+                 event.clone(),
+-            )
+-            .unwrap();
++            ) {
++                Ok(captured) => return captured,
++                Err(ParticipantControlError::Media(StreamControlError::MetadataBusy)) => {
++                    // Same capture-only deferral as browser::Candidate::event:
++                    // no sequence consumed, no signal grant or capture guards
++                    // retained. The SAME preparation checks its original
++                    // deadline on every attempt; no readiness transition runs
++                    // until this original event has actually been captured.
++                    tokio::select! { biased;
++                        _ = cancellation.cancelled() => panic!("original replacement capture cancelled"),
++                        _ = tokio::time::sleep(Duration::from_millis(1)) => {}
++                    }
++                }
++                Err(error) => panic!("original replacement capture refused: {error:?}"),
++            }
++        }
++    }
++    async fn event(&self, s: &Scene, event: DeviceReplacementEndpointEvent) -> Observation {
++        let captured = self.capture(s, event.clone()).await;
+         let g = grant(
+             s,
+             self.pending.intent(),
+@@ -587,15 +603,9 @@
+             .await,
+             Observation::AlreadyConfirmed
+         );
+-        let late = s
+-            .core
+-            .orch
+-            .capture_device_replacement_event(
+-                &c.pending,
+-                DeviceReplacementSignalSource::Adapter(c.adapter.context.clone()),
+-                DeviceReplacementEndpointEvent::Answered,
+-            )
+-            .unwrap();
++        let late = c
++            .capture(&s, DeviceReplacementEndpointEvent::Answered)
++            .await;
+         let plan = s
+             .core
+             .orch
+@@ -797,15 +807,7 @@
+         let event = DeviceReplacementEndpointEvent::Dtmf {
+             digits: "5#".into(),
+         };
+-        let captured = s
+-            .core
+-            .orch
+-            .capture_device_replacement_event(
+-                &c.pending,
+-                DeviceReplacementSignalSource::Adapter(c.adapter.context.clone()),
+-                event.clone(),
+-            )
+-            .unwrap();
++        let captured = c.capture(&s, event.clone()).await;
+         if mode == "before-media" {
+             c.prompt().await;
+         } else {

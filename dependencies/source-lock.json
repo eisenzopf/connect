@@ -3036,6 +3036,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-reserved-video-native-wire-offer-test.patch",
       "sha256": "2e690b09b71bbfe17c58092b761060828a833fb3e46b04b63c512dfeb2f4cc1b"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-test-adapter-capture-metadata-deferral.patch",
+      "sha256": "f1a2653d1a268acca5d3f5f781d82ba85a31dbe9e322341fa8276de4eefde25e"
     }
   ]
 }
