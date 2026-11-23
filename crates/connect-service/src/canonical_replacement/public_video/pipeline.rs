@@ -238,6 +238,10 @@ impl Runtime {
                 error
             })?;
             drop(roles);
+            // Cleanup must retain the SAME slot even if Core freezes OLD and
+            // then refuses the fallible current target/reservation binding.
+            // Retention is metadata only: public Cut success is still below.
+            p.own_original_freeze_plan(root, &plan)?;
             let frontier = loop {
                 if cancel.is_cancelled() {
                     terminal(root, "freeze-root-cancelled", "cancelled");

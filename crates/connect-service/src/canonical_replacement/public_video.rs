@@ -21,6 +21,14 @@ pub(super) struct Preparation {
     required: bool,
     private_nonce: OnceLock<String>,
     cut: OnceLock<Cut>,
+    // Retain the exact plan/freeze slot BEFORE Core can freeze OLD. A late
+    // refusal may leave actual Frozen custody without a successful public Cut.
+    original_freeze_plan:
+        OnceLock<rvoip_core::orchestrator::participant_control::ManagedAudioDeviceReplacementPlan>,
+    // Historical SAME-F metadata for dedicated Closed+fresh-OLD restoration
+    // only. It cannot supply a Cut, Warm owner, public phase or native receipt.
+    cleanup_frontier:
+        OnceLock<Arc<rvoip_core::staged_streams::old_video_freeze::FrozenOldVideoFrontier>>,
     ready: OnceLock<wire::ReadyMarker>,
     // Release publication belongs ONLY to the original capture winner, after
     // that handler drops its actual admitted signed Readers. No media grant.
@@ -52,6 +60,8 @@ impl Preparation {
             required,
             private_nonce: OnceLock::new(),
             cut: OnceLock::new(),
+            original_freeze_plan: OnceLock::new(),
+            cleanup_frontier: OnceLock::new(),
             ready: OnceLock::new(),
             ready_readers_released: AtomicBool::new(false),
             ready_signal: tokio::sync::Notify::new(),
@@ -229,15 +239,134 @@ impl Preparation {
         &self,
     ) -> Option<rvoip_core::orchestrator::participant_control::ManagedAudioDeviceReplacementPlan>
     {
-        self.cut.get().map(|cut| cut.plan.clone())
+        self.cut
+            .get()
+            .map(|cut| cut.plan.clone())
+            .or_else(|| self.original_freeze_plan.get().cloned())
     }
-    pub(super) fn original_frontier(
+    pub(super) fn own_original_freeze_plan(
+        &self,
+        root: &PreparedReplacement,
+        plan: &rvoip_core::orchestrator::participant_control::ManagedAudioDeviceReplacementPlan,
+    ) -> Result<()> {
+        let original = root.handle.intent();
+        let request = plan.media().request();
+        if !self.required()
+            || !std::ptr::eq(self, root.public_video.as_ref())
+            || request.operation_id != original.operation_id
+            || request.source != original.source
+            || request.admitted != original.replacement
+            || request.retained != original.retained
+        {
+            return Err(Error::forbidden());
+        }
+        if let Some(saved) = self.original_freeze_plan.get() {
+            return if saved.same_intent(plan) {
+                Ok(())
+            } else {
+                Err(Error::forbidden())
+            };
+        }
+        match self.original_freeze_plan.set(plan.clone()) {
+            Ok(()) => Ok(()),
+            Err(plan) => {
+                if self
+                    .original_freeze_plan
+                    .get()
+                    .is_some_and(|saved| saved.same_intent(&plan))
+                {
+                    Ok(())
+                } else {
+                    Err(Error::forbidden())
+                }
+            }
+        }
+    }
+    // Called only after SAME actual candidate Closed and durable Discarded.
+    // Core supplies the actual slot-owned Arc; matching scalar IDs alone never
+    // construct or substitute this opaque frontier.
+    pub(super) fn own_cleanup_frontier(
+        &self,
+        root: &PreparedReplacement,
+        frontier: &Arc<rvoip_core::staged_streams::old_video_freeze::FrozenOldVideoFrontier>,
+    ) -> Result<()> {
+        let original = root.handle.intent();
+        if !std::ptr::eq(self, root.public_video.as_ref())
+            || self.original_freeze_plan.get().is_none()
+            || frontier.operation_id() != original.operation_id
+            || frontier.source_connection() != &original.source
+            || frontier.target_connection() != &original.replacement
+            || frontier.realm_incarnation() != self.reserved()?.realm_incarnation()
+            || self
+                .cut
+                .get()
+                .is_some_and(|cut| !Arc::ptr_eq(frontier, &cut.frontier))
+        {
+            return Err(Error::forbidden());
+        }
+        if let Some(saved) = self.cleanup_frontier.get() {
+            return if Arc::ptr_eq(saved, frontier) {
+                Ok(())
+            } else {
+                Err(Error::forbidden())
+            };
+        }
+        match self.cleanup_frontier.set(frontier.clone()) {
+            Ok(()) => Ok(()),
+            Err(frontier) => {
+                if self
+                    .cleanup_frontier
+                    .get()
+                    .is_some_and(|saved| Arc::ptr_eq(saved, &frontier))
+                {
+                    Ok(())
+                } else {
+                    Err(Error::forbidden())
+                }
+            }
+        }
+    }
+    // ONLY RestoreInvocation::control calls this; that caller independently
+    // verifies actual SAME Closed, original binding and fresh OLD/source auth.
+    pub(super) fn original_restore_frontier(
         &self,
         frontier: &rvoip_core::staged_streams::old_video_freeze::FrozenOldVideoFrontier,
     ) -> bool {
         self.cut
             .get()
             .is_some_and(|cut| std::ptr::eq(frontier, Arc::as_ref(&cut.frontier)))
+            || self
+                .cleanup_frontier
+                .get()
+                .is_some_and(|original| std::ptr::eq(frontier, Arc::as_ref(original)))
+    }
+    // Only the exact Core metadata contention may await another snapshot;
+    // its original two-second cutoff never renews across cleanup intervals.
+    pub(super) fn original_freeze_custody_error(
+        &self,
+        error: rvoip_core::orchestrator::participant_control::ParticipantControlError,
+    ) -> Error {
+        if super::projection::is_core_metadata_busy(&error) {
+            self.original_freeze_custody_pending()
+        } else {
+            Error::new(
+                "cleanup-incomplete",
+                "Original OLD freeze custody could not be confirmed",
+            )
+        }
+    }
+    pub(super) fn original_freeze_custody_pending(&self) -> Error {
+        if tokio::time::Instant::now() < self.original_restore_deadline() {
+            Error::new(
+                "authority-busy",
+                "Original OLD freeze custody is still pending",
+            )
+        } else {
+            Error::new(
+                "cleanup-incomplete",
+                "Original OLD freeze custody cutoff elapsed",
+            )
+        }
     }
     pub(super) fn original_discard_reason(
         &self,
@@ -312,5 +441,82 @@ impl Preparation {
             &self.phase(root, private_nonce, false)?,
         )?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod original_freeze_custody_tests {
+    use super::*;
+    use rvoip_core::orchestrator::participant_control::ParticipantControlError;
+    use rvoip_core::staged_streams::StreamControlError;
+
+    #[test]
+    fn original_freeze_cleanup_metadata_keeps_cutoff_and_never_supplies_public_cut_or_grant() {
+        // Service error/cutoff contract only. Core's separate real slot/State
+        // controls produce the opaque custody/actual F; this test fabricates
+        // no plan, frontier, Closed token or restoration authority.
+        let owner = Preparation::new(true);
+        let cutoff = owner.original_restore_deadline();
+        for _ in 0..3 {
+            assert_eq!(
+                owner.original_freeze_custody_pending().code,
+                "authority-busy"
+            );
+            assert_eq!(
+                owner
+                    .original_freeze_custody_error(ParticipantControlError::Media(
+                        StreamControlError::MetadataBusy
+                    ))
+                    .code,
+                "authority-busy"
+            );
+            assert_eq!(
+                owner.original_restore_deadline(),
+                cutoff,
+                "same original budget, never renewed"
+            );
+        }
+        for error in [
+            StreamControlError::NotReady,
+            StreamControlError::Authority,
+            StreamControlError::Cancelled,
+            StreamControlError::Deadline,
+            StreamControlError::Backpressure,
+            StreamControlError::Unsupported,
+        ] {
+            assert_eq!(
+                owner.original_freeze_custody_error(error.into()).code,
+                "cleanup-incomplete"
+            );
+        }
+        let expired = Preparation::new(true);
+        expired
+            .restore_deadline
+            .set(tokio::time::Instant::now())
+            .unwrap();
+        let original = expired.original_restore_deadline();
+        assert_eq!(
+            expired.original_freeze_custody_pending().code,
+            "cleanup-incomplete"
+        );
+        assert_eq!(
+            expired
+                .original_freeze_custody_error(ParticipantControlError::Media(
+                    StreamControlError::MetadataBusy
+                ))
+                .code,
+            "cleanup-incomplete"
+        );
+        assert_eq!(expired.original_restore_deadline(), original);
+        for preparation in [&owner, &expired] {
+            assert!(preparation.cut.get().is_none());
+            assert!(preparation.original_freeze_plan.get().is_none());
+            assert!(preparation.cleanup_frontier.get().is_none());
+            assert!(preparation.warm.get().is_none());
+            assert!(preparation.original_restore_plan().is_none());
+            assert!(!preparation.old_restored());
+            assert!(!preparation.ready_recorded.load(Ordering::Acquire));
+            assert!(preparation.require_native_keyframe_submission().is_err());
+        }
     }
 }

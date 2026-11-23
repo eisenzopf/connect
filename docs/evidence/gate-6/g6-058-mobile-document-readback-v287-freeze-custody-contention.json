@@ -1,0 +1,38 @@
+{
+  "format": "connect/g6-058-mobile-document-readback/1",
+  "revision": 287,
+  "checkpoint": 175,
+  "status": "VERIFIED_SCOPED_READBACK_UNIT_ONLY",
+  "recorded_at": "2026-11-23T01:28:00.242064+00:00",
+  "verified_summary": {
+    "revision": 287,
+    "status": "VERIFIED_SCOPED_READBACK_COMPONENT12_ONLY",
+    "changed_content_indices": [
+      3,
+      10
+    ],
+    "body_items": 424,
+    "paragraphs": 422,
+    "untouched_paragraphs": 420,
+    "all_other_content_and_styles_preserved": true,
+    "target_paragraph_styles_preserved": true
+  },
+  "document_revision_sha256": "ba66cc6340425ccd9a770c2f581977a61f940d5471562440bd8ca0915af7c532",
+  "component_evidence": "docs/evidence/gate-6/g6-058-v219-g852-freeze-custody-contention.json",
+  "component_evidence_sha256": "07725442d9dcdd3774bf779c60680ab99c822bbb58dc4a7c71b523dc7ef24f96",
+  "Core_passed": 11,
+  "Service_passed": 1,
+  "failed": 0,
+  "ignored": 0,
+  "independent_actual_unit_audit_sha256": "ee8d2d0703888424fd4f6d3359f869d27d642c3e6417db8b51622074fbc4d8c0",
+  "raw_before_sha256": "766b312cbf163ec1398a5be109dcd54761911deca003c2b7601fe75657cd07a7",
+  "raw_readback_sha256": "5a567e9022c2906a496fc0f992a5f74d29e20970d39e74a5875c1fb539a9d984",
+  "private_request_sha256": "3f8ac7a0b99f59beed24bc621f6f80c8bb3f6b40311f9011675b54defd00e1d3",
+  "private_write_sha256": "fea569c78776ddd2160aab7c3a28a7b3f20701d693f4bb09afe05108df128bde",
+  "private_verification_sha256": "b982c83a2d7d8047cfc346924728c566f746d3ce6817a2c19e3e12c056c23069",
+  "public_raw_tokens_logs_or_document_content_included": false,
+  "qualification": false,
+  "new_matrix_run": false,
+  "matrix_passed": 1,
+  "matrix_total": 32
+}

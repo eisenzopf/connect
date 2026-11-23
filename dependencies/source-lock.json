@@ -3001,6 +3001,21 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-muted-activation-pure-plan-metadata-busy.patch",
       "sha256": "51cb0f0989c16a12567022abd290c1e31003427d2a5d8db97b5a5625ddd25001"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-original-frozen-video-cleanup-custody.patch",
+      "sha256": "c4b292d8207b205dde3f08cb1990aff5f7430fa8d583b9327f66b8446f8f32b9"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-original-freeze-cold-structural-receipt.patch",
+      "sha256": "6978fe0c9b58fe75621b74f172ec8721f2c69f5f7ef6d2db97e63e52ab49a410"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-freeze-cold-receipt-member-view.patch",
+      "sha256": "c75d6e0e43a736de68277a59c1575fc0fb6c72e99e8a99ab83892ab50f9f777f"
     }
   ]
 }

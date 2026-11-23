@@ -1,0 +1,205 @@
+{
+  "format": "connect/g6-058-v219-freeze-custody-contention/1",
+  "checkpoint": 175,
+  "recorded_at": "2026-11-23T01:28:00.242064+00:00",
+  "status": "CURRENT_COMPONENT_UNITS_VERIFIED_INTEGRATION_PENDING",
+  "source_base_commit": "84f804b0dd6753549ba959890e9acdb75e0b27dc",
+  "current_source_generation": 566,
+  "actual_unit_source": {
+    "path": ".local/gate-6/g860-targeted566-controls-root/source-before.json",
+    "sha256": "e44d9c8031bce2df12d8b289bda15e5f7785cef9019df4fb0301ac7f6bafa62d"
+  },
+  "source_files": 6643,
+  "workspace_sha256": "14a31e99b4d5c8dd56ac4cf47817718dd5f92de4dc25ec5892bc53ddc17170dc",
+  "source_lock_sha256": "02a03066b49304de67269277af57b21840a628347d7771445f725b1b85b53d02",
+  "prepared": {
+    "rvoip": "e85f42f594026afa5f5865463ea113a18e50177fc173a93b6c98fcb595a459f6",
+    "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+  },
+  "normal": {
+    "normal_receipt": {
+      "path": ".local/gate-6/g859-normal566-member-view-root/normal566-runtime/receipt.json",
+      "sha256": "1bf8a71e7341f1fed28ffbac448e1aa863708a3baf381e0467ae73be100695af"
+    },
+    "normal_source": {
+      "path": ".local/gate-6/g859-normal566-member-view-root/source-after-normal566.json",
+      "sha256": "e44d9c8031bce2df12d8b289bda15e5f7785cef9019df4fb0301ac7f6bafa62d"
+    },
+    "normal_join": {
+      "path": ".local/gate-6/g859-normal566-member-view-root/root-original-join.json",
+      "sha256": "c904295f1fc03cb7e8ff95c815f817401b36070a9532a56ebda22f69b18c21cb"
+    },
+    "normal_audit": {
+      "path": ".local/gate-6/g859-normal566-independent-actual-preparation-audit/receipt.json",
+      "sha256": "e27ab827681d127b6743eb265a8f955bba25b1ea56a73bcd09fa077ab92d7a7d"
+    }
+  },
+  "actual12": {
+    "Core": 11,
+    "Service": 1,
+    "passed": 12,
+    "failed": 0,
+    "ignored": 0,
+    "result": {
+      "path": ".local/gate-6/g860-targeted566-controls-root/result.json",
+      "sha256": "b54324c3a8f2e07d5e9e95e7043954bd1ffc5889012ac97aa67e4e1bf9da5e55"
+    },
+    "root_join": {
+      "path": ".local/gate-6/g860-targeted566-controls-root/root-original-join.json",
+      "sha256": "ca9b93ff7a99c72e064853ca6c06943a95a715b4c74795fce8a4c94b2720a576"
+    },
+    "independent_audit": {
+      "path": ".local/gate-6/g860-targeted566-independent-actual-controls-audit/receipt.json",
+      "sha256": "ee8d2d0703888424fd4f6d3359f869d27d642c3e6417db8b51622074fbc4d8c0"
+    },
+    "original_owners_natural0": true,
+    "qualification": false
+  },
+  "causal_assignments": [
+    {
+      "id": "V219-G852-PASSIVE-FIRST-FAILURE",
+      "blocker_id": "V219-G852-PASSIVE-CAUSE",
+      "title": "Preserve original abort target settlement and server first-error diagnostics",
+      "owner_agent": "/root/batch_build_review",
+      "source_author_agents": [
+        "/root/batch_build_review"
+      ],
+      "independent_reviewer": "/root/v198_resources",
+      "causal_checks": "Passive original lower owner/prepared/completed observers preserve exact object, values/rejection identities, original chronology, foreign-root refusal, sink failure isolation and disposal across roundtrip and abort; Rust abort enables existing terminal tracing target. No new polls/retries/deadlines or initiating-cause claim.",
+      "assigned_selectors": [
+        "passive lower target observer preserves original object promises values and rejection identities",
+        "passive receipt chronology follows actual settlements while allSettled retains original input ordering",
+        "passive target observer refuses foreign root and sink failures cannot change original work",
+        "passive lower errors are bounded and redact hostile getters and freeform fields",
+        "actual constructor wrapper delegates once with same receiver arguments and synchronous failure"
+      ],
+      "verification_scope": "Historical G85315Node component controls; current Rust server/browser integration remains pending, not supplied by Core/Service12.",
+      "source_review": ".local/gate-6/g852-abort-passive-first-failure-diagnostics-independent-resource-review/receipt.json",
+      "module_path": "scripts/tests/browser_original_receipt_failure.test.mjs",
+      "retained_whole_Node_methods": 15,
+      "assigned_modified_methods": 5
+    },
+    {
+      "id": "V219-G852-FROZEN-CUSTODY",
+      "blocker_id": "V219-G852-FROZEN-CLEANUP",
+      "title": "Retain exact original freeze plan and actual F for authorized cleanup",
+      "owner_agent": "/root/independent_batch_review",
+      "source_author_agents": [
+        "/root/independent_batch_review",
+        "/root/batch_build_review"
+      ],
+      "independent_reviewer": "/root/v198_resources",
+      "causal_checks": "Retain same plan before freeze await and separate historical actualF cleanup metadata; same real Frozen owner remains observable after target cancellation/expiry. Cleanup-only F fallback never supplies Warm/native/public cut. Actual Core same-ticket restore still requires fresh OLD/source authority; Host Closed proof in Core controls is modeled. Same original2s cleanup cutoff; Terminal remains explicit incomplete.",
+      "assigned_selectors": [
+        "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::restore_controls::restore_source_hints_require_same_frozen_owner_and_remain_metadata_only_after_target_cleanup",
+        "canonical_replacement::public_video::original_freeze_custody_tests::original_freeze_cleanup_metadata_keeps_cutoff_and_never_supplies_public_cut_or_grant"
+      ],
+      "verification_scope": "Only assigned Core/Service causal subcontrols within current12; G8562 on564 remains historical and not additive/current566 qualification.",
+      "source_review": ".local/gate-6/g852-core-service-freeze-custody-independent-resource-review/receipt.json"
+    },
+    {
+      "id": "V219-G855-STRUCTURAL-FREEZE",
+      "blocker_id": "V219-G855-POSTPAUSE-METADATA",
+      "title": "Separate original freeze structural state changes from metadata exclusion",
+      "owner_agent": "/root/independent_batch_review",
+      "source_author_agents": [
+        "/root/independent_batch_review",
+        "/root/batch_build_review"
+      ],
+      "independent_reviewer": "/root/v198_resources",
+      "causal_checks": "Capture all exact original controller permits and coherent membership/model/role facts before OLD pause; transfer same OLD permit into F. Authoritative scene epoch invalidates before true structural effects; exact Port terminal request precedes State wait without early ticket retirement. Same-wrapper realState hold completes sameF; real terminal request, privateProbeDrop/prerollDrop, revocation/originalexpiry refuse. Live dynamic readiness and all fresh policy/credential/ticket/seal/physical checks retained; no generic effect retry.",
+      "assigned_selectors": [
+        "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::definite_setup_controls::freeze_try_none_keeps_old_io_active_and_actual_acquiring_cancelled_drain_never_returns_none_again",
+        "staged_streams::freeze_structural_fences::tests::original_structural_epoch_never_recovers_after_invalidation_or_exhaustion",
+        "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::structural_fence_controls::actual_new_scene_insertion_invalidates_original_epoch_despite_all_original_flights",
+        "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::structural_fence_controls::terminal_request_precedes_blocked_model_cleanup_without_racing_directional_publication",
+        "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::restore_controls::restore_source_hints_require_same_frozen_owner_and_remain_metadata_only_after_target_cleanup"
+      ],
+      "verification_scope": "Selected unit controls only; metadata capture before pause retains existing ConsumerState locks. No global lock-free, media quality, browser or G852 unique-cause claim.",
+      "source_review": ".local/gate-6/g855-freeze-cold-structural-receipt-independent-resource-review/receipt-v2.json"
+    }
+  ],
+  "assignment_counts_not_additive": true,
+  "historical_G858_failed_build": {
+    "source_generation": 565,
+    "exit_code": 101,
+    "diagnostic": "E0616 private SceneMember.consumer in first upstream build",
+    "tests_run": 0,
+    "result": {
+      "path": ".local/gate-6/g858-targeted565-controls-root/result.json",
+      "sha256": "e007abb34894d37b6caf5392b10e72c7a267920e9d8bb6396162f3d18f8647f4"
+    },
+    "no_regrade": true
+  },
+  "historical_full_and_media": {
+    "G851": "4364PASS on checkpoint174 source84f804 only",
+    "G852": "roundtripPASS then abortFAILED; native case unrun; original owners reconciled; initiating leaf unproven",
+    "G854": "single original abort diagnosticPASS only, not qualification"
+  },
+  "historical_G853_Node15": "Actual existing15 passive-observer methods passed; current JS byte identities checked; no current server/browser integration credit.",
+  "known_private_proof_hashes": {
+    ".local/gate-6/g851-actual-full-independent-audit/receipt.json": "71fb392cafe74aadefd560cb62c4f348d44b0ffd6f78ed8e2f27755d48db00f5",
+    ".local/gate-6/g852-original-three-v8-current84f804-root/result.json": "ecbe51f4d07018d46cc42285b07a3ae87ba813ce2a23fa75c7b214477275f97a",
+    ".local/gate-6/g852-abort-passive-first-failure-diagnostics-source-candidate/manifest.json": "b79f71718aa6a169a6ad61bc6330055a1f70bed9e95d13361648880fe0d14c07",
+    ".local/gate-6/g852-abort-passive-first-failure-diagnostics-independent-resource-review/receipt.json": "3537c233198b59b28f01534b649d667d8645b703a8b9b7f294b3d1e12a358e1d",
+    ".local/gate-6/g853-abort-observer15-independent-actual-outcome-audit/receipt.json": "2a8a9ab91c2b7bcc652637664fd7cdc036748b499422018f4ace92b99fe96038",
+    ".local/gate-6/g852-service-freeze-cleanup-custody-source-candidate/manifest.json": "4a55ad92aa3f7c5b2aa9cd8e7a2a015084558c90e362924c4bfd0d52589093a3",
+    ".local/gate-6/g852-service-freeze-cleanup-custody-independent-source-review/receipt.json": "ed37cbd5d85f222a896582cb038565ecf4665d83d5b2838d1d57b4c6703cb9e8",
+    ".local/gate-6/g852-original-frozen-video-cleanup-custody-core-source-candidate/manifest.json": "6370cc828ff074ce292b1ec9976f686186004b7f3c906955b5904e4e36072429",
+    ".local/gate-6/g852-core-freeze-cleanup-custody-independent-batch-source-review/receipt.json": "79f83c5b3c43e81f7f18ed97e5e9988a5290b66d2d073fa9167d0889f08de4b0",
+    ".local/gate-6/g852-core-service-freeze-custody-independent-resource-review/receipt.json": "07b67b79555f0f35ca8155f74d9c976693ba19cfa49536d2ef81283a145b7dd4",
+    ".local/gate-6/g855-freeze-cold-structural-receipt-source-candidate-v2/manifest.json": "de454aeac4fe9b97a65a9e365caea04e9e6d03cc87269f421e54682fc1f9a448",
+    ".local/gate-6/g855-freeze-cold-structural-receipt-independent-batch-source-review/v2-receipt.json": "48fc5ebe9e1a3f14e7a61ccb3ab1f381e660134635ba86d4774678eb91b32f70",
+    ".local/gate-6/g855-freeze-cold-structural-receipt-independent-resource-review/receipt-v2.json": "b98080af708e4a6cac2121b4549e76bd846e22a286969be383a999c8f328087e",
+    ".local/gate-6/g858-targeted565-controls-root/result.json": "e007abb34894d37b6caf5392b10e72c7a267920e9d8bb6396162f3d18f8647f4",
+    ".local/gate-6/g858-targeted565-controls-root/root-original-join.json": "5624c5ffccfbb4b229bb8591c2f2f80b087de837fbf38006afa408099f34363e",
+    ".local/gate-6/g858-cold-receipt-private-member-view-566-source-candidate/manifest.json": "3c4ef428519f115de6438b7ace8cf7b48c46e70261d93bfb9a6c9aa84208669a",
+    ".local/gate-6/g858-cold-receipt-member-view-independent-source-review/receipt.json": "b481771396c8232a58aada74558e3d3419eda46c319a08155115f8b032482968",
+    ".local/gate-6/g857-mobile286-root/verification.json": "7fc8a5a17a4b5150062d7aa00cbcef1f9ae256810e472d4ac82b18a88df86337",
+    ".local/gate-6/g852-original-three-v8-current84f804-root/root-failed-original-join-and-reconciliation.json": "2480dfbbfeb75924351db62637f6b0fd30634b5fdd2b582e4d35323947d704ab",
+    ".local/gate-6/g854-abort-existing-selector-diagnostic-root/result.json": "863980722bf936495cc1e2b3fac7d577f1ba9eb520a3990517668f16f6e97644",
+    ".local/gate-6/g854-abort-existing-selector-diagnostic-root/root-original-join-and-diagnostic-review.json": "60202c9a0f821c6817cb8ab199bf427539ceec6ca8953dba0c3da85e7258c10c"
+  },
+  "diagnostic_JS_current_byte_pins": {
+    "scripts/video/browser-public-video-abort.mjs": "a7a4914f2705832a609f9f6e52af9cfbf8240d083374a82613de0f6f0c689c48",
+    "scripts/video/browser-public-video-roundtrip.mjs": "7d6a40cb60f259450f1de40c8ff55ec5f7265eb33800dde73ee83785eadd17a5",
+    "scripts/tests/browser_original_receipt_failure.test.mjs": "08f284b42bbe14fff2fa85928615646862c4278a25b1e854ddbe4df894b7fbf4"
+  },
+  "historical_mobile286": "Actual preparation progress with unit results pending; immutable, never relabeled287.",
+  "mobile287": {
+    "public_readback": "docs/evidence/gate-6/g6-058-mobile-document-readback-v287-freeze-custody-contention.json",
+    "actual_verification": {
+      "path": ".local/gate-6/g860-mobile287-root/verification.json",
+      "sha256": "b982c83a2d7d8047cfc346924728c566f746d3ce6817a2c19e3e12c056c23069"
+    },
+    "actual_readback": {
+      "path": ".local/gate-6/g860-mobile287-root/readback.json",
+      "sha256": "5a567e9022c2906a496fc0f992a5f74d29e20970d39e74a5875c1fb539a9d984"
+    }
+  },
+  "unchanged_contract": [
+    "Journal/operation identity, current authority, original cutoff/grant minima, native physical/source/ticket/seal checks preserved.",
+    "No generic effect retry or unauthorized OLD resume. Host Closed in Core controls is modeled.",
+    "Initial pre-pause ConsumerState capture still uses existing locks; no global lock-free claim.",
+    "All original seven readiness scopes and full/matrix/quality/resource criteria remain required."
+  ],
+  "matrix": {
+    "passed": 1,
+    "total": 32,
+    "requirements_passed": 399,
+    "requirements_total": 432,
+    "new_credit": false
+  },
+  "ready_for_32": false,
+  "G6_054": "parked",
+  "future_commit": null,
+  "future_final_source": null,
+  "future_Scope1": null,
+  "future_full": null,
+  "future_OriginalV8": null,
+  "future_Firefox_NORMAL3": null,
+  "future900": null,
+  "future_ARM11": null,
+  "future_releases": null,
+  "future_preflight": null
+}

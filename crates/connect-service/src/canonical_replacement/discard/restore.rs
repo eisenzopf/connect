@@ -143,7 +143,7 @@ impl RestoreInvocation {
             || !self
                 .root
                 .public_video
-                .original_frontier(original.frontier())
+                .original_restore_frontier(original.frontier())
             || !rvoip_core::staged_streams::reliable_data::same_credential(
                 scope.principal,
                 &self.old.principal,
@@ -326,6 +326,36 @@ impl Runtime {
         };
         restore_observation!(stage = "original_restore_plan_present");
         let restore_deadline = root.public_video.original_restore_deadline();
+        // Metadata custody survives target cancellation/expiry; it is not a
+        // restore permission. Actual SAME Closed+Discarded are already owned.
+        // Re-read only the retained original slot, never freeze or mint a Cut.
+        use rvoip_core::staged_streams::old_video_freeze::OldVideoFreezeResourceState;
+        let custody = self.core.staged_old_video_freeze_custody(&plan).map_err(|error| {
+            restore_observation!(stage = "freeze_custody_refused", error_kind = old_restore_error_kind(&error));
+            root.public_video.original_freeze_custody_error(error)
+        })?;
+        match custody.resource_state() {
+            OldVideoFreezeResourceState::Unstarted => {
+                restore_observation!(stage = "freeze_unstarted_effect_free", old_restored = false);
+                return Ok(());
+            },
+            OldVideoFreezeResourceState::Acquiring => {
+                restore_observation!(stage = "freeze_acquiring_still_owned", old_restored = false);
+                return Err(root.public_video.original_freeze_custody_pending());
+            },
+            OldVideoFreezeResourceState::Terminal => {
+                restore_observation!(stage = "freeze_terminal_not_restored", old_restored = false);
+                return Err(Error::new("cleanup-incomplete", "Original OLD freeze is terminal without restoration"));
+            },
+            OldVideoFreezeResourceState::Frozen => {
+                let frontier = custody.frontier().ok_or_else(|| Error::new(
+                    "cleanup-incomplete", "Original Frozen custody has no actual frontier"
+                ))?;
+                root.public_video.own_cleanup_frontier(root, frontier)?;
+                restore_observation!(stage = "freeze_original_frontier_retained");
+            },
+        }
+        drop(custody);
         if tokio::time::Instant::now() >= restore_deadline {
             restore_observation!(stage = "cutoff_before_readiness");
             return Err(Error::new(

@@ -62,6 +62,10 @@ try{
    await new Promise(resolve=>setTimeout(resolve,5));
   }
  });
+ await page.exposeFunction('originalReceiptFailure',value=>{
+  const text=JSON.stringify(value);assert.ok(text.length<=4096,'bounded public receipt diagnostic');
+  console.error('ORIGINAL_RECEIPT_FAILURE '+text);
+ });
  await page.exposeFunction('retainPublicPcmDiagnostics',async(stage,value)=>{
   assert.ok(['failure','closed','restore-wait'].includes(stage));const text=JSON.stringify(value);assert.ok(text.length<=2*1024*1024,'bounded original public PCM diagnostics');
   await fs.writeFile(path.join(privateRoot,'rtc-audio-'+stage+'.json'),text,{flag:'wx',mode:0o600});
@@ -75,6 +79,68 @@ try{
   const {strictPcmIdentity:pcmIdentity,PcmSampleLedger}=await import('/pcm-identity.mjs');
   const pcmLedger=new PcmSampleLedger();
   const {pcmBoundary}=await import('/pcm-boundary.mjs');
+  function originalReceiptFailureDiagnostic(owner,reason,reference,phase){
+   const read=(object,key)=>{try{return object?.[key];}catch{return undefined;}};
+   const token=value=>typeof value==='string'&&/^[a-zA-Z0-9_.:-]{1,256}$/.test(value)?value:null;
+   const kind=value=>typeof value==='string'&&/^[a-z][a-z0-9_-]{0,95}$/.test(value)?value:null;
+   const problem=read(reason,'problem'),scope=read(reference,'scope'),code=read(problem,'code');
+   return {profile:'connect/original-receipt-failure/1',receipt_owner:owner,
+    kind:kind(read(reason,'kind')),certainty:kind(read(reason,'certainty')),
+    problem:{code:Number.isInteger(code)&&code>=100&&code<=599?code:null,
+     category:kind(read(problem,'category')),reason:kind(read(problem,'reason'))},
+    operation:{operation_id:token(read(reference,'operation_id')),command:token(read(reference,'command')),
+     scope:{conversation_id:token(read(scope,'conversation_id')),session_id:token(read(scope,'session_id')),connection_id:token(read(scope,'connection_id'))}},
+    last_observed_record_id:token(read(phase,'record_id'))};
+  }
+  // Passive original settlement observations; never replace a caller-owned promise.
+  let originalSettlementSequence=0,originalSettlementTime=0;
+  const originalSettlementDisposers=[],originalReplacementScopes=new Map();
+  function originalSettlementScope(input,root){
+   const token=value=>typeof value==='string'&&/^[a-zA-Z0-9_.:-]{1,256}$/.test(value)?value:null;
+   if(!input||!root)return null;
+   const pairs=[['operationId','operationId'],['conversationId','conversationId'],['sessionId','sessionId'],['connectionId','targetConnectionId']];
+   if(!pairs.every(([a,b])=>token(input[a])!==null&&input[a]===root[b])||token(root.recordId)===null)return null;
+   return Object.freeze({operation_id:root.operationId,record_id:root.recordId,conversation_id:root.conversationId,
+    session_id:root.sessionId,target_connection_id:root.targetConnectionId});
+  }
+  function emitOriginalSettlement(stage,status,reason,scope){
+   // Four original targets and their receipt/close edges fit this fixed diagnostic cap.
+   if(originalSettlementSequence>=64)return;
+   try{
+    const read=(object,key)=>{try{return object?.[key];}catch{return undefined;}};
+    const machine=value=>typeof value==='string'&&/^[a-z][a-z0-9_-]{0,95}$/.test(value)?value:null;
+    const name=read(reason,'name'),problem=originalReceiptFailureDiagnostic(stage,reason,null,null).problem;
+    const now=performance.now();originalSettlementTime=Math.max(originalSettlementTime,Number.isFinite(now)?now:originalSettlementTime);
+    const value={profile:'connect/original-target-settlement/1',sequence:++originalSettlementSequence,time_ms:originalSettlementTime,
+     stage,status,scope,code:machine(read(reason,'code')),name:typeof name==='string'&&/^[A-Za-z][A-Za-z0-9_]{0,95}$/.test(name)?name:null,
+     kind:machine(read(reason,'kind')),certainty:machine(read(reason,'certainty')),problem};
+    void Promise.resolve(globalThis.originalReceiptFailure(value)).catch(()=>{});
+   }catch{}
+  }
+  function observeOriginalSettlement(work,stage,scope){
+   try{void work.then(()=>{emitOriginalSettlement(stage,'fulfilled',null,scope);},reason=>{
+    emitOriginalSettlement(stage,'rejected',reason,scope);
+   }).catch(()=>{});}catch{}
+   return work;
+  }
+  function observeOriginalReplacement(begun,input,root){
+   try{
+    const scope=originalSettlementScope(input,root);
+    if(!scope){emitOriginalSettlement('target-observer','attribution-refused',null,null);return begun;}
+    originalReplacementScopes.set(scope.operation_id,scope);
+    try{const dispose=begun.owner.onClose(reason=>{emitOriginalSettlement('target-owner-close','closed',reason,scope);});
+     originalSettlementDisposers.push(dispose);
+    }catch(reason){emitOriginalSettlement('target-observer','enrollment-refused',reason,scope);}
+    observeOriginalSettlement(begun.prepared,'target-original-prepared',scope);
+    observeOriginalSettlement(begun.completed,'target-original-completed',scope);
+   }catch{}
+   return begun;
+  }
+  function disposeOriginalSettlementObservers(){
+   for(const dispose of originalSettlementDisposers.splice(0)){try{dispose();}catch{}}
+   originalReplacementScopes.clear();
+  }
+  // End original receipt failure diagnostics.
   const check=(value,message)=>{if(!value)throw Error(message);};
   const opts=()=>({timeoutMs:8000}),mutation=operationId=>({...opts(),operationId});
   const done=async promise=>(await (await promise).wait(opts())).value;
@@ -97,7 +163,7 @@ try{
   };
   for(const [name,original]of [['begin',begin],['beginReplacement',beginReplacement]])BrowserRtcConnection[name]=function(...args){
    check(arming===null,'original synchronous SDK constructor');arming=args[1].connectionId;
-   try{return original.apply(this,args);}finally{arming=null;}
+   try{const begun=original.apply(this,args);return name==='beginReplacement'?observeOriginalReplacement(begun,args[1],args[4]):begun;}finally{arming=null;}
   };
   HTMLVideoElement.prototype.requestVideoFrameCallback=function(callback){
    const element=this;
@@ -306,7 +372,7 @@ try{
    const operation=await before.connection.replaceDevice({retain:retain.connection.id,target:{endpoint:spec.targetEndpoint},expectedTopologyRevision:view.topologyRevision,
     video:{publications:[{previous:before.send,replacement:streams.send}],receivers:[{previous:before.receive,replacement:streams.receive}]}},{...options(),operationId});
    const prepared=await targetSession.connections.prepareReplacement({operation:operation.reference,audio:streams.audio,video:{send:streams.send,receive:streams.receive}},{...options(),signal:cancelTargetWait.signal});
-   const completion=prepared.completion.then(value=>({fulfilled:true,value}),error=>({fulfilled:false,error:{name:error?.name,kind:error?.kind,certainty:error?.certainty}}));
+   const completion=observeOriginalSettlement(prepared.completion,'target-prepared-completion',originalReplacementScopes.get(operationId)??null).then(value=>({fulfilled:true,value}),error=>({fulfilled:false,error:{name:error?.name,kind:error?.kind,certainty:error?.certainty}}));
    await startCapture(0,prepared.connection,options());
    await wait(()=>!!closeProof,cutoff,'actual native close after real Cut and B decoded callback');
    const status=await operation.status(options());check(status.state!=='completed'&&status.recordId===closeProof.record_id,'same uncompleted original Root');
@@ -350,6 +416,7 @@ try{
    }
    for(const client of clients){try{await client.close(opts());}catch{cleanupFailures.push('sdk-close');}}
    if(![...peers.values()].every(peer=>peer.connectionState==='closed'))cleanupFailures.push('original-native-peer-not-closed');
+   disposeOriginalSettlementObservers();
    BrowserClient.prototype.requestReplacementContinuation=continuation;
    BrowserRtcConnection.begin=begin;BrowserRtcConnection.beginReplacement=beginReplacement;globalThis.RTCPeerConnection=NativePeer;
    HTMLVideoElement.prototype.requestVideoFrameCallback=nativeFrame;CanvasRenderingContext2D.prototype.drawImage=nativeDraw;

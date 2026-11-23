@@ -1,0 +1,11 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/old_video_freeze/cold_receipt.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/old_video_freeze/cold_receipt.rs
+@@ -94,7 +94,7 @@
+             // uses exclusion plus early invalidation, never notification hints.
+             intent.validate_target_without_video_freeze(controller,state)?;
+             captured.push(MemberPin {controller:controller.clone(),state:state.control_metadata_snapshot(),
+-                credential:controller.credential_snapshot(),scene_cancel:member.consumer.cancel.clone(),
++                credential:controller.credential_snapshot(),scene_cancel:member.control_view().consumer.cancel.clone(),
+                 audio_cancel:member.audio_consumer.stamp().cancellation,
+                 ports:state.active.values().map(|port|(port.clone(),port.ticket_snapshot())).collect()});
+         }

@@ -1,20 +1,20 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-22T21:22:31.520560+00:00",
-  "revision": 174,
-  "status": "Checkpoint174: all80 focused harness controls PASS (77 Python methods plus3 Node tests; zero failed/skipped), with Root and all4 original child owners naturally joined and absent. A separate expanded affected-script regression also passes1411 tests (1254 Node and157 Python), including the focused80 subset, with11 children and Root naturally closed; these counts are not additive. Mobile281 records the earlier focused80 only. Nine harness/test files correct the local Mac resource clock contract and exceptional cleanup. Local Node/libuv uses the continuous clock while Python monotonic uses the absolute clock; MatrixIdle now selects the matching declared local clock and preserves the existing bounded Linux-guest to Mac-host alignment. Missing/wrong/stale/future clock observations still refuse. The entire exceptional finally independently attempts original browser/capture/server cleanup and reporting within unchanged bounds; forced or unknown closure stays failed. G846 Firefox remains FAILED before operations/authentication/media; its later orphan reconciliation is not original join or qualification. G847 failed constant-clock vectors and omitted original PYTHONPATH remain recorded; corrected vectors and the original runner environment pass G848. Rust, SDK, source-lock/prepared upstream and all acceptance criteria are unchanged. Historical db974 full4289 and OriginalV8 all3 remain evidence for that old source only. Mobile281 scoped readback preserves420 other paragraphs and all styles. Commit/push the tested batch, then all seven original readiness scopes on final source; stop READY32. Matrix v218 remains1/32 and399/432; no new matrix credit, local Mac/native ARM only, G6-054 parked.",
+  "updated_at": "2026-11-23T01:28:00.242064+00:00",
+  "revision": 175,
+  "status": "Checkpoint175: current source566 passes the original-profile11Core plus1Service controls, zero failed/ignored, with original owners naturally closed and independently audited. Passive abort settlement diagnostics retain original promises/errors; earlier G85315Node controls remain a separate component scope. The same original freeze plan and actualF survive for cleanup; cleanup metadata never grants Warm or a public cut. Cold structural receipts preserve sameOLD custody through real metadata exclusion while actual terminal/private-readiness cancellation, revocation and original expiry still refuse. G858 source565 first build failed E0616 before any tests; the one-expression existing-view correction is recorded separately, without regrading that failure. Historical G851 full4364PASS and G852 OriginalV8 abortFAILED remain source-scoped; the initiating G852 leaf is unproven. Mobile287 records this unit checkpoint. Commit/push, then all seven original final-source readiness scopes; STOP READY32. Matrix v218 remains1/32 and399/432; G6-054 parked.",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
-    "sync_status": "verified-checkpoint174-mobile281-scoped-readback",
-    "content_revision": 281,
-    "readback_evidence": ".local/gate-6/g848-mobile281-root/readback.json",
-    "readback_evidence_sha256": "8cc0af9f7811128be671471871429435bd009034d8eaae30dfb4025f6b61f7ba",
-    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v281-clock-cleanup-units.json",
-    "postrun_readback_sha256": "52eae454f8f9054a737427022d717f53b35f3fb09633691dbeba4b9107c02b10",
-    "postrun_readback_scope": "Actual mobile281 focused80 only; later expanded1411 is outside its text/readback."
+    "sync_status": "verified-checkpoint175-mobile287-scoped-readback",
+    "content_revision": 287,
+    "readback_evidence": ".local/gate-6/g860-mobile287-root/readback.json",
+    "readback_evidence_sha256": "5a567e9022c2906a496fc0f992a5f74d29e20970d39e74a5875c1fb539a9d984",
+    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v287-freeze-custody-contention.json",
+    "postrun_readback_sha256": "10a71145baf2a851732b107afdfbc7a717a1b174baf529133307b49b30ae4902",
+    "postrun_readback_scope": "Actual current12 component units only; all seven readiness scopes pending."
   },
   "baseline": {
     "run": "v215",
@@ -4085,6 +4085,140 @@
           "independent_actual_audit_sha256": "4df5f7fb8631e836abdda178ff90aeb28e7d9fc7ae910e30559a5da47d37a687"
         }
       ]
+    },
+    {
+      "id": "V219-G852-PASSIVE-FIRST-FAILURE",
+      "plan_id": "G6-058",
+      "title": "Preserve original abort target settlement and server first-error diagnostics",
+      "owner_agent": "/root/batch_build_review",
+      "source_author_agents": [
+        "/root/batch_build_review"
+      ],
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-G852-PASSIVE-CAUSE"
+      ],
+      "depends_on": [],
+      "status": "component-verified",
+      "implementation_state": "Implemented/reviewed; only assigned causal component scope verified. Fresh final-source API/full/browser/native/readiness/matrix remain pending.",
+      "proposed_fix": "Passive original lower owner/prepared/completed observers preserve exact object, values/rejection identities, original chronology, foreign-root refusal, sink failure isolation and disposal across roundtrip and abort; Rust abort enables existing terminal tracing target. No new polls/retries/deadlines or initiating-cause claim.",
+      "required_evidence": [
+        "Historical G85315Node component controls; current Rust server/browser integration remains pending, not supplied by Core/Service12.",
+        "All seven original final-source readiness scopes"
+      ],
+      "coordinator_review": {
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g852-freeze-custody-contention.json",
+        "scope": "Component only; no historical G852 regrade or cell credit"
+      },
+      "verification_runs": [
+        {
+          "run": "G853",
+          "assigned_selectors": [
+            "passive lower target observer preserves original object promises values and rejection identities",
+            "passive receipt chronology follows actual settlements while allSettled retains original input ordering",
+            "passive target observer refuses foreign root and sink failures cannot change original work",
+            "passive lower errors are bounded and redact hostile getters and freeform fields",
+            "actual constructor wrapper delegates once with same receiver arguments and synchronous failure"
+          ],
+          "causal_checks": "Passive original lower owner/prepared/completed observers preserve exact object, values/rejection identities, original chronology, foreign-root refusal, sink failure isolation and disposal across roundtrip and abort; Rust abort enables existing terminal tracing target. No new polls/retries/deadlines or initiating-cause claim.",
+          "scope": "Historical G85315Node component controls; current Rust server/browser integration remains pending, not supplied by Core/Service12.",
+          "counts_not_additive": true,
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g852-freeze-custody-contention.json",
+          "qualification": false
+        }
+      ]
+    },
+    {
+      "id": "V219-G852-FROZEN-CUSTODY",
+      "plan_id": "G6-058",
+      "title": "Retain exact original freeze plan and actual F for authorized cleanup",
+      "owner_agent": "/root/independent_batch_review",
+      "source_author_agents": [
+        "/root/independent_batch_review",
+        "/root/batch_build_review"
+      ],
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-G852-FROZEN-CLEANUP"
+      ],
+      "depends_on": [],
+      "status": "component-verified",
+      "implementation_state": "Implemented/reviewed; only assigned causal component scope verified. Fresh final-source API/full/browser/native/readiness/matrix remain pending.",
+      "proposed_fix": "Retain same plan before freeze await and separate historical actualF cleanup metadata; same real Frozen owner remains observable after target cancellation/expiry. Cleanup-only F fallback never supplies Warm/native/public cut. Actual Core same-ticket restore still requires fresh OLD/source authority; Host Closed proof in Core controls is modeled. Same original2s cleanup cutoff; Terminal remains explicit incomplete.",
+      "required_evidence": [
+        "Only assigned Core/Service causal subcontrols within current12; G8562 on564 remains historical and not additive/current566 qualification.",
+        "All seven original final-source readiness scopes"
+      ],
+      "coordinator_review": {
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g852-freeze-custody-contention.json",
+        "scope": "Component only; no historical G852 regrade or cell credit"
+      },
+      "verification_runs": [
+        {
+          "run": "CURRENT566_TARGETED12",
+          "assigned_selectors": [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::restore_controls::restore_source_hints_require_same_frozen_owner_and_remain_metadata_only_after_target_cleanup",
+            "canonical_replacement::public_video::original_freeze_custody_tests::original_freeze_cleanup_metadata_keeps_cutoff_and_never_supplies_public_cut_or_grant"
+          ],
+          "causal_checks": "Retain same plan before freeze await and separate historical actualF cleanup metadata; same real Frozen owner remains observable after target cancellation/expiry. Cleanup-only F fallback never supplies Warm/native/public cut. Actual Core same-ticket restore still requires fresh OLD/source authority; Host Closed proof in Core controls is modeled. Same original2s cleanup cutoff; Terminal remains explicit incomplete.",
+          "scope": "Only assigned Core/Service causal subcontrols within current12; G8562 on564 remains historical and not additive/current566 qualification.",
+          "counts_not_additive": true,
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g852-freeze-custody-contention.json",
+          "qualification": false,
+          "whole_targeted_passed": 12,
+          "result_sha256": "b54324c3a8f2e07d5e9e95e7043954bd1ffc5889012ac97aa67e4e1bf9da5e55",
+          "independent_audit_sha256": "ee8d2d0703888424fd4f6d3359f869d27d642c3e6417db8b51622074fbc4d8c0"
+        }
+      ]
+    },
+    {
+      "id": "V219-G855-STRUCTURAL-FREEZE",
+      "plan_id": "G6-058",
+      "title": "Separate original freeze structural state changes from metadata exclusion",
+      "owner_agent": "/root/independent_batch_review",
+      "source_author_agents": [
+        "/root/independent_batch_review",
+        "/root/batch_build_review"
+      ],
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-G855-POSTPAUSE-METADATA"
+      ],
+      "depends_on": [],
+      "status": "component-verified",
+      "implementation_state": "Implemented/reviewed; only assigned causal component scope verified. Fresh final-source API/full/browser/native/readiness/matrix remain pending.",
+      "proposed_fix": "Capture all exact original controller permits and coherent membership/model/role facts before OLD pause; transfer same OLD permit into F. Authoritative scene epoch invalidates before true structural effects; exact Port terminal request precedes State wait without early ticket retirement. Same-wrapper realState hold completes sameF; real terminal request, privateProbeDrop/prerollDrop, revocation/originalexpiry refuse. Live dynamic readiness and all fresh policy/credential/ticket/seal/physical checks retained; no generic effect retry.",
+      "required_evidence": [
+        "Selected unit controls only; metadata capture before pause retains existing ConsumerState locks. No global lock-free, media quality, browser or G852 unique-cause claim.",
+        "All seven original final-source readiness scopes"
+      ],
+      "coordinator_review": {
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g852-freeze-custody-contention.json",
+        "scope": "Component only; no historical G852 regrade or cell credit"
+      },
+      "verification_runs": [
+        {
+          "run": "CURRENT566_TARGETED12",
+          "assigned_selectors": [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::definite_setup_controls::freeze_try_none_keeps_old_io_active_and_actual_acquiring_cancelled_drain_never_returns_none_again",
+            "staged_streams::freeze_structural_fences::tests::original_structural_epoch_never_recovers_after_invalidation_or_exhaustion",
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::structural_fence_controls::actual_new_scene_insertion_invalidates_original_epoch_despite_all_original_flights",
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::structural_fence_controls::terminal_request_precedes_blocked_model_cleanup_without_racing_directional_publication",
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::restore_controls::restore_source_hints_require_same_frozen_owner_and_remain_metadata_only_after_target_cleanup"
+          ],
+          "causal_checks": "Capture all exact original controller permits and coherent membership/model/role facts before OLD pause; transfer same OLD permit into F. Authoritative scene epoch invalidates before true structural effects; exact Port terminal request precedes State wait without early ticket retirement. Same-wrapper realState hold completes sameF; real terminal request, privateProbeDrop/prerollDrop, revocation/originalexpiry refuse. Live dynamic readiness and all fresh policy/credential/ticket/seal/physical checks retained; no generic effect retry.",
+          "scope": "Selected unit controls only; metadata capture before pause retains existing ConsumerState locks. No global lock-free, media quality, browser or G852 unique-cause claim.",
+          "counts_not_additive": true,
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g852-freeze-custody-contention.json",
+          "qualification": false,
+          "whole_targeted_passed": 12,
+          "result_sha256": "b54324c3a8f2e07d5e9e95e7043954bd1ffc5889012ac97aa67e4e1bf9da5e55",
+          "independent_audit_sha256": "ee8d2d0703888424fd4f6d3359f869d27d642c3e6417db8b51622074fbc4d8c0"
+        }
+      ]
     }
   ],
   "failure_mapping": [
@@ -7084,6 +7218,15 @@
       "by": "/root",
       "mobile_revision": 281,
       "mobile_readback": "docs/evidence/gate-6/g6-058-mobile-document-readback-v281-clock-cleanup-units.json"
+    },
+    {
+      "at": "2026-11-23T01:28:00.242064+00:00",
+      "revision": 175,
+      "event": "Checkpoint175: current source566 passes the original-profile11Core plus1Service controls, zero failed/ignored, with original owners naturally closed and independently audited. Passive abort settlement diagnostics retain original promises/errors; earlier G85315Node controls remain a separate component scope. The same original freeze plan and actualF survive for cleanup; cleanup metadata never grants Warm or a public cut. Cold structural receipts preserve sameOLD custody through real metadata exclusion while actual terminal/private-readiness cancellation, revocation and original expiry still refuse. G858 source565 first build failed E0616 before any tests; the one-expression existing-view correction is recorded separately, without regrading that failure. Historical G851 full4364PASS and G852 OriginalV8 abortFAILED remain source-scoped; the initiating G852 leaf is unproven. Mobile287 records this unit checkpoint. Commit/push, then all seven original final-source readiness scopes; STOP READY32. Matrix v218 remains1/32 and399/432; G6-054 parked.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g852-freeze-custody-contention.json",
+      "by": "/root",
+      "mobile_revision": 287,
+      "mobile_readback": "docs/evidence/gate-6/g6-058-mobile-document-readback-v287-freeze-custody-contention.json"
     }
   ],
   "tracking_review": {
@@ -8713,10 +8856,10 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Checkpoint174: all80 focused harness controls PASS (77 Python methods plus3 Node tests; zero failed/skipped), with Root and all4 original child owners naturally joined and absent. A separate expanded affected-script regression also passes1411 tests (1254 Node and157 Python), including the focused80 subset, with11 children and Root naturally closed; these counts are not additive. Mobile281 records the earlier focused80 only. Nine harness/test files correct the local Mac resource clock contract and exceptional cleanup. Local Node/libuv uses the continuous clock while Python monotonic uses the absolute clock; MatrixIdle now selects the matching declared local clock and preserves the existing bounded Linux-guest to Mac-host alignment. Missing/wrong/stale/future clock observations still refuse. The entire exceptional finally independently attempts original browser/capture/server cleanup and reporting within unchanged bounds; forced or unknown closure stays failed. G846 Firefox remains FAILED before operations/authentication/media; its later orphan reconciliation is not original join or qualification. G847 failed constant-clock vectors and omitted original PYTHONPATH remain recorded; corrected vectors and the original runner environment pass G848. Rust, SDK, source-lock/prepared upstream and all acceptance criteria are unchanged. Historical db974 full4289 and OriginalV8 all3 remain evidence for that old source only. Mobile281 scoped readback preserves420 other paragraphs and all styles. Commit/push the tested batch, then all seven original readiness scopes on final source; stop READY32. Matrix v218 remains1/32 and399/432; no new matrix credit, local Mac/native ARM only, G6-054 parked.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g846-clock-cleanup-units.json",
-    "sha256": "effcc8a5d109f1855aacf7eeb7b26815b5274bdc54afa6dbe3c9d5afeecf315a",
-    "source_generation": 563,
+    "status": "Checkpoint175: current source566 passes the original-profile11Core plus1Service controls, zero failed/ignored, with original owners naturally closed and independently audited. Passive abort settlement diagnostics retain original promises/errors; earlier G85315Node controls remain a separate component scope. The same original freeze plan and actualF survive for cleanup; cleanup metadata never grants Warm or a public cut. Cold structural receipts preserve sameOLD custody through real metadata exclusion while actual terminal/private-readiness cancellation, revocation and original expiry still refuse. G858 source565 first build failed E0616 before any tests; the one-expression existing-view correction is recorded separately, without regrading that failure. Historical G851 full4364PASS and G852 OriginalV8 abortFAILED remain source-scoped; the initiating G852 leaf is unproven. Mobile287 records this unit checkpoint. Commit/push, then all seven original final-source readiness scopes; STOP READY32. Matrix v218 remains1/32 and399/432; G6-054 parked.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g852-freeze-custody-contention.json",
+    "sha256": "07725442d9dcdd3774bf779c60680ab99c822bbb58dc4a7c71b523dc7ef24f96",
+    "source_generation": 566,
     "ready_for_32": false,
     "final_current_commit": null,
     "final_current_source": null,
@@ -8725,7 +8868,7 @@
     "future_strict_Firefox": null,
     "all7_final_source_scopes_required": true
   },
-  "updated": "2026-11-21",
+  "updated": "2026-11-23T01:28:00.242064+00:00",
   "v219_g570_exact_clock_component": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g570-exact-clock-component-progress.json",
     "sha256": "3d910638366c09869326694d91964eba1e8da2537b08c870f70ac2e5e1f818ef",
@@ -9843,5 +9986,17 @@
     ],
     "other_paragraphs_and_styles_preserved": 420,
     "scope": "Focused80 only, not later expanded1411."
+  },
+  "historical_mobile_document_checkpoint174": {
+    "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+    "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+    "tab_id": "t.0",
+    "sync_status": "verified-checkpoint174-mobile281-scoped-readback",
+    "content_revision": 281,
+    "readback_evidence": ".local/gate-6/g848-mobile281-root/readback.json",
+    "readback_evidence_sha256": "8cc0af9f7811128be671471871429435bd009034d8eaae30dfb4025f6b61f7ba",
+    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v281-clock-cleanup-units.json",
+    "postrun_readback_sha256": "52eae454f8f9054a737427022d717f53b35f3fb09633691dbeba4b9107c02b10",
+    "postrun_readback_scope": "Actual mobile281 focused80 only; later expanded1411 is outside its text/readback."
   }
 }

@@ -23,7 +23,7 @@ async fn canonical_chromium_public_b_actual_post_cut_native_close_discards_then_
     // Limit global cross-task capture to cold OLD restore events, never media packets.
     let restore_trace_installed = tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::new(
-            "off,connect_service::canonical_replacement::old_video_restore=debug",
+            "off,connect_service::canonical_replacement::old_video_restore=debug,connect_service::original_replacement_terminal=debug",
         ))
         .with_ansi(false)
         .with_writer(std::io::stderr)
