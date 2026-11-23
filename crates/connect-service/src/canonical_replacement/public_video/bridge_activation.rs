@@ -149,13 +149,17 @@ impl Runtime {
             started: Arc::downgrade(started),
             scope: scope.clone(),
         });
-        p.own_bridge_journal_observation(root, observation.clone())?;
+        p.own_bridge_journal_observation(root, observation)?;
         // Existing metadata retry owns no native grant or coordinator. The
         // same original feeding row must commit before the writer is opened.
         super::super::capture_recording::retry_captured_metadata(&self.stop, until, true, || {
             self.record_pre_cut_public_video_bridge_feeding(root)
         })
         .await?;
+        tracing::debug!(target: "connect_service::canonical_replacement",
+            boundary = "public-video-bridge", stage = "feeding-recorded",
+            operation = %root.handle.intent().operation_id, source = %root.handle.intent().source,
+            target = %root.handle.intent().replacement, "Original candidate video bridge boundary");
         let adapter = self.webrtc.get().ok_or_else(Error::forbidden)?.adapter();
         let output = tokio::select! {biased;
             _ = self.stop.cancelled() => return Err(Error::forbidden()),
@@ -167,8 +171,16 @@ impl Runtime {
             .output
             .set(output)
             .map_err(|_| Error::forbidden())?;
+        tracing::debug!(target: "connect_service::canonical_replacement",
+            boundary = "public-video-bridge", stage = "candidate-writer-started",
+            operation = %root.handle.intent().operation_id, source = %root.handle.intent().source,
+            target = %root.handle.intent().replacement, "Original candidate video bridge boundary");
         p.wait_for_bridge_decoded(&self.stop, &cancel, until)
             .await?;
+        tracing::debug!(target: "connect_service::canonical_replacement",
+            boundary = "public-video-bridge", stage = "candidate-decoded-before-withdrawal",
+            operation = %root.handle.intent().operation_id, source = %root.handle.intent().source,
+            target = %root.handle.intent().replacement, "Original candidate video bridge boundary");
         Ok(())
     }
 }

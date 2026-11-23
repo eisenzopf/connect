@@ -84,8 +84,9 @@ pub(super) async fn verify(
         let db = rusqlite::Connection::open(&f.config.database).unwrap();
         db.execute_batch("CREATE TRIGGER fixture_final_begin_failure BEFORE INSERT ON operation_effects WHEN NEW.provider='native-replacement-commit' BEGIN SELECT RAISE(ABORT,'controlled real post-BEGIN final begin failure'); END;").unwrap();
         drop(db);
-        // Force one genuine try_connection WouldBlock/Ok(None), not a result stub.
-        // The scoped raw holder drops before the existing async retry pause.
+        // Force one genuine primary-reservation WouldBlock/Ok(None), before
+        // any WriterNotice, BEGIN or Core effect; this is still the actual raw
+        // SQL mutex, not a supplied result. It drops before the retry pause.
         let binding = custody.native_begin_binding_for_test();
         assert_eq!(binding.0, original.record_id);
         custody.exclude_next_native_begin_entry_for_test();
@@ -108,8 +109,15 @@ pub(super) async fn verify(
         assert_eq!(observed.scope_refusals, 0);
         assert_eq!(observed.some, 0);
         assert_eq!(observed.errors, 1);
-        assert_eq!(observed.calls, observed.none + 1);
-        assert_eq!(custody.actual_begin_submissions(), observed.calls);
+        // Pure admission attempts and a durable begin are different edges.
+        // Primary Busy never issues the uncertain durable marker. Any earlier
+        // metadata/file refusal is counted separately and cannot enter DML.
+        assert_eq!(
+            observed.calls,
+            observed.none + observed.pre_entry_refusals + observed.issued
+        );
+        assert_eq!(observed.issued, 1);
+        assert_eq!(custody.actual_begin_submissions(), observed.issued);
         assert_eq!(
             observed.sql_begins, 1,
             "exactly one actual post-BEGIN attempt"

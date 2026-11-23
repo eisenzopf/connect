@@ -876,3 +876,225 @@ fn native_cold_commit_metadata_sql_fault_and_changed_or_expired_facts_stay_termi
         assert_eq!(count, 0, "no Commit begin after terminal planning refusal");
     }
 }
+
+#[test]
+fn prepared_commit_reserves_primary_before_writer_and_reuses_same_unit_for_one_begin() {
+    use crate::native_prepared_begin_observation_for_test::NativePreparedBeginObservationForTest;
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+    let m = scene();
+    let preparation = prepare(&m);
+    let sources = m.sources.clone();
+    let affected = sources[0].clone();
+    let healthy = sources[1].clone();
+    let started = m.started.clone();
+    let store = Arc::new(m.f.store);
+    let (snapshot, mut watcher) = super::super::positive_capture::publication(&store, &affected);
+    let io = super::super::positive_capture::admit(&snapshot);
+    let epoch = io.packet_epoch().unwrap();
+    let stamp = io.snapshot_stamp().unwrap();
+    let before = Store::inspect_snapshot(store.path()).unwrap();
+    let observation = Arc::new(NativePreparedBeginObservationForTest::new(
+        preparation.attempt_binding(),
+    ));
+    observation.exclude_next_entry();
+    let issued = Arc::new(AtomicUsize::new(0));
+    let wait = crate::AuthorityWait::new(std::time::Duration::from_secs(1));
+    let none = loop {
+        let result = store.with_native_prepared_admission_observation_for_test(
+            observation.clone(),
+            &wait,
+            || {
+                store.try_admit_and_begin_prepared_native_replacement_commit(
+                    &preparation,
+                    &sources,
+                    &wait,
+                    || {
+                        issued.fetch_add(1, Ordering::AcqRel);
+                        Ok(())
+                    },
+                )
+            },
+        );
+        match result {
+            Err(error) if error.code == "authority-busy" && issued.load(Ordering::Acquire) == 0 => {
+                std::thread::yield_now();
+                assert!(
+                    wait.check().is_ok(),
+                    "bounded pure admission did not reach actual exclusion"
+                );
+            }
+            result => break result.unwrap(),
+        }
+    };
+    assert!(none.is_none());
+    assert_eq!(
+        issued.load(Ordering::Acquire),
+        0,
+        "primary exclusion cannot issue durable uncertainty"
+    );
+    assert!(io.current() && epoch.current());
+    assert!(
+        snapshot.admit_original(stamp).unwrap().current(),
+        "no WriterNotice before primary ownership"
+    );
+    assert_eq!(
+        Store::inspect_snapshot(store.path()).unwrap(),
+        before,
+        "no BEGIN/DML/journal under exclusion"
+    );
+    let first = observation.snapshot();
+    assert_eq!(first.calls, first.pre_entry_refusals + 1);
+    assert_eq!(
+        (first.pre_entry_busy, first.none, first.exclusion_holds),
+        (1, 1, 1)
+    );
+    assert_eq!(
+        (
+            first.issued,
+            first.sql_begins,
+            first.before_dml,
+            first.errors
+        ),
+        (0, 0, 0, 0)
+    );
+    let cancelled = crate::AuthorityWait::new(std::time::Duration::from_secs(1));
+    cancelled.cancel();
+    let refusal = store
+        .with_native_prepared_admission_observation_for_test(
+            observation.clone(),
+            &cancelled,
+            || {
+                store.try_admit_and_begin_prepared_native_replacement_commit(
+                    &preparation,
+                    &sources,
+                    &cancelled,
+                    || {
+                        issued.fetch_add(1, Ordering::AcqRel);
+                        Ok(())
+                    },
+                )
+            },
+        )
+        .unwrap_err();
+    assert_eq!(refusal.code, "cancelled");
+    assert_eq!(issued.load(Ordering::Acquire), 0);
+    assert!(epoch.current());
+    assert_eq!(Store::inspect_snapshot(store.path()).unwrap(), before);
+    drop(io); // The actual affected IO drains before its one real Writer.
+    let sql_owned = Arc::new(AtomicBool::new(false));
+    let packet_observer_current = Arc::new(AtomicBool::new(false));
+    let inspect_store = store.clone();
+    let seen_owned = sql_owned.clone();
+    let seen_packet = packet_observer_current.clone();
+    let successful = Store::with_native_replacement_commit_entry_probe_for_test(
+        "prepared-begin-before-dml",
+        move || {
+            // Actual same primary mutex is still held inside the real SQL TX;
+            // no nested Store unit is admitted here. The unrelated packet path
+            // must continue through its own original observer connection.
+            seen_owned.store(
+                matches!(
+                    inspect_store.connection.try_lock(),
+                    Err(std::sync::TryLockError::WouldBlock)
+                ),
+                Ordering::Release,
+            );
+            seen_packet.store(
+                inspect_store
+                    .try_native_media_read(&healthy, None)
+                    .is_ok_and(|read| read.current()),
+                Ordering::Release,
+            );
+        },
+        || loop {
+            let result = store.with_native_prepared_admission_observation_for_test(
+                observation.clone(),
+                &wait,
+                || {
+                    store.try_admit_and_begin_prepared_native_replacement_commit(
+                        &preparation,
+                        &sources,
+                        &wait,
+                        || {
+                            issued.fetch_add(1, Ordering::AcqRel);
+                            Ok(())
+                        },
+                    )
+                },
+            );
+            match result {
+                Err(error)
+                    if error.code == "authority-busy" && issued.load(Ordering::Acquire) == 0 =>
+                {
+                    std::thread::yield_now();
+                    assert!(
+                        wait.check().is_ok(),
+                        "bounded pure admission did not recover"
+                    );
+                }
+                result => break result,
+            }
+        },
+    )
+    .unwrap()
+    .unwrap();
+    let (read, attempt) = successful;
+    assert!(read.current());
+    assert_eq!(attempt.attempt_binding(), preparation.attempt_binding());
+    assert!(Arc::ptr_eq(attempt.activation(), preparation.activation()));
+    drop(read);
+    watcher.shutdown().unwrap();
+    assert!(sql_owned.load(Ordering::Acquire) && packet_observer_current.load(Ordering::Acquire));
+    assert_eq!(issued.load(Ordering::Acquire), 1);
+    let observed = observation.snapshot();
+    assert_eq!(
+        observed.calls,
+        observed.none + observed.pre_entry_refusals + observed.issued
+    );
+    assert_eq!((observed.none, observed.issued), (1, 1));
+    assert!(
+        observed.pre_entry_refusals >= 1,
+        "actual pre-cancelled call was not observed"
+    );
+    assert_eq!(
+        (
+            observed.sql_begins,
+            observed.before_dml,
+            observed.some,
+            observed.errors
+        ),
+        (1, 1, 1, 0)
+    );
+    assert!(
+        !epoch.current(),
+        "the actual affected Writer still invalidates its old media epoch"
+    );
+    let c = store.connection().unwrap();
+    let exact: (u64, u64) = c.query_row(
+        "SELECT (SELECT count(*) FROM native_replacement_steps WHERE operation_record_id=?1 AND phase='commit'),(SELECT count(*) FROM operation_effects WHERE operation_record_id=?1 AND provider='native-replacement-commit')",
+        [preparation.attempt_binding().0], |row| Ok((row.get(0)?, row.get(1)?)),
+    ).unwrap();
+    drop(c);
+    assert_eq!(
+        exact,
+        (1, 1),
+        "one original journal begin/effect after release"
+    );
+    let not_submitted = attempt.not_submitted();
+    store
+        .record_native_replacement_commit_not_submitted(&not_submitted)
+        .unwrap();
+    // Controlled Store fixture has no actual Core/resource submission. Preserve
+    // the same existing absence cleanup, not a fabricated published result.
+    let absent = super::super::super::candidate::Absent(
+        preparation
+            .activation()
+            .origin()
+            .runtime_connection_id()
+            .into(),
+        preparation.activation().origin().generation(),
+    );
+    store
+        .record_native_replacement_started_candidate_stopped(&started, &absent)
+        .unwrap();
+}

@@ -608,6 +608,78 @@ impl Store {
             Some(wait),
         )
     }
+    /// One final admission and original journal begin on the SAME primary SQL
+    /// unit. No provisional reader crosses acquisition of the Writer, and all
+    /// file admission is immediate. Independent packet observers rederive the
+    /// complete current scene while this primary unit is reserved.
+    ///
+    /// `issue_begin` only records the caller's existing submission uncertainty;
+    /// it must perform no IO, waits, SQL, or authority acquisition. It runs once
+    /// after SQL reservation, Writer and current scene, immediately before the
+    /// original BEGIN. Only typed returns clear it. A pre-entry None never
+    /// issues this marker and proves actual primary-mutex Busy before any
+    /// WriterNotice, BEGIN or DML.
+    pub fn try_admit_and_begin_prepared_native_replacement_commit(
+        &self,
+        preparation: &NativeReplacementCommitPreparation,
+        sources: &[Arc<crate::NativeMediaOrigin>],
+        wait: &crate::AuthorityWait,
+        issue_begin: impl FnOnce() -> Result<()>,
+    ) -> Result<Option<(NativeReplacementSceneRead, NativeReplacementCommitAttempt)>> {
+        #[cfg(any(test, feature = "test-support"))]
+        crate::native_prepared_begin_observation_for_test::entry(preparation.attempt_binding());
+        wait.check()?;
+        if crate::now() >= preparation.original_until {
+            return Err(Error::forbidden());
+        }
+        let provisional = self.try_native_replacement_scene_read(&preparation.origin, sources)?;
+        let scopes = provisional.scoped_commit_scopes()?;
+        let expiry = provisional.expires_at().min(preparation.original_until);
+        drop(provisional);
+        #[cfg(test)]
+        observe_commit_entry_probe("reserved-scene-derived");
+        #[cfg(any(test, feature = "test-support"))]
+        let _exclusion = self.native_prepared_admission_exclusion_for_test(wait)?;
+        let mut c = match self.try_connection() {
+            Ok(connection) => connection,
+            Err(error) if error.code == "authority-busy" => {
+                #[cfg(any(test, feature = "test-support"))]
+                crate::native_prepared_begin_observation_for_test::pre_entry_busy();
+                return Ok(None);
+            }
+            Err(error) => return Err(error),
+        };
+        wait.check()?;
+        if crate::now() >= preparation.original_until {
+            return Err(Error::forbidden());
+        }
+        #[cfg(test)]
+        observe_commit_entry_probe("reserved-scene-primary-owned");
+        // Manager::before_write is now ordered AFTER ownership of this unit.
+        // Try-only kernel admission cannot park SQL behind an active reader.
+        let writer = self.try_acquire_authority(&scopes)?;
+        let read = self.native_replacement_scene_with_interval(
+            &preparation.origin,
+            sources,
+            None,
+            Some((&writer, expiry)),
+        )?;
+        wait.check()?;
+        issue_begin()?;
+        #[cfg(any(test, feature = "test-support"))]
+        crate::native_prepared_begin_observation_for_test::issued();
+        let attempt = self.begin_native_commit_prepared_in(
+            preparation.origin.clone(),
+            &read,
+            Some(preparation),
+            Some(wait),
+            &mut c,
+        )?;
+        // The shared body performs no post-COMMIT wait check: a late successful
+        // commit still returns the SAME owned attempt and its actual Writer.
+        Ok(attempt.map(|attempt| (read, attempt)))
+    }
+
     fn begin_native_commit_prepared(
         &self,
         origin: Arc<NativeReplacementMediaOrigin>,
@@ -640,6 +712,27 @@ impl Store {
             }
             Err(error) => return Err(error),
         };
+        self.begin_native_commit_prepared_in(origin, read, preparation, control_wait, &mut c)
+    }
+
+    fn begin_native_commit_prepared_in(
+        &self,
+        origin: Arc<NativeReplacementMediaOrigin>,
+        read: &NativeReplacementSceneRead,
+        preparation: Option<&NativeReplacementCommitPreparation>,
+        control_wait: Option<&crate::AuthorityWait>,
+        c: &mut crate::installation_ownership::ConnectionGuard<'_>,
+    ) -> Result<Option<NativeReplacementCommitAttempt>> {
+        if let Some(wait) = control_wait {
+            wait.check()?;
+        }
+        let p = &origin.started.attempt.allocated.attempt.prepared;
+        if !read.current()
+            || read.media.source.selection().origin.record != p.record
+            || !self.authority_covers(&read.media.interval, &read.scoped_commit_scopes()?)
+        {
+            return Err(Error::forbidden());
+        }
         c.bind_available_mutation_authority(self, &read.media.interval)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)

@@ -9,7 +9,7 @@ use std::sync::{
 /// Exact counters from one original preparation, copied after final aliases drop.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NativePreparedBeginSnapshotForTest {
-    /// Actual prepared Store entries.
+    /// Actual prepared Store entries, including combined scene/begin admission.
     pub calls: usize,
     /// Actual try_connection authority-busy branches, before SQLite BEGIN.
     pub pre_entry_busy: usize,
@@ -35,15 +35,23 @@ pub struct NativePreparedBeginSnapshotForTest {
     pub unconfirmed: usize,
     /// Holder setup cutoff/poison refusals before the original method is invoked.
     pub scope_refusals: usize,
+    /// Combined calls that reached the actual durable submission marker.
+    pub issued: usize,
+    /// Combined-call errors before that marker; no BEGIN or DML was entered.
+    pub pre_entry_refusals: usize,
 }
 /// Numeric observation only, plus immutable original IDs. Never a grant.
 pub struct NativePreparedBeginObservationForTest {
     binding: (String, String, String),
-    counts: [AtomicUsize; 13],
+    counts: [AtomicUsize; 15],
     exclude_once: AtomicBool,
 }
+struct Active {
+    observation: Arc<NativePreparedBeginObservationForTest>,
+    admission: bool,
+}
 thread_local! {
-    static ACTIVE: RefCell<Option<Arc<NativePreparedBeginObservationForTest>>> = const { RefCell::new(None) };
+    static ACTIVE: RefCell<Option<Active>> = const { RefCell::new(None) };
 }
 impl NativePreparedBeginObservationForTest {
     /// Create before final admission using the actual cold prepared tuple.
@@ -92,13 +100,15 @@ impl NativePreparedBeginObservationForTest {
             binding_mismatches: c[10],
             unconfirmed: c[11],
             scope_refusals: c[12],
+            issued: c[13],
+            pre_entry_refusals: c[14],
         }
     }
 }
 fn with_active(call: impl FnOnce(&NativePreparedBeginObservationForTest)) {
     ACTIVE.with(|slot| {
         if let Some(value) = slot.borrow().as_ref() {
-            call(value);
+            call(&value.observation);
         }
     });
 }
@@ -110,6 +120,9 @@ pub(crate) fn entry(binding: (&str, &str, &str)) {
 }
 pub(crate) fn pre_entry_busy() {
     with_active(|o| o.increment(1));
+}
+pub(crate) fn issued() {
+    with_active(|o| o.increment(13));
 }
 pub(crate) fn sql_begin() {
     with_active(|o| o.increment(2));
@@ -131,11 +144,31 @@ pub(crate) fn insert_error(error: &rusqlite::Error) {
 impl crate::Store {
     /// Scope observation to THIS synchronous Store call on the blocking thread.
     /// The optional holder uses the actual raw mutex and is dropped before the
-    /// result reaches the async retry loop. Neither panic nor return leaves TLS.
+    /// result reaches the async retry loop. This legacy begin-only wrapper
+    /// keeps its original entry exclusion. Neither panic nor return leaves TLS.
     pub fn with_native_prepared_begin_observation_for_test<T>(
         &self,
         observation: Arc<NativePreparedBeginObservationForTest>,
         wait: &crate::AuthorityWait,
+        call: impl FnOnce() -> crate::Result<Option<T>>,
+    ) -> crate::Result<Option<T>> {
+        self.native_prepared_observation_scope(observation, wait, false, call)
+    }
+    /// Observe combined admission. The real optional mutex exclusion is taken
+    /// after provisional readers drop, before SQL reservation/WriterNotice.
+    pub fn with_native_prepared_admission_observation_for_test<T>(
+        &self,
+        observation: Arc<NativePreparedBeginObservationForTest>,
+        wait: &crate::AuthorityWait,
+        call: impl FnOnce() -> crate::Result<Option<T>>,
+    ) -> crate::Result<Option<T>> {
+        self.native_prepared_observation_scope(observation, wait, true, call)
+    }
+    fn native_prepared_observation_scope<T>(
+        &self,
+        observation: Arc<NativePreparedBeginObservationForTest>,
+        wait: &crate::AuthorityWait,
+        admission: bool,
         call: impl FnOnce() -> crate::Result<Option<T>>,
     ) -> crate::Result<Option<T>> {
         struct Reset;
@@ -149,17 +182,64 @@ impl crate::Store {
         ACTIVE.with(|slot| {
             let mut slot = slot.borrow_mut();
             assert!(slot.is_none(), "nested Native prepared begin observation");
-            *slot = Some(observation.clone());
+            *slot = Some(Active {
+                observation: observation.clone(),
+                admission,
+            });
         });
         let _reset = Reset;
-        let _holder = if observation.exclude_once.load(Ordering::Acquire) {
+        let _holder = if !admission {
+            match self.native_prepared_exclusion_for_test(&observation, wait) {
+                Ok(holder) => holder,
+                Err(error) => {
+                    observation.increment(8);
+                    return Err(error);
+                }
+            }
+        } else {
+            None
+        };
+        let before_issued = observation.counts[13].load(Ordering::Acquire);
+        let result = call();
+        observation.increment(match &result {
+            Ok(Some(_)) => 6,
+            Ok(None) => 7,
+            Err(_)
+                if admission && observation.counts[13].load(Ordering::Acquire) == before_issued =>
+            {
+                14
+            }
+            Err(_) => 8,
+        });
+        result
+    }
+    pub(crate) fn native_prepared_admission_exclusion_for_test(
+        &self,
+        wait: &crate::AuthorityWait,
+    ) -> crate::Result<Option<std::sync::MutexGuard<'_, rusqlite::Connection>>> {
+        let observation = ACTIVE.with(|slot| {
+            slot.borrow()
+                .as_ref()
+                .filter(|active| active.admission)
+                .map(|active| active.observation.clone())
+        });
+        match observation {
+            Some(observation) => self.native_prepared_exclusion_for_test(&observation, wait),
+            None => Ok(None),
+        }
+    }
+    fn native_prepared_exclusion_for_test(
+        &self,
+        observation: &NativePreparedBeginObservationForTest,
+        wait: &crate::AuthorityWait,
+    ) -> crate::Result<Option<std::sync::MutexGuard<'_, rusqlite::Connection>>> {
+        let held = if observation.exclude_once.load(Ordering::Acquire) {
             loop {
                 // The fixture must actually own the exclusion before invoking
                 // the original method; another holder releasing cannot win a
                 // gap between a failed try-lock and the real Store call.
                 if let Err(error) = wait.check() {
                     observation.increment(12);
-                    observation.increment(8);
                     return Err(error);
                 }
                 match self.connection.try_lock() {
@@ -171,7 +251,6 @@ impl crate::Store {
                     Err(std::sync::TryLockError::WouldBlock) => std::thread::yield_now(),
                     Err(std::sync::TryLockError::Poisoned(_)) => {
                         observation.increment(12);
-                        observation.increment(8);
                         return Err(crate::Error::storage());
                     }
                 }
@@ -179,12 +258,6 @@ impl crate::Store {
         } else {
             None
         };
-        let result = call();
-        observation.increment(match &result {
-            Ok(Some(_)) => 6,
-            Ok(None) => 7,
-            Err(_) => 8,
-        });
-        result
+        Ok(held)
     }
 }

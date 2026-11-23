@@ -202,34 +202,27 @@ impl Runtime {
                     }
                     read
                 } else {
-                    let origin = started
-                        .policy
-                        .origin
-                        .get()
-                        .cloned()
-                        .ok_or_else(Error::forbidden)?;
                     let facts = metadata.clone();
                     let dispatch = post.begin_dispatch();
                     #[cfg(feature = "test-support")]
                     let store_probe = control_probe.clone();
-                    // Keep the already-acquired Writer on this worker for the
-                    // immediate journal begin. No async dispatch or role turn
-                    // can interleave while it is waiting to enter primary SQL.
+                    // Primary SQL is reserved before any actual WriterNotice.
+                    // Scene revalidation and original begin share that SAME
+                    // blocking-thread unit; no reacquire gap can revoke media
+                    // only to discover primary SQL Busy afterward.
                     let result = store_call(move || {
-                        let read = store.try_native_replacement_commit_scene_write_with_wait(
-                            &origin,
-                            &sources,
-                            facts.expires_at(),
-                            &wait,
-                        )?;
-                        #[cfg(feature = "test-support")]
-                        if let Some(probe) = &store_probe {
-                            probe.note_final_writer_returned();
-                        }
-                        dispatch.issue()?;
                         let begin = || {
-                            store.try_begin_prepared_native_replacement_commit_with_wait(
-                                &facts, &read, &wait,
+                            store.try_admit_and_begin_prepared_native_replacement_commit(
+                                &facts,
+                                &sources,
+                                &wait,
+                                || {
+                                    #[cfg(feature = "test-support")]
+                                    if let Some(probe) = &store_probe {
+                                        probe.note_final_writer_returned();
+                                    }
+                                    dispatch.issue()
+                                },
                             )
                         };
                         #[cfg(feature = "test-support")]
@@ -237,7 +230,7 @@ impl Runtime {
                             .as_ref()
                             .and_then(|probe| probe.native_begin_observation())
                         {
-                            store.with_native_prepared_begin_observation_for_test(
+                            store.with_native_prepared_admission_observation_for_test(
                                 observation,
                                 &wait,
                                 begin,
@@ -247,7 +240,7 @@ impl Runtime {
                         };
                         #[cfg(not(feature = "test-support"))]
                         let begun = begin()?;
-                        Ok(begun.map(|original| (read, original)))
+                        Ok(begun)
                     })
                     .await?;
                     post.begin_returned_definite();
