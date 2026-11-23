@@ -1,8 +1,8 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-23T07:38:05.759373+00:00",
-  "revision": 176,
-  "status": "Checkpoint 176. All 23 Rust controls passed on generation 570. The 12 harness controls passed before two Rust test fixture corrections. The first Firefox readiness rehearsal failed. The BUNDLE offer, failed-start cleanup, browser unwind, and video recovery repairs are component verified. The original final-source readiness scopes remain pending. The last 32-cell matrix remains v218 with 1 cell and 399 checks passing. Stop at READY32.",
+  "updated_at": "2026-11-23T08:34:50.546016+00:00",
+  "revision": 177,
+  "status": "Checkpoint 177. The affected regression passed 4,372 tests and exposed one Python resource-handshake fixture failure. The test-only correction passed all 33 Python tests and three unchanged Node bridge controls. Full current-source readiness verification remains pending.",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
@@ -10004,5 +10004,46 @@
     "updated_at": "2026-11-23T07:38:05.759373+00:00",
     "local_progress_document": ".local/gate-6/g6-058-workplan.html",
     "status": "component_verified_readiness_pending"
+  },
+  "checkpoint177_resource_handshake_fixture": {
+    "dependency_generation": 570,
+    "regression_source": "1e8b3219c1f2e60b23b8fbaba6f57454d98cc202",
+    "original_regression": {
+      "passed": 4372,
+      "failed": 1,
+      "skipped": 0,
+      "result": {
+        "path": ".local/gate-6/g875-readiness2-full-root/cohort/component-result.json",
+        "sha256": "72731c04564519165c825e85412f4ae43e89cda175a3639de019b2a0ca919c72"
+      },
+      "audit": {
+        "path": ".local/gate-6/g875-actual-full-independent-audit/receipt.json",
+        "sha256": "9c7b3cfe0d4e9afb9176ba511089362c10c1289874a71442465032e0a4ef6e25"
+      }
+    },
+    "root_cause": "The successful nine-handshake fixture sent a refused baseline, so the bridge stopped before authorization.",
+    "fix": "Send an accepted baseline and retain explicit false verdicts for the terminal and retired phases.",
+    "applied_fixture": {
+      "path": "scripts/tests/test_mac_linux_fixture.py",
+      "sha256": "47a560af77e441cbf87c11732d3a3eb4110115a36a9056bf68f46d4956be6245"
+    },
+    "focused": {
+      "python_passed": 33,
+      "node_passed": 3,
+      "failed": 0,
+      "python_log": {
+        "path": ".local/gate-6/g875-phase-specific-resource-bridge-test-candidate/applied-python.log",
+        "sha256": "7798fcbec3c4948a038811de28e3b944962f10134e6510cd221fd0df59671910"
+      },
+      "node_log": {
+        "path": ".local/gate-6/g875-phase-specific-resource-bridge-test-candidate/applied-node.log",
+        "sha256": "97b8ec8d3cb9c15e76ae0f5904e57531d1ca4eca658f078e1f823ccd26a9c90a"
+      }
+    },
+    "retired_cache_cleanup": {
+      "path": ".local/gate-6/g875-retired-10gib-cleanup-root-v2/result.json",
+      "sha256": "2243c9bda8bd95708102be246f82bdafaaccc26b304ac9856825c5add5840cc7"
+    },
+    "ready_for_32": false
   }
 }

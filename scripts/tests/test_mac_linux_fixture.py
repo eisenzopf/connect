@@ -313,7 +313,7 @@ const observe = matrixResourceBridge(process.argv[2], {cycles: 3});
 for (let cycle = 1; cycle <= 3; cycle++) {
     for (const phase of ['baseline', 'terminal', 'retired']) {
         const result = await observe(phase, Number(process.hrtime.bigint()) / 1e9, cycle);
-        if (result.passed !== false) throw Error('Original negative verdict changed');
+        if (result.passed !== (phase === 'baseline')) throw Error('Original phase-specific verdict changed');
     }
 }
 console.log(JSON.stringify({handshakes: 9}));
@@ -335,7 +335,7 @@ console.log(JSON.stringify({handshakes: 9}));
                     self.assertIn(value["phase"], ("baseline", "terminal", "retired"))
                     self.assertEqual(value["clock_basis"], "macos-mach-continuous" if sys.platform == "darwin" else "linux-clock-monotonic")
                     response = request.with_name(request.stem + "-response.json")
-                    response.write_text(json.dumps({"passed": False}))
+                    response.write_text(json.dumps({"passed": value["phase"] == "baseline"}))
                     served.add(relative)
                 fixture.poll()
                 time.sleep(.005)
