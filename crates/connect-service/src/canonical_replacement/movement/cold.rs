@@ -213,6 +213,8 @@ impl Runtime {
                     tracing::debug!(target:"connect_service::canonical_replacement",stage="managed-cold-adoption-metadata",?error,"Managed replacement cold stage refused");
                     Error::forbidden()
                 })?;
+            self.stage_dormant_replacement_routes(root, &adoption, plan.media().request(), until)
+                .await;
             let cut = self
                 .core
                 .prepare_staged_managed_cut(facts)

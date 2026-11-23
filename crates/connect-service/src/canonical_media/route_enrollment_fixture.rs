@@ -8,6 +8,7 @@ use tokio_util::sync::CancellationToken;
 pub enum RouteEnrollmentBoundary {
     Pending,
     Ordinary,
+    PreparedPending,
 }
 #[derive(Clone, Copy, Debug)]
 pub struct RouteEnrollmentMark {
@@ -25,6 +26,7 @@ pub(super) struct State {
     observed: CancellationToken,
     first: Mutex<Option<String>>,
     lazy_misses: AtomicUsize,
+    prepared_dormant_descriptor: AtomicBool,
     expected: Mutex<Option<RouteEnrollmentMark>>,
     owner: Mutex<Option<rvoip_core::staged_streams::original_ingress::native_observation::Owner>>,
     generation: AtomicU64,
@@ -55,6 +57,11 @@ impl RouteEnrollmentPause {
                 .expect("actual packet result"),
             self.state.lazy_misses.load(Ordering::Acquire),
         )
+    }
+    pub fn prepared_dormant_descriptor(&self) -> bool {
+        self.state
+            .prepared_dormant_descriptor
+            .load(Ordering::Acquire)
     }
     pub fn release(&self) {
         self.state.release.cancel();
@@ -114,6 +121,7 @@ impl Policy {
             observed: CancellationToken::new(),
             first: Mutex::new(None),
             lazy_misses: AtomicUsize::new(0),
+            prepared_dormant_descriptor: AtomicBool::new(false),
             expected: Mutex::new(None),
             owner: Mutex::new(None),
             generation: AtomicU64::new(0),
@@ -132,11 +140,22 @@ impl Policy {
             rvoip_core::staged_streams::original_ingress::native_observation::Owner,
         )>,
     ) -> connect_protocol::Result<Option<PreparedPause>> {
-        let state = self
-            .route_enrollment_pauses
-            .lock()
-            .map_err(|_| connect_protocol::Error::storage())?
-            .remove(&(record.to_owned(), boundary));
+        let state = {
+            let mut pauses = self
+                .route_enrollment_pauses
+                .lock()
+                .map_err(|_| connect_protocol::Error::storage())?;
+            let state = pauses.remove(&(record.to_owned(), boundary));
+            // PreparedPending observes the SAME real pending boundary, before
+            // generic preparation, without withdrawing its prepared descriptor.
+            state.or_else(|| {
+                if boundary == RouteEnrollmentBoundary::Pending {
+                    pauses.remove(&(record.to_owned(), RouteEnrollmentBoundary::PreparedPending))
+                } else {
+                    None
+                }
+            })
+        };
         let Some(state) = state else {
             return Ok(None);
         };
@@ -184,9 +203,19 @@ impl Policy {
         // Explicit cold-cache fixture: withdraw ONE actual unary registration,
         // never actor authority or any unrelated peer's route. Existing Handle
         // destruction does real epoch invalidation; no refusal is manufactured.
-        current.entry.withdraw_unary_route_for_test(
-            (boundary == RouteEnrollmentBoundary::Pending).then_some(&current),
-        )?;
+        if boundary == RouteEnrollmentBoundary::PreparedPending {
+            state.prepared_dormant_descriptor.store(
+                current
+                    .entry
+                    .prepared_dormant_unary_for_test(&current)
+                    .is_ok(),
+                Ordering::Release,
+            );
+        } else {
+            current.entry.withdraw_unary_route_for_test(
+                (boundary == RouteEnrollmentBoundary::Pending).then_some(&current),
+            )?;
+        }
         let candidate = current.metadata.origin().runtime_connection_id().to_owned();
         *state
             .candidate
@@ -204,6 +233,23 @@ impl Policy {
             .map_err(|_| connect_protocol::Error::storage())?
             .insert(candidate.clone(), state.clone());
         Ok(Some(ActivePause { state, candidate }))
+    }
+    pub(crate) async fn finish_prepared_pending_route_fixture(
+        &self,
+        active: Option<ActivePause>,
+        until: tokio::time::Instant,
+        stop: &CancellationToken,
+    ) -> connect_protocol::Result<Option<ActivePause>> {
+        if active
+            .as_ref()
+            .is_some_and(|active| active.state.boundary == RouteEnrollmentBoundary::PreparedPending)
+        {
+            self.finish_route_enrollment_fixture(active, until, stop)
+                .await?;
+            Ok(None)
+        } else {
+            Ok(active)
+        }
     }
     pub(crate) async fn finish_route_enrollment_fixture(
         &self,

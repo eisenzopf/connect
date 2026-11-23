@@ -473,7 +473,14 @@ impl Runtime {
                     drop(turn_resources.take());
                     drop(route_resource);
                     drop(source_phone);
-                    let cleanup = observer.wait().await;
+                    // Publication already happened. All original transient
+                    // resource owners are gone. Start metadata activation on
+                    // the SAME turn alongside, not after, the existing cleanup
+                    // observation; never await it before the actual Core cut.
+                    let ((), cleanup) = tokio::join! {biased;
+                        self.activate_dormant_replacement_routes(&adoption,until),
+                        observer.wait(),
+                    };
                     return Ok(Outcome::Published {
                         attempt: attempt.take().expect("published actual attempt"),
                         outcome,

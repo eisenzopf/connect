@@ -333,7 +333,7 @@ impl Store {
         &self,
         refresh: impl Fn() -> Result<NativeMediaRead> + Send + Sync + 'static,
     ) -> Result<NativeMediaSnapshot> {
-        self.register_native_media_snapshot_hints(&[], refresh, false)
+        self.register_native_media_snapshot_hints(&[], refresh, false, false)
     }
     pub fn register_native_media_snapshot_for(
         &self,
@@ -345,7 +345,7 @@ impl Store {
         if let Some(source) = source {
             hints.extend(source.snapshot_hints.iter().cloned());
         }
-        self.register_native_media_snapshot_hints(&hints, refresh, false)
+        self.register_native_media_snapshot_hints(&hints, refresh, false, false)
     }
     /// Immediate route-miss enrollment only. It schedules guarded refresh on
     /// the owned worker and never calls the factory or waits for its registry.
@@ -359,7 +359,31 @@ impl Store {
         if let Some(source) = source {
             hints.extend(source.snapshot_hints.iter().cloned());
         }
-        self.register_native_media_snapshot_hints(&hints, refresh, true)
+        self.register_native_media_snapshot_hints(&hints, refresh, true, false)
+    }
+    /// Trusted backend cold descriptor only: no factory or denial is evaluated
+    /// until exact-handle activation. This is not permission or readiness.
+    pub fn try_register_dormant_native_media_snapshot_for(
+        &self,
+        target: &NativeMediaOrigin,
+        source: Option<&NativeMediaOrigin>,
+        refresh: impl Fn() -> Result<NativeMediaRead> + Send + Sync + 'static,
+    ) -> Result<NativeMediaSnapshot> {
+        let mut hints = target.snapshot_hints.to_vec();
+        if let Some(source) = source {
+            hints.extend(source.snapshot_hints.iter().cloned());
+        }
+        self.register_native_media_snapshot_hints(&hints, refresh, true, true)
+    }
+    /// Off-media job activation only, for this Store's exact dormant handle.
+    /// The factory remains responsible for the actual current Core/Store phase.
+    /// No IO lease, renewed stamp, positive projection, or success is returned.
+    pub fn try_activate_dormant_native_media_snapshot(
+        &self,
+        snapshot: &NativeMediaSnapshot,
+    ) -> Result<()> {
+        self.media_authorization_registry()
+            .try_activate_dormant(&snapshot.handle)
     }
     /// Bounded control-plane preparation of this Store's exact registration.
     /// Runs its existing current-authority factory once off media; no retry,
@@ -374,6 +398,7 @@ impl Store {
         hints: &[AuthorityScope],
         refresh: impl Fn() -> Result<NativeMediaRead> + Send + Sync + 'static,
         immediate: bool,
+        dormant: bool,
     ) -> Result<NativeMediaSnapshot> {
         let manager = Arc::downgrade(&self.authority);
         let prepare = move || {
@@ -398,7 +423,9 @@ impl Store {
             crate::media_authorization::Prepared::new(Arc::new(read), guards, until)
         };
         let registry = self.media_authorization_registry();
-        let handle = if immediate {
+        let handle = if dormant {
+            registry.try_register_dormant_with_hints(hints, prepare)
+        } else if immediate {
             registry.try_register_with_hints(hints, prepare)
         } else {
             registry.register_with_hints(hints, prepare)

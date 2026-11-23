@@ -322,6 +322,9 @@ struct Slot<T: SnapshotFacts> {
     scope_hint: ArcSwapOption<Vec<AuthorityScope>>,
     attempt: Mutex<RefreshAttempt>,
     availability: Arc<Availability>,
+    // Cold job scheduling only. Ordinary registrations have no activation flag.
+    // Dormant slots cannot run a factory or record any attempt/refusal.
+    activation: Option<AtomicBool>,
     refresh: Box<Refresh<T>>,
 }
 pub(crate) struct Handle<T: SnapshotFacts> {
@@ -465,6 +468,13 @@ impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
         self.scope_hint.load_full()
     }
     fn refresh_ready(&self, state: &Control) -> bool {
+        if self
+            .activation
+            .as_ref()
+            .is_some_and(|armed| !armed.load(Ordering::Acquire))
+        {
+            return false;
+        }
         if self.handles.load(Ordering::Acquire) == 0
             || self.publication.load().is_some()
             || !self.availability.current()
@@ -488,6 +498,13 @@ impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
             || attempt.transient && Instant::now() >= attempt.retry_at
     }
     fn refresh_if_missing(&self, registry: &Registry) {
+        if self
+            .activation
+            .as_ref()
+            .is_some_and(|armed| !armed.load(Ordering::Acquire))
+        {
+            return;
+        }
         if self.handles.load(Ordering::Acquire) == 0 || self.publication.load().is_some() {
             return;
         }
@@ -710,20 +727,55 @@ impl Registry {
         hints: &[AuthorityScope],
         refresh: impl Fn() -> Result<Prepared<T>> + Send + Sync + 'static,
     ) -> Result<Handle<T>> {
-        self.register_impl(hints, refresh, false)
+        self.register_impl(hints, refresh, false, false)
     }
     pub(crate) fn try_register_with_hints<T: SnapshotFacts>(
         self: &Arc<Self>,
         hints: &[AuthorityScope],
         refresh: impl Fn() -> Result<Prepared<T>> + Send + Sync + 'static,
     ) -> Result<Handle<T>> {
-        self.register_impl(hints, refresh, true)
+        self.register_impl(hints, refresh, true, false)
+    }
+    /// Allocate only a cold job descriptor. No factory, authority, or attempt
+    /// exists until the same registry activates this exact retained handle.
+    pub(crate) fn try_register_dormant_with_hints<T: SnapshotFacts>(
+        self: &Arc<Self>,
+        hints: &[AuthorityScope],
+        refresh: impl Fn() -> Result<Prepared<T>> + Send + Sync + 'static,
+    ) -> Result<Handle<T>> {
+        self.register_impl(hints, refresh, true, true)
+    }
+    /// Scheduling only, off media. The caller must establish its actual phase;
+    /// every factory/admission still independently checks current authority.
+    pub(crate) fn try_activate_dormant<T: SnapshotFacts>(&self, handle: &Handle<T>) -> Result<()> {
+        if !Arc::ptr_eq(&self.availability, &handle.slot.availability) {
+            return Err(Error::forbidden());
+        }
+        let armed = handle
+            .slot
+            .activation
+            .as_ref()
+            .ok_or_else(Error::forbidden)?;
+        let state = self.control.try_lock().map_err(|error| match error {
+            std::sync::TryLockError::WouldBlock => busy(),
+            std::sync::TryLockError::Poisoned(_) => Error::storage(),
+        })?;
+        self.availability.check()?;
+        // Same mutex as the worker work predicate/Condvar wait. One-way state
+        // never clears a refusal, changes generation, or renews a queued stamp.
+        let first = !armed.swap(true, Ordering::AcqRel);
+        drop(state);
+        if first {
+            self.changed.notify_all();
+        }
+        Ok(())
     }
     fn register_impl<T: SnapshotFacts>(
         self: &Arc<Self>,
         hints: &[AuthorityScope],
         refresh: impl Fn() -> Result<Prepared<T>> + Send + Sync + 'static,
         immediate: bool,
+        dormant: bool,
     ) -> Result<Handle<T>> {
         if self.stopped() {
             return Err(Error::forbidden());
@@ -752,6 +804,7 @@ impl Registry {
                 backoff: Duration::from_millis(1),
             }),
             availability: self.availability.clone(),
+            activation: dormant.then(|| AtomicBool::new(false)),
             refresh: Box::new(refresh),
         });
         let erased: Arc<dyn ErasedSlot> = slot.clone();

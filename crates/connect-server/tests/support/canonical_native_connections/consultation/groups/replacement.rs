@@ -1191,7 +1191,7 @@ async fn exercise_replacement_with_av_transfer(
 
             #[cfg(feature = "test-support")]
             if let Some((boundary, pause)) = route_enrollment_audit {
-                let (first, misses, roles_available, owners) =
+                let (first, misses, roles_available, prepared_dormant_descriptor, owners) =
                     activation::route_enrollment::paused(
                         &f, &key.id, &command, &mut peers, boundary, pause,
                     )
@@ -1209,6 +1209,10 @@ async fn exercise_replacement_with_av_transfer(
                     "G6_ROUTE_ENROLLMENT_JOINED {:?}",
                     (boundary, &first, misses, roles_available)
                 );
+                if boundary == activation::route_enrollment::Boundary::PreparedPending {
+                    assert!(prepared_dormant_descriptor,
+                        "actual prepared pending unary descriptor must originate in dormant registration and admit before generic prepare");
+                }
                 assert!(
                     first == "admitted" || misses > 0,
                     "unqualified OLD refusal without actual lazy miss"

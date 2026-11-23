@@ -48,7 +48,7 @@ pub(super) struct RouteKey {
     target_phase: Option<PhaseKey>,
     source_phase: Option<PhaseKey>,
 }
-const MAX_ROUTE_SNAPSHOTS: usize = 1024;
+pub(super) const MAX_ROUTE_SNAPSHOTS: usize = 1024;
 #[derive(Clone)]
 struct PhaseBinding {
     continuation: Weak<Continuation>,
@@ -99,6 +99,8 @@ pub(super) struct RouteSnapshot {
     target_phase: Option<PhaseBinding>,
     source_phase: Option<PhaseBinding>,
     snapshot: NativeMediaSnapshot,
+    #[cfg(feature = "test-support")]
+    from_dormant_registration_for_test: bool,
 }
 impl RouteSnapshot {
     fn live(&self) -> bool {
@@ -109,6 +111,103 @@ impl RouteSnapshot {
             && self.source_phase.as_ref().is_none_or(PhaseBinding::live)
     }
 }
+/// Root-owned cold metadata only. No packet-map entry exists before activation.
+pub(super) struct DormantRoute {
+    target: Weak<Connection>,
+    route: RouteKey,
+    registered: RouteSnapshot,
+}
+/// An armed exact descriptor already published in the normal route map.
+/// This temporary metadata handle exists only for off-map-lock fresh preparation.
+pub(super) struct ActiveRoutePreparation {
+    target: Weak<Connection>,
+    registered: RouteSnapshot,
+}
+impl RouteSnapshot {
+    // Cold control checks only; ordinary packet lookup remains unchanged.
+    fn require_current_phases(&self, target: &Arc<Connection>) -> connect_protocol::Result<()> {
+        let source = self
+            .source
+            .as_ref()
+            .map(|source| {
+                source
+                    .upgrade()
+                    .ok_or_else(connect_protocol::Error::forbidden)
+            })
+            .transpose()?;
+        if let Some(phase) = &self.target_phase {
+            require_current_phase(&phase.upgrade(target)?, target)?;
+        }
+        if let Some(phase) = &self.source_phase {
+            let source = source
+                .as_ref()
+                .ok_or_else(connect_protocol::Error::forbidden)?;
+            require_current_phase(&phase.upgrade(source)?, source)?;
+        }
+        Ok(())
+    }
+}
+impl DormantRoute {
+    pub(super) fn activate_and_publish(
+        self,
+        store: &Arc<Store>,
+    ) -> connect_protocol::Result<Option<ActiveRoutePreparation>> {
+        let target = self
+            .target
+            .upgrade()
+            .ok_or_else(connect_protocol::Error::forbidden)?;
+        self.registered.require_current_phases(&target)?;
+        // A Busy/unavailable activation leaves the packet map untouched.
+        store.try_activate_dormant_native_media_snapshot(&self.registered.snapshot)?;
+        self.registered.require_current_phases(&target)?;
+        let mut routes = target.snapshots.try_lock().map_err(|error| match error {
+            std::sync::TryLockError::WouldBlock => busy(),
+            std::sync::TryLockError::Poisoned(_) => connect_protocol::Error::forbidden(),
+        })?;
+        if routes.get(&self.route).is_some_and(RouteSnapshot::live) {
+            drop(routes);
+            tracing::debug!(target:"connect_service::canonical_replacement",stage="pending-route-existing-live",
+                target=target.origin.runtime_connection_id(),unary=self.registered.source.is_none(),
+                "Existing same-phase registration kept; cold job discarded");
+            return Ok(None);
+        }
+        if routes.values().filter(|route| route.live()).count() >= MAX_ROUTE_SNAPSHOTS {
+            return Err(connect_protocol::Error::new(
+                "capacity-exceeded",
+                "Media authorization route capacity exceeded",
+            ));
+        }
+        routes.retain(|_, route| route.live());
+        // The job is already ARMED. Even if preparation later refuses, the
+        // existing owned watcher can refresh it; this is never a dormant map placeholder.
+        routes.insert(self.route, self.registered.clone());
+        drop(routes);
+        tracing::debug!(target:"connect_service::canonical_replacement",stage="pending-route-armed-published",
+            target=target.origin.runtime_connection_id(),unary=self.registered.source.is_none(),
+            "Armed route descriptor published; fresh authority is still required");
+        Ok(Some(ActiveRoutePreparation {
+            target: self.target,
+            registered: self.registered,
+        }))
+    }
+}
+impl ActiveRoutePreparation {
+    pub(super) fn prepare_current(self, store: &Arc<Store>) -> connect_protocol::Result<()> {
+        let target = self
+            .target
+            .upgrade()
+            .ok_or_else(connect_protocol::Error::forbidden)?;
+        self.registered.require_current_phases(&target)?;
+        // No route-map or Core/role guard survives into this unchanged factory.
+        store.try_prepare_native_media_snapshot(&self.registered.snapshot)?;
+        self.registered.require_current_phases(&target)?;
+        tracing::debug!(target:"connect_service::canonical_replacement",stage="pending-route-fresh-prepared",
+            target=target.origin.runtime_connection_id(),unary=self.registered.source.is_none(),
+            "Current route authority observed off media; no packet grant retained");
+        Ok(())
+    }
+}
+
 pub(super) type Routes = BTreeMap<RouteKey, RouteSnapshot>;
 fn key(
     source: Option<&Arc<Connection>>,
@@ -211,6 +310,204 @@ impl Connection {
     ) -> connect_protocol::Result<()> {
         self.register_snapshot_route_for(store, source, None, None)
     }
+    fn build_route_snapshot(
+        self: &Arc<Self>,
+        store: &Arc<Store>,
+        source: Option<&Arc<Connection>>,
+        target_phase: Option<PhaseBinding>,
+        source_phase: Option<PhaseBinding>,
+        dormant: bool,
+    ) -> connect_protocol::Result<RouteSnapshot> {
+        let weak_store = Arc::downgrade(store);
+        let weak_target = Arc::downgrade(self);
+        let weak_source = source.map(Arc::downgrade);
+        let captured_source = weak_source.clone();
+        let captured_target_phase = target_phase.clone();
+        let captured_source_phase = source_phase.clone();
+        let refresh = move || {
+            let store = weak_store
+                .upgrade()
+                .ok_or_else(connect_protocol::Error::forbidden)?;
+            let target = weak_target
+                .upgrade()
+                .ok_or_else(connect_protocol::Error::forbidden)?;
+            let source = captured_source
+                .as_ref()
+                .map(|source| {
+                    source
+                        .upgrade()
+                        .ok_or_else(connect_protocol::Error::forbidden)
+                })
+                .transpose()?;
+            let target_phase = captured_target_phase
+                .as_ref()
+                .map(|phase| phase.upgrade(&target))
+                .transpose()?;
+            let source_phase = captured_source_phase
+                .as_ref()
+                .map(|phase| {
+                    phase.upgrade(
+                        source
+                            .as_ref()
+                            .ok_or_else(connect_protocol::Error::forbidden)?,
+                    )
+                })
+                .transpose()?;
+            if let Some(current) = &target_phase {
+                require_current_phase(current, &target)?;
+            }
+            if let Some(current) = &source_phase {
+                require_current_phase(
+                    current,
+                    source
+                        .as_ref()
+                        .ok_or_else(connect_protocol::Error::forbidden)?,
+                )?;
+            }
+            // SQL exists only in this bounded owned worker callback. No
+            // ordinary fallback is allowed after an exact pending refusal.
+            let read = if target_phase.is_some() || source_phase.is_some() {
+                store.try_native_replacement_continuation_media_read(
+                    &target.origin,
+                    target_phase.as_ref().map(|phase| phase.metadata.as_ref()),
+                    source.as_ref().map(|source| {
+                        (
+                            source.origin.as_ref(),
+                            source_phase.as_ref().map(|phase| phase.metadata.as_ref()),
+                        )
+                    }),
+                    None,
+                )?
+            } else {
+                store.try_native_media_read(
+                    &target.origin,
+                    source.as_ref().map(|source| source.origin.as_ref()),
+                )?
+            };
+            // The Read interval now exists. Recheck physical continuation
+            // after SQL, without retaining any Core mutex while acquiring it.
+            if let Some(current) = &target_phase {
+                let owner = target
+                    .owner(read.target(), &target.principal, source.is_some())
+                    .map_err(phase_error)?;
+                let owner = target
+                    .activation()
+                    .map_err(phase_error)?
+                    .ok_or_else(busy)?
+                    .current(owner)
+                    .map_err(phase_error)?;
+                drop(current.current(&owner).map_err(phase_error)?);
+            }
+            if let Some(current) = &source_phase {
+                let source = source
+                    .as_ref()
+                    .ok_or_else(connect_protocol::Error::forbidden)?;
+                let owner = source
+                    .owner(
+                        read.source()
+                            .ok_or_else(connect_protocol::Error::forbidden)?,
+                        &source.principal,
+                        false,
+                    )
+                    .map_err(phase_error)?;
+                let owner = source
+                    .activation()
+                    .map_err(phase_error)?
+                    .ok_or_else(busy)?
+                    .current(owner)
+                    .map_err(phase_error)?;
+                drop(current.current(&owner).map_err(phase_error)?);
+            }
+            Ok(read)
+        };
+        let snapshot = if dormant {
+            store.try_register_dormant_native_media_snapshot_for(
+                &self.origin,
+                source.map(|source| source.origin.as_ref()),
+                refresh,
+            )?
+        } else {
+            store.try_register_native_media_snapshot_for(
+                &self.origin,
+                source.map(|source| source.origin.as_ref()),
+                refresh,
+            )?
+        };
+        Ok(RouteSnapshot {
+            source: weak_source,
+            target_phase,
+            source_phase,
+            snapshot,
+            #[cfg(feature = "test-support")]
+            from_dormant_registration_for_test: dormant,
+        })
+    }
+
+    /// Observes only the exact prepared pending unary descriptor. No SQL,
+    /// registration, watcher refresh or descriptor fabrication occurs here.
+    #[cfg(feature = "test-support")]
+    pub(super) fn prepared_dormant_unary_for_test(
+        self: &Arc<Self>,
+        current: &Arc<Continuation>,
+    ) -> connect_protocol::Result<()> {
+        let registered = {
+            let routes = self.snapshots.try_lock().map_err(|_| busy())?;
+            routes
+                .get(&key(None, Some(current), None))
+                .cloned()
+                .ok_or_else(connect_protocol::Error::forbidden)?
+        };
+        // All phase/current publication checks are AFTER the map guard drops.
+        if !registered.from_dormant_registration_for_test
+            || registered.source.is_some()
+            || registered.source_phase.is_some()
+            || !registered
+                .target_phase
+                .as_ref()
+                .is_some_and(|phase| phase.matches(current, self))
+        {
+            return Err(connect_protocol::Error::forbidden());
+        }
+        registered.require_current_phases(self)?;
+        let read = registered.snapshot.admit()?;
+        if !read.current() {
+            return Err(connect_protocol::Error::forbidden());
+        }
+        drop(read);
+        Ok(())
+    }
+    /// Cold identity-only descriptor; deliberately absent from packet routes.
+    pub(super) fn stage_dormant_snapshot_route(
+        self: &Arc<Self>,
+        store: &Arc<Store>,
+        source: Option<&Arc<Connection>>,
+        target_continuation: Option<&Arc<Continuation>>,
+        source_continuation: Option<&Arc<Continuation>>,
+    ) -> connect_protocol::Result<DormantRoute> {
+        if target_continuation.is_none() && source_continuation.is_none() {
+            return Err(connect_protocol::Error::forbidden());
+        }
+        let target_phase = target_continuation
+            .map(|current| PhaseBinding::new(current, self))
+            .transpose()?;
+        let source_phase = source_continuation
+            .map(|current| {
+                PhaseBinding::new(
+                    current,
+                    source.ok_or_else(connect_protocol::Error::forbidden)?,
+                )
+            })
+            .transpose()?;
+        let route = key(source, target_continuation, source_continuation);
+        let registered =
+            self.build_route_snapshot(store, source, target_phase, source_phase, true)?;
+        Ok(DormantRoute {
+            target: Arc::downgrade(self),
+            route,
+            registered,
+        })
+    }
+
     fn register_snapshot_route_for(
         self: &Arc<Self>,
         store: &Arc<Store>,
@@ -256,111 +553,12 @@ impl Connection {
                 "Media authorization route capacity exceeded",
             ));
         }
-        let weak_store = Arc::downgrade(store);
-        let weak_target = Arc::downgrade(self);
-        let weak_source = source.map(Arc::downgrade);
-        let captured_source = weak_source.clone();
-        let captured_target_phase = target_phase.clone();
-        let captured_source_phase = source_phase.clone();
-        let snapshot = store.try_register_native_media_snapshot_for(
-            &self.origin,
-            source.map(|source| source.origin.as_ref()),
-            move || {
-                let store = weak_store
-                    .upgrade()
-                    .ok_or_else(connect_protocol::Error::forbidden)?;
-                let target = weak_target
-                    .upgrade()
-                    .ok_or_else(connect_protocol::Error::forbidden)?;
-                let source = captured_source
-                    .as_ref()
-                    .map(|source| {
-                        source
-                            .upgrade()
-                            .ok_or_else(connect_protocol::Error::forbidden)
-                    })
-                    .transpose()?;
-                let target_phase = captured_target_phase
-                    .as_ref()
-                    .map(|phase| phase.upgrade(&target))
-                    .transpose()?;
-                let source_phase = captured_source_phase
-                    .as_ref()
-                    .map(|phase| {
-                        phase.upgrade(
-                            source
-                                .as_ref()
-                                .ok_or_else(connect_protocol::Error::forbidden)?,
-                        )
-                    })
-                    .transpose()?;
-                if let Some(current) = &target_phase {
-                    require_current_phase(current, &target)?;
-                }
-                if let Some(current) = &source_phase {
-                    require_current_phase(
-                        current,
-                        source
-                            .as_ref()
-                            .ok_or_else(connect_protocol::Error::forbidden)?,
-                    )?;
-                }
-                // SQL exists only in this bounded owned worker callback. No
-                // ordinary fallback is allowed after an exact pending refusal.
-                let read = if target_phase.is_some() || source_phase.is_some() {
-                    store.try_native_replacement_continuation_media_read(
-                        &target.origin,
-                        target_phase.as_ref().map(|phase| phase.metadata.as_ref()),
-                        source.as_ref().map(|source| {
-                            (
-                                source.origin.as_ref(),
-                                source_phase.as_ref().map(|phase| phase.metadata.as_ref()),
-                            )
-                        }),
-                        None,
-                    )?
-                } else {
-                    store.try_native_media_read(
-                        &target.origin,
-                        source.as_ref().map(|source| source.origin.as_ref()),
-                    )?
-                };
-                // The Read interval now exists. Recheck physical continuation
-                // after SQL, without retaining any Core mutex while acquiring it.
-                if let Some(current) = &target_phase {
-                    let owner = target
-                        .owner(read.target(), &target.principal, source.is_some())
-                        .map_err(phase_error)?;
-                    let owner = target
-                        .activation()
-                        .map_err(phase_error)?
-                        .ok_or_else(busy)?
-                        .current(owner)
-                        .map_err(phase_error)?;
-                    drop(current.current(&owner).map_err(phase_error)?);
-                }
-                if let Some(current) = &source_phase {
-                    let source = source
-                        .as_ref()
-                        .ok_or_else(connect_protocol::Error::forbidden)?;
-                    let owner = source
-                        .owner(
-                            read.source()
-                                .ok_or_else(connect_protocol::Error::forbidden)?,
-                            &source.principal,
-                            false,
-                        )
-                        .map_err(phase_error)?;
-                    let owner = source
-                        .activation()
-                        .map_err(phase_error)?
-                        .ok_or_else(busy)?
-                        .current(owner)
-                        .map_err(phase_error)?;
-                    drop(current.current(&owner).map_err(phase_error)?);
-                }
-                Ok(read)
-            },
+        let registered = self.build_route_snapshot(
+            store,
+            source,
+            target_phase.clone(),
+            source_phase.clone(),
+            false,
         )?;
         // No fallible operation follows publication. Only after successful
         // enrollment may old dead/ordinary phase handles be withdrawn.
@@ -377,15 +575,7 @@ impl Connection {
             }
             live
         });
-        routes.insert(
-            route,
-            RouteSnapshot {
-                source: weak_source,
-                target_phase,
-                source_phase,
-                snapshot,
-            },
-        );
+        routes.insert(route, registered);
         Ok(())
     }
     /// Control-plane preparation only. All route-map guards are gone before

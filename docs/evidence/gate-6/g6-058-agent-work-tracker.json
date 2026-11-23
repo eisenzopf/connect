@@ -10238,5 +10238,42 @@
     },
     "ready_for_32": false,
     "matrix_credit": false
+  },
+  "checkpoint184_dormant_route_admission": {
+    "dependency_generation": 574,
+    "predecessor": "f173c2a56c3d37d242c750f15867dc916ecf32f7",
+    "scope": "Store dormant route custody and three signed native first-packet unary Publish admission controls on local macOS.",
+    "store_authorization_controls": {
+      "passed": 39,
+      "result": {
+        "path": ".local/gate-6/checkpoint183-store-authority-controls/result.json",
+        "sha256": "26db2396529749e019a1222870f5a8d73f737b2476d9da9248865aeb6102c4a6"
+      }
+    },
+    "signed_controls": {
+      "passed": 3,
+      "result": {
+        "path": ".local/gate-6/checkpoint184-service-runtime-id-r2/result.json",
+        "sha256": "cd5d731537aa2d39c7b8953359e7892ff46b8cbbea7f5285b4f1bd28896acf01"
+      },
+      "source_seal": {
+        "path": ".local/gate-6/checkpoint184-service-runtime-id-r2/source-before.json",
+        "sha256": "a0ca4553858f09edb98f543dd60be5054221c7cf822ec8a1df4673d042f60921"
+      }
+    },
+    "prepared_pending": {
+      "first_policy_result": "admitted",
+      "actual_lazy_registration_misses": 0,
+      "before_generic_prepare": true,
+      "prepared_dormant_descriptor": true,
+      "watcher_paused": true
+    },
+    "source_review": {
+      "path": ".local/gate-6/checkpoint182-composed-dormant-prepared-pending-independent-source-review/receipt.json",
+      "sha256": "db6a5ad88ff6edcb9c2128e0bfc77a635a2ac043a3a3c203c7b8d3ac29387457"
+    },
+    "still_pending": "Exact reserved original through actual signed/native decode and strict Firefox A/V continuity. The signed admission controls cover unary Publish.",
+    "ready_for_32": false,
+    "matrix_credit": false
   }
 }

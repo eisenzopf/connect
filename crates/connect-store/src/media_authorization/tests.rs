@@ -1,4 +1,5 @@
 mod control_prepare;
+mod dormant_slots;
 mod probe_metadata;
 use super::*;
 use crate::authority_fences::{AuthorityMode, AuthorityWait, Manager};

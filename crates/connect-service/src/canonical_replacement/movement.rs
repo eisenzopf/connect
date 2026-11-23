@@ -19,6 +19,57 @@ pub(super) enum Capture {
     NotSubmitted(Arc<NativeReplacementCommitNotSubmitted>),
 }
 impl Runtime {
+    async fn stage_dormant_replacement_routes(
+        &self,
+        root: &Arc<PreparedReplacement>,
+        adoption: &Arc<crate::canonical_media::replacement::ReplacementAdoption>,
+        request: &rvoip_core::staged_streams::device_replacement::AudioDeviceReplacementRequest,
+        until: tokio::time::Instant,
+    ) {
+        let result = async {
+            let old = &request.source;
+            let candidate = &request.admitted;
+            let routes = self
+                .core
+                .staged_audio_route_preparation_hints(
+                    &rvoip_core::ids::SessionId::from_string(&root.origin.request().session_id),
+                    old,
+                )
+                .map_err(super::projection::core_plan_error)?;
+            // Existing OLD-selected hints only, with exact prospective ID
+            // substitution. No authority, final-route or complete-set claim.
+            let replace =
+                |id: rvoip_core::ids::ConnectionId| if &id == old { candidate.clone() } else { id };
+            let routes = routes
+                .into_iter()
+                .map(|(target, source)| (replace(target), source.map(&replace)))
+                .collect();
+            let adoption = adoption.clone();
+            let stop = self.stop.clone();
+            store_call(move || adoption.stage_dormant_media_routes(&routes, until, &stop)).await
+        }
+        .await;
+        if let Err(error) = result {
+            tracing::debug!(target:"connect_service::canonical_replacement",code=%error.code,
+            "Cold dormant route hints deferred; original routing unchanged");
+        }
+    }
+
+    async fn activate_dormant_replacement_routes(
+        &self,
+        adoption: &Arc<crate::canonical_media::replacement::ReplacementAdoption>,
+        until: tokio::time::Instant,
+    ) {
+        let adoption = adoption.clone();
+        let stop = self.stop.clone();
+        if let Err(error) =
+            store_call(move || adoption.activate_dormant_media_routes(until, &stop)).await
+        {
+            tracing::debug!(target:"connect_service::canonical_replacement",code=%error.code,
+                "Dormant route activation deferred; original fresh-route fallback unchanged");
+        }
+    }
+
     async fn prepare_current_replacement_routes(
         &self,
         root: &Arc<PreparedReplacement>,
@@ -240,6 +291,11 @@ impl Runtime {
         let route_fixture = self
             .media
             .begin_route_enrollment_fixture(route_fixture)
+            .await?;
+        #[cfg(feature = "test-support")]
+        let route_fixture = self
+            .media
+            .finish_prepared_pending_route_fixture(route_fixture, root.deadline, &self.stop)
             .await?;
         self.prepare_current_replacement_routes(root, &adoption, &outcome.admitted)
             .await;

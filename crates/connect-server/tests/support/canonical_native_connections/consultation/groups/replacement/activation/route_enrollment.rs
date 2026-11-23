@@ -12,6 +12,11 @@ async fn production_pending_cold_route_first_fresh_packet_admits() {
 async fn production_ordinary_cold_route_first_fresh_packet_admits() {
     exercise(Boundary::Ordinary).await;
 }
+#[tokio::test]
+async fn production_prepared_pending_dormant_route_first_fresh_packet_admits_before_generic_prepare(
+) {
+    exercise(Boundary::PreparedPending).await;
+}
 async fn exercise(boundary: Boundary) {
     exercise_replacement_with_av_control(
         true,
@@ -40,6 +45,7 @@ pub(in super::super) async fn paused(
     String,
     usize,
     bool,
+    bool,
     Vec<std::sync::Weak<dyn std::any::Any + Send + Sync>>,
 ) {
     tokio::time::timeout(Duration::from_secs(5), pause.entered())
@@ -65,12 +71,13 @@ pub(in super::super) async fn paused(
         .unwrap();
     assert!(owners.iter().all(|owner| owner.strong_count() > 0));
     match boundary {
-        Boundary::Pending => {
+        Boundary::Pending | Boundary::PreparedPending => {
             assert_eq!(current.state, OperationState::Preparing);
             assert!(current.result.is_none());
         }
         Boundary::Ordinary => assert_eq!(current.state, OperationState::Completed),
     }
+    let prepared_dormant_descriptor = pause.prepared_dormant_descriptor();
     let peer = &mut peers[2];
     peer.sequence = peer.sequence.wrapping_add(1);
     let timestamp = (peer.clock.elapsed().as_micros() * 8 / 1000) as u32;
@@ -116,7 +123,9 @@ pub(in super::super) async fn paused(
             "ssrc":0x4736_8e01u32, "first_policy_result":first,
             "actual_lazy_registration_misses":misses,
             "roles_available_at_paused_boundary":roles_available,
-            "explicit_cold_unary_slot":true, "no_fake_grant":true,
+            "explicit_cold_unary_slot":boundary!=Boundary::PreparedPending, "no_fake_grant":true,
+            "prepared_dormant_descriptor":prepared_dormant_descriptor,
+            "before_generic_prepare":boundary==Boundary::PreparedPending,
             "watcher_paused_before":paused_before, "watcher_paused_after":paused_after,
         })
     );
@@ -138,5 +147,11 @@ pub(in super::super) async fn paused(
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
     drop(pause);
-    (first, misses, roles_available, owners)
+    (
+        first,
+        misses,
+        roles_available,
+        prepared_dormant_descriptor,
+        owners,
+    )
 }

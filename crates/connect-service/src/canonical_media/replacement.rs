@@ -585,6 +585,7 @@ pub(crate) struct ReplacementAdoption {
     entry: Arc<super::Connection>,
     continuation: Arc<super::public_continuation::Continuation>,
     writer: std::sync::Mutex<Option<super::data_writes::Observer>>,
+    dormant_routes: std::sync::Mutex<Vec<super::native_snapshots::DormantRoute>>,
 }
 impl super::Policy {
     pub(crate) fn prepare_replacement_adoption(
@@ -682,6 +683,7 @@ impl super::Policy {
             entry,
             continuation,
             writer: std::sync::Mutex::new(writer),
+            dormant_routes: std::sync::Mutex::new(Vec::new()),
         }))
     }
 }
@@ -691,6 +693,169 @@ impl ReplacementAdoption {
         &self,
     ) -> Arc<super::public_continuation::Continuation> {
         self.continuation.clone()
+    }
+
+    /// A bounded old-route hint superset, not permission or final selection.
+    /// No dormant handle becomes visible to packet routing here.
+    pub(crate) fn stage_dormant_media_routes(
+        &self,
+        routes: &std::collections::BTreeSet<(ConnectionId, Option<ConnectionId>)>,
+        until: tokio::time::Instant,
+        stop: &tokio_util::sync::CancellationToken,
+    ) -> connect_protocol::Result<()> {
+        let root = self
+            .target
+            .root
+            .upgrade()
+            .ok_or_else(connect_protocol::Error::forbidden)?;
+        if self.metadata.target().private_consultation.is_some()
+            || self.metadata.target().handoff_preparation
+        {
+            return Ok(());
+        }
+        if routes.len() > super::native_snapshots::MAX_ROUTE_SNAPSHOTS {
+            return Err(connect_protocol::Error::new(
+                "capacity-exceeded",
+                "Dormant route hints exceed existing route bound",
+            ));
+        }
+        let candidate = self.target.pending.binding().connection();
+        let resolve = |id: &ConnectionId| -> connect_protocol::Result<_> {
+            if id == candidate {
+                return Ok((self.entry.clone(), Some(self.continuation.clone())));
+            }
+            let entry = self
+                .target
+                .base
+                .entry(id)
+                .map_err(super::native_snapshots::phase_error)?;
+            if entry
+                .domain
+                .upgrade()
+                .is_none_or(|domain| !Arc::ptr_eq(&domain, &self.target.base))
+            {
+                return Err(connect_protocol::Error::forbidden());
+            }
+            let phase = self
+                .target
+                .base
+                .replacement_target(id)
+                .map_err(super::native_snapshots::phase_error)?
+                .map(|target| target.current_continuation())
+                .transpose()
+                .map_err(super::native_snapshots::phase_error)?
+                .flatten();
+            if phase
+                .as_ref()
+                .is_some_and(|phase| !Arc::ptr_eq(&phase.entry, &entry))
+            {
+                return Err(connect_protocol::Error::forbidden());
+            }
+            Ok((entry, phase))
+        };
+        let mut staged = Vec::new();
+        let mut first_error = None;
+        for (target, source) in routes {
+            if stop.is_cancelled()
+                || root.handle.cancellation().is_cancelled()
+                || root.handle.is_committed()
+                || tokio::time::Instant::now() >= until.min(root.deadline)
+            {
+                return Err(connect_protocol::Error::forbidden());
+            }
+            let result = (|| {
+                let (target, target_phase) = resolve(target)?;
+                let source = source.as_ref().map(&resolve).transpose()?;
+                target.stage_dormant_snapshot_route(
+                    &self.target.base.store,
+                    source.as_ref().map(|(entry, _)| entry),
+                    target_phase.as_ref(),
+                    source.as_ref().and_then(|(_, phase)| phase.as_ref()),
+                )
+            })();
+            match result {
+                Ok(route) => staged.push(route),
+                Err(error) => {
+                    first_error.get_or_insert(error);
+                }
+            }
+        }
+        let mut original = self
+            .dormant_routes
+            .try_lock()
+            .map_err(super::metadata_contention)
+            .map_err(super::native_snapshots::phase_error)?;
+        if !original.is_empty() {
+            return Err(connect_protocol::Error::forbidden());
+        }
+        let staged_count = staged.len();
+        *original = staged;
+        drop(original);
+        tracing::debug!(target:"connect_service::canonical_replacement",stage="pending-route-dormant-staged",
+            hinted=routes.len(),staged=staged_count,deferred=first_error.is_some(),
+            "Cold route descriptors staged without factory execution or packet visibility");
+        first_error.map_or(Ok(()), Err)
+    }
+
+    /// First arm/publish the whole bounded descriptor set, then prepare fresh
+    /// facts outside map locks. No SQL for one route delays arming the next.
+    pub(crate) fn activate_dormant_media_routes(
+        &self,
+        until: tokio::time::Instant,
+        stop: &tokio_util::sync::CancellationToken,
+    ) -> connect_protocol::Result<()> {
+        let staged = {
+            let mut original = self
+                .dormant_routes
+                .try_lock()
+                .map_err(super::metadata_contention)
+                .map_err(super::native_snapshots::phase_error)?;
+            std::mem::take(&mut *original)
+        };
+        let count = staged.len();
+        let root = self
+            .target
+            .root
+            .upgrade()
+            .ok_or_else(connect_protocol::Error::forbidden)?;
+        let current = || {
+            !stop.is_cancelled()
+                && !root.handle.cancellation().is_cancelled()
+                && root.handle.is_committed()
+                && tokio::time::Instant::now() < until.min(root.deadline)
+        };
+        let mut first_error = None;
+        let mut active = Vec::new();
+        let mut existing = 0usize;
+        for route in staged {
+            if !current() {
+                return Err(connect_protocol::Error::forbidden());
+            }
+            match route.activate_and_publish(&self.target.base.store) {
+                Ok(Some(route)) => active.push(route),
+                Ok(None) => existing += 1,
+                Err(error) => {
+                    first_error.get_or_insert(error);
+                }
+            }
+        }
+        let published = active.len();
+        let mut prepared = 0usize;
+        for route in active {
+            if !current() {
+                return Err(connect_protocol::Error::forbidden());
+            }
+            match route.prepare_current(&self.target.base.store) {
+                Ok(()) => prepared += 1,
+                Err(error) => {
+                    first_error.get_or_insert(error);
+                }
+            }
+        }
+        tracing::debug!(target:"connect_service::canonical_replacement",stage="pending-route-preparation-summary",
+            hinted=count,published,existing,prepared,deferred=first_error.is_some(),
+            "Bounded pending-route metadata pass completed; no readiness credit");
+        first_error.map_or(Ok(()), Err)
     }
 
     /// One off-media pass over exact current Core-selected route hints. Hints
