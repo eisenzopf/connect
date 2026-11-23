@@ -162,17 +162,32 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
     }
     globalThis.connectPeerDiagnostics = () => ({
         peer_bound: peerBound, event_bound_per_peer: 128, omitted_peers: omittedPeers,
+        ...(rtcSourceFrameWitness?{pending_periodic_statistics_peers:entries.filter(entry=>entry.periodicStatisticsPending).map(entry=>entry.peer_index)}:{}),
         peers: entries.map(entry => {
             let current;
             try { current = entry.peer?sample(entry.peer):entry.current; } catch { current = {unavailable: true}; }
             return {peer_index:entry.peer_index,connection_id:entry.connection_id,live_owner_retained:entry.peer!==null,current, events: entry.events, omitted_events: entry.omitted_events, snapshot_errors: entry.snapshot_errors,omitted_media_rows:entry.omitted_media_rows,omitted_listeners:entry.omitted_listeners,...(rtcSourceFrameWitness?{terminal_binding:entry.terminal_binding??null,public_binding:entry.public_binding??null,receiver_retirement_statistics:entry.receiver_retirement_statistics?structuredClone(entry.receiver_retirement_statistics):null}:{})};
         }),
     });
+    if(rtcSourceFrameWitness)globalThis.connectPeerDrainPeriodicStatistics=connectionId=>{
+        const matches=entries.filter(entry=>entry.connection_id===connectionId);
+        if(matches.length!==1)throw Error('Exact retiring RTC statistics owner required');
+        const entry=matches[0];
+        entry.periodicStatisticsFenced=true;
+        return entry.periodicStatisticsPending;
+    };
     globalThis.connectPeerMediaDiagnostics = async () => Promise.all(entries.map(async(entry)=>{
-        if(!entry.peer)return [];
+        if(!entry.peer||entry.periodicStatisticsFenced)return [];
         try{
+        // A second diagnostic caller cannot displace an original pending poll.
+        if(entry.periodicStatisticsPending)throw Error('Original periodic RTC statistics already pending');
         const epochBefore=rtcSourceFrameWitness?selectionSnapshot?.(entry):null;
-        const report=await entry.peer.getStats(),rows=[];
+        const read=entry.peer.getStats();
+        if(rtcSourceFrameWitness)entry.periodicStatisticsPending=read;
+        let report;
+        try{report=await read;}
+        finally{if(entry.periodicStatisticsPending===read)entry.periodicStatisticsPending=undefined;}
+        const rows=[];
         const epochAfter=rtcSourceFrameWitness?selectionSnapshot?.(entry):null;
         const reportEpoch=rtcSourceFrameWitness?selectionStatsEpoch?.(epochBefore,epochAfter,report):null;
         if(!entry.peer)return [];entry.omitted_media_rows=0;
@@ -681,6 +696,8 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
     globalThis.connectPeerRetireCycle=()=>{
         const snapshot=globalThis.connectPeerDiagnostics();
         if(receiverStatisticsPending.size!==0)return {released:false,reason:'original-receiver-statistics-pending',pending_original_receiver_statistics:receiverStatisticsPending.size,snapshot};
+        if(entries.some(entry=>entry.periodicStatisticsPending))
+            return {released:false,reason:'original-periodic-statistics-pending',snapshot};
         if(entries.some(entry=>entry.peer!==null||entry.detach!==null))
             return {released:false,reason:'original-peer-still-live',snapshot};
         entries.length=0;omittedPeers=0;

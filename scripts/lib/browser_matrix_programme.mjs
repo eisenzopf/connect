@@ -181,10 +181,50 @@ export function browserMatrixCleanupMoves(input){
     return Object.freeze(api);
 }
 
+/** Stop periodic reads for a moving peer just before the original Ready
+ * continuation can commit its retirement. The terminal receiver query remains
+ * independent. An unjoined read fails the move within its original budget. */
+export function browserMatrixRetirementStatistics(Client,drain){
+    const original=Client.prototype.requestReplacementContinuation,moves=new Map();
+    check(typeof drain==='function','Original RTC statistics drain required');
+    function continuation(type,payload,scope,options){
+        const move=moves.get(scope.operation_id);
+        if(!move||type!=='connection.offer'||payload.replacement_preparation?.profile!=='connect-replacement-public-video-ready-v1')
+            return original.call(this,type,payload,scope,options);
+        check(scope.cid===move.cid&&scope.sid===move.sid&&scope.connid!==move.previous,'Original RTC replacement statistics scope required');
+        const request=drain(move.previous);
+        if(!request)return original.call(this,type,payload,scope,options);
+
+        const deadline=performance.now()+options.timeoutMs;
+        let timer;
+        // Rejection settles the native read too. Its unavailable row is
+        // recorded by the sampler. The timeout is never a synthetic join.
+        const settled=request.then(()=>true,()=>true);
+        return Promise.race([settled,new Promise(resolve=>{timer=setTimeout(()=>resolve(false),Math.min(500,options.timeoutMs));})])
+            .finally(()=>clearTimeout(timer)).then(joined=>{
+                const timeoutMs=Math.floor(deadline-performance.now());
+                check(joined&&timeoutMs>0&&!options.signal?.aborted,'Original moving-peer statistics did not join before Ready');
+                return original.call(this,type,payload,scope,{...options,timeoutMs});
+            });
+    }
+    Client.prototype.requestReplacementContinuation=continuation;
+    return {
+        track(operationId,move){
+            check(moves.size<4&&!moves.has(operationId),'Bounded original moving statistics owners required');
+            moves.set(operationId,move);
+        },
+        close(){
+            check(Client.prototype.requestReplacementContinuation===continuation,'Unexpected RTC statistics hook owner');
+            Client.prototype.requestReplacementContinuation=original;
+            moves.clear();
+        },
+    };
+}
+
 /** Real six-source, two-Session programme and four original device moves.
  * Independent decoded receive/capture/expiry/idle proof is still required by
  * the full cell verifier; source draws and completed moves cannot stand in. */
-export async function browserMatrixProgramme({state,actors,plan,sources,journal,keepalive,report,observer,selectedTransport,cleanupMoves}) {
+export async function browserMatrixProgramme({state,actors,plan,sources,journal,keepalive,report,observer,selectedTransport,cleanupMoves,retirementStatistics}) {
     check(plan.programmeMs===62000&&plan.moves.length===4,'Approved fixed programme and four moves required');
     let decoderStartupFailure;
     if(observer){try{await observer.initial(state,{timeoutMs:8000});}
@@ -238,6 +278,7 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
             const reference=operation.referenceJson();
             await journal({kind:'move-accepted',operationId:intent.operation,reference});
             phase = 'target-preparation';
+            retirementStatistics?.track(intent.operation,{cid,sid,previous:before.connection.id});
             targetOwner=await targetSession.connections.prepareReplacement({operation:operation.reference,audio:intent.audio,
                 video:{send:intent.video,receive:intent.receiveVideo}},options());
             if(cleanupEntry)cleanupMoves.prepared(cleanupEntry,targetOwner.connection);

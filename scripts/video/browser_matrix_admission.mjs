@@ -229,7 +229,7 @@ try{
         const {installOriginalCompletionGate}=spec.originalCompletionDeferral
             ?await import('/_matrix/completion-gate.mjs'):{};
         const completionGate=spec.originalCompletionDeferral?installOriginalCompletionGate(spec.originalCompletionDeferral):null;
-        const {browserMatrixProgramme,browserMatrixKeepalive,retireBrowserMatrixProgramme,closeBrowserMatrixProgramme,browserMatrixCleanupMoves}=await import('/_matrix/programme.mjs');
+        const {browserMatrixProgramme,browserMatrixKeepalive,retireBrowserMatrixProgramme,closeBrowserMatrixProgramme,browserMatrixCleanupMoves,browserMatrixRetirementStatistics}=await import('/_matrix/programme.mjs');
         const pin=Uint8Array.from(spec.tls.leafSha256.match(/../g),value=>parseInt(value,16));
         let pinRefusal;
         if(selected==='webtransport'){
@@ -320,8 +320,12 @@ try{
             if(spec.stage!=='admission'){
                 window.matrixPhase='four-move-programme';
                 cleanupMoves=browserMatrixCleanupMoves({state,actors,plan,journal:event=>journal(event),operationKind:browserOperationKinds.connectionReplace});
-                await browserMatrixProgramme({state,actors,plan,sources,journal:event=>journal(event),
-                    keepalive,report:programmeReport,observer,selectedTransport:selected,cleanupMoves});
+                const retirementStatistics=selected==='wss-webrtc'&&spec.rtcSourceFrameWitness===true
+                    ?browserMatrixRetirementStatistics(BrowserClient,globalThis.connectPeerDrainPeriodicStatistics):null;
+                try{
+                    await browserMatrixProgramme({state,actors,plan,sources,journal:event=>journal(event),
+                        keepalive,report:programmeReport,observer,selectedTransport:selected,cleanupMoves,retirementStatistics});
+                }finally{retirementStatistics?.close();}
             }
             completionGate?.close();
             const retirement=await retireBrowserMatrixProgramme({keepalive,report:programmeReport,retire:async()=>{
