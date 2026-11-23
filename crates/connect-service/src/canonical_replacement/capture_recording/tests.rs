@@ -45,7 +45,7 @@ async fn same_capture_serializes_store_calls_and_followers_still_recheck() {
         let mut entered = Some(entered);
         let mut blocked = Some(blocked);
         first_recorder
-            .record(&CancellationToken::new(), || {
+            .record(&CancellationToken::new(), false, || {
                 let store = first_store.clone();
                 let calls = first_calls.clone();
                 let entered = entered.take().unwrap();
@@ -68,7 +68,7 @@ async fn same_capture_serializes_store_calls_and_followers_still_recheck() {
     let follower_calls = calls.clone();
     let mut follower = tokio::spawn(async move {
         follower_recorder
-            .record(&CancellationToken::new(), || {
+            .record(&CancellationToken::new(), false, || {
                 let store = follower_store.clone();
                 let calls = follower_calls.clone();
                 move || {
@@ -92,7 +92,7 @@ async fn same_capture_serializes_store_calls_and_followers_still_recheck() {
     };
     // A previous successful record must never turn a later refusal into success.
     let refused = recorder
-        .record(&CancellationToken::new(), || {
+        .record(&CancellationToken::new(), false, || {
             let calls = calls.clone();
             move || {
                 calls.fetch_add(1, Ordering::Relaxed);
@@ -153,7 +153,7 @@ async fn cancelled_async_owner_keeps_running_store_custody_until_return_or_panic
         release.release();
         let original_result = actual_call.await.unwrap();
         let follower = recorder
-            .record(&CancellationToken::new(), || {
+            .record(&CancellationToken::new(), false, || {
                 let store = store.clone();
                 move || {
                     let _writer = store.try_acquire_authority(&[scope(AuthorityMode::Write)])?;
@@ -185,7 +185,7 @@ async fn retry_owner_survives_sleep_without_retaining_store_authority() {
         let mut first = Some(first);
         let mut blocked = Some(blocked);
         original_recorder
-            .record(&CancellationToken::new(), || {
+            .record(&CancellationToken::new(), true, || {
                 let store = original_store.clone();
                 let calls = original_calls.clone();
                 let first = first.take();
@@ -234,7 +234,7 @@ async fn waiting_for_recorder_consumes_original_deadline_without_a_new_attempt()
     let follower_calls = calls.clone();
     let follower = tokio::spawn(async move {
         follower_recorder
-            .record_until(&CancellationToken::new(), until, || {
+            .record_until(&CancellationToken::new(), until, false, || {
                 let calls = follower_calls.clone();
                 move || {
                     calls.fetch_add(1, Ordering::Relaxed);
@@ -262,7 +262,7 @@ async fn stopped_waiter_does_not_block_a_different_capture_or_replace_original_o
     let waiting_calls = calls.clone();
     let waiter = tokio::spawn(async move {
         waiting
-            .record(&waiter_stop, || {
+            .record(&waiter_stop, false, || {
                 let calls = waiting_calls.clone();
                 move || {
                     calls.fetch_add(1, Ordering::Relaxed);
@@ -273,7 +273,7 @@ async fn stopped_waiter_does_not_block_a_different_capture_or_replace_original_o
     });
     let separate = Arc::new(Recorder::default());
     let unrelated = separate
-        .record(&CancellationToken::new(), || || Ok(()))
+        .record(&CancellationToken::new(), false, || || Ok(()))
         .await;
     stop.cancel();
     let result = waiter.await.unwrap();
@@ -295,7 +295,7 @@ async fn recorder_release_wakes_all_original_followers_without_lost_notification
         let calls = calls.clone();
         followers.push(tokio::spawn(async move {
             recorder
-                .record(&CancellationToken::new(), || {
+                .record(&CancellationToken::new(), false, || {
                     let calls = calls.clone();
                     move || {
                         calls.fetch_add(1, Ordering::Relaxed);

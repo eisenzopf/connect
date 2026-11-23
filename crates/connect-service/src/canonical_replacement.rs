@@ -672,7 +672,7 @@ impl Runtime {
                     movement::Capture::Known(captured) => {
                         let _ = captured
                             .recording
-                            .record(&self.stop, || {
+                            .record(&self.stop, saved.public_video.required(), || {
                                 let store = self.media.store.clone();
                                 let capture = captured.value.clone();
                                 move || store.record_native_replacement_committed(&capture)

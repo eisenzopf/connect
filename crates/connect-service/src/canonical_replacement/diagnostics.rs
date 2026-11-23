@@ -35,14 +35,15 @@ fn micros(start: Instant) -> u64 {
     start.elapsed().as_micros().try_into().unwrap_or(u64::MAX)
 }
 
-/// Preserve the original five-second metadata retry policy exactly. The body
-/// factory may only clone immutable metadata for the next Store call. It must
-/// never reserve an attempt or submit a Core effect.
+/// Keep the original five-second budget. The body factory may only clone
+/// immutable metadata for the next Store call. It must never reserve an
+/// attempt or submit a Core effect.
 pub(super) async fn metadata<T, F, G>(
     stop: &tokio_util::sync::CancellationToken,
     capture: &Arc<NativeReplacementCommitted>,
     phase: Phase,
     recording: Option<&Arc<super::capture_recording::Recorder>>,
+    video_cutover: bool,
     mut body: F,
 ) -> Result<T>
 where
@@ -77,7 +78,15 @@ where
         }
     };
     let result = if let Some(recording) = recording {
-        recording.record(stop, &mut tracked).await
+        recording.record(stop, video_cutover, &mut tracked).await
+    } else if video_cutover {
+        super::capture_recording::retry_captured_metadata(
+            stop,
+            tokio::time::Instant::now() + Duration::from_secs(5),
+            true,
+            || store_call(tracked()),
+        )
+        .await
     } else {
         retry_metadata(stop, || {
             let call = tracked();
@@ -94,7 +103,7 @@ where
     // it must not be mislabeled as only authority wait or only retry sleep.
     tracing::debug!(target: "connect_service::canonical_replacement::projection",
         operation_record = capture.activation().origin().offer_record_id(),
-        phase = phase.name(), elapsed_us = elapsed, dispatch_us = dispatch,
+        phase = phase.name(), video_cutover, elapsed_us = elapsed, dispatch_us = dispatch,
         store_execution_us = execution,
         outside_store_us = elapsed.saturating_sub(dispatch).saturating_sub(execution),
         attempts = counters.attempts.load(Ordering::Relaxed),

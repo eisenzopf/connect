@@ -1,7 +1,8 @@
 //! Coordinate recording of one immutable physical outcome, never its authority.
 use super::*;
 use connect_store::NativeReplacementCommitted;
-use tokio::sync::Notify;
+use std::future::Future;
+use tokio::{sync::Notify, time::Instant};
 use tokio_util::sync::CancellationToken;
 
 pub(super) struct KnownCapture {
@@ -51,6 +52,56 @@ fn busy() -> Error {
         "authority-busy",
         "Original captured replacement recorder is busy",
     )
+}
+
+fn retry_delay(code: &str, video_cutover: bool, elapsed: Duration) -> Option<Duration> {
+    let millis = match code {
+        "authority-busy" if video_cutover && elapsed < Duration::from_millis(60) => 2,
+        "authority-busy" if video_cutover && elapsed < Duration::from_millis(250) => 8,
+        "authority-busy" | "storage-unavailable" => 20,
+        _ => return None,
+    };
+    Some(Duration::from_millis(millis))
+}
+
+/// The old video is already paused during public cutover. Retry transient
+/// admission promptly at first, then back off under sustained contention.
+/// Only immutable metadata belongs here. Every Store call has returned and
+/// released its guards before the next wait.
+pub(super) async fn retry_captured_metadata<T, F, Fut>(
+    stop: &CancellationToken,
+    until: Instant,
+    video_cutover: bool,
+    mut call: F,
+) -> Result<T>
+where
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T>>,
+{
+    let began = Instant::now();
+    loop {
+        if stop.is_cancelled() {
+            return Err(Error::forbidden());
+        }
+        if Instant::now() >= until {
+            return Err(Error::new(
+                "authority-busy",
+                "Original replacement metadata cutoff elapsed",
+            ));
+        }
+        let error = match call().await {
+            Ok(value) => return Ok(value),
+            Err(error) => error,
+        };
+        let Some(delay) = retry_delay(&error.code, video_cutover, began.elapsed()) else {
+            return Err(error);
+        };
+        tokio::select! { biased;
+            _ = stop.cancelled() => return Err(Error::forbidden()),
+            _ = tokio::time::sleep_until(until) => return Err(error),
+            _ = tokio::time::sleep(delay) => {},
+        }
+    }
 }
 
 impl Recorder {
@@ -117,6 +168,7 @@ impl Recorder {
     pub(super) async fn record<T, F, G>(
         self: &Arc<Self>,
         stop: &CancellationToken,
+        video_cutover: bool,
         body: F,
     ) -> Result<T>
     where
@@ -127,6 +179,7 @@ impl Recorder {
         self.record_until(
             stop,
             tokio::time::Instant::now() + Duration::from_secs(5),
+            video_cutover,
             body,
         )
         .await
@@ -136,6 +189,7 @@ impl Recorder {
         self: &Arc<Self>,
         stop: &CancellationToken,
         until: tokio::time::Instant,
+        video_cutover: bool,
         mut body: F,
     ) -> Result<T>
     where
@@ -146,31 +200,10 @@ impl Recorder {
         // Waiting and retry sleep consume the same original five seconds.
         // No SQL/file reader or successful permission is stored in this owner.
         let owner = self.acquire(stop, until).await?;
-        loop {
-            if stop.is_cancelled() {
-                return Err(Error::forbidden());
-            }
-            if tokio::time::Instant::now() >= until {
-                return Err(busy());
-            }
-            let call = body();
-            let result = store_call(owner.clone().call(call)).await;
-            match result {
-                Err(error)
-                    if matches!(
-                        error.code.as_str(),
-                        "authority-busy" | "storage-unavailable"
-                    ) && tokio::time::Instant::now() < until =>
-                {
-                    tokio::select! { biased;
-                        _ = stop.cancelled() => return Err(Error::forbidden()),
-                        _ = tokio::time::sleep_until(until) => return Err(error),
-                        _ = tokio::time::sleep(Duration::from_millis(20)) => {},
-                    }
-                }
-                result => return result,
-            }
-        }
+        retry_captured_metadata(stop, until, video_cutover, || {
+            store_call(owner.clone().call(body()))
+        })
+        .await
     }
 }
 

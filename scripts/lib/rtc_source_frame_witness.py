@@ -1103,7 +1103,8 @@ def finalize(report, browser_folder, server_log, pcap_path):
     """Return a NEW final observation; original raw files and quality rows stay unchanged."""
     deadline = time.monotonic() + 30
     need(report.get('transport') == 'firefox-wss-webrtc' and report.get('stage') == 'quality', 'firefox-quality-profile-only')
-    need(report.get('browser_exit_code') == 0 and report.get('browser_owner_joined') is True, 'original-browser-collection-not-joined0')
+    need(report.get('browser_owner_joined') is True, 'original-browser-owner-not-joined')
+    need(report.get('browser_exit_code') == 0, 'original-browser-collection-exited-nonzero')
     raw = report['browser_observation']
     need(raw.get('source_revision') == report.get('source_revision') and raw.get('transport') == report.get('transport'), 'original-browser-source-or-transport-differs')
     need(raw.get('source_frame_witness_profile') == PROFILE and raw.get('collection_passed') is True, 'not-a-prospective-complete-collection')

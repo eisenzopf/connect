@@ -331,6 +331,7 @@ impl Runtime {
             &capture.value,
             super::diagnostics::Phase::Capture,
             Some(&capture.recording),
+            root.public_video.required(),
             || {
                 let store = self.media.store.clone();
                 let capture = capture.value.clone();
@@ -436,6 +437,7 @@ impl Runtime {
             &capture.value,
             super::diagnostics::Phase::Activation,
             None,
+            root.public_video.required(),
             || {
                 let store = self.media.store.clone();
                 let capture = capture.value.clone();
