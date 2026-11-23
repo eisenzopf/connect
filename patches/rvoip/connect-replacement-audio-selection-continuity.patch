@@ -1,0 +1,156 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+@@ -132,6 +132,32 @@
+                 .selections
+                 .iter()
+                 .all(|selection| other.selections.iter().any(|other| selection.same(other)))
++    }
++
++    fn exact_audience_unchanged(
++        &self,
++        previous: &[AudioAudienceRule],
++        next: &[AudioAudienceRule],
++    ) -> bool {
++        !self.selections.is_empty() && self.selections.iter().all(|selection| {
++            // A participant can resolve to a different publisher. Only a
++            // selection pinned to the original physical owner can prove this.
++            if matches!(selection.request, AudioSubscription::Participant(_)) {
++                return false;
++            }
++            let Some(publisher) = selection.publisher.upgrade() else {
++                return false;
++            };
++            if publisher.shutdown.is_cancelled() || !selection.owner_matches(&publisher) {
++                return false;
++            }
++            let allowed = |rules: &[AudioAudienceRule]| {
++                rules.iter().all(|rule| {
++                    rule.inside == rule.group.contains_principal(&publisher, &selection.owner)
++                })
++            };
++            allowed(previous) == allowed(next)
++        })
+     }
+ }
+ #[derive(Clone)]
+@@ -872,6 +898,7 @@
+     program: Program,
+     change: AudioSubscriptionChange,
+     rules: Option<Vec<AudioAudienceRule>>,
++    retain_selection_start: bool,
+ }
+ pub(super) struct AudioPlanFacts {
+     gate: Arc<SubscriptionGate>,
+@@ -880,18 +907,31 @@
+     program: Program,
+     change: AudioSubscriptionChange,
+     rules: Option<Vec<AudioAudienceRule>>,
++    retain_selection_start: bool,
+ }
+ impl AudioPlanFacts {
+ 
+     pub(super) async fn prepare_cold(self,deadline:tokio::time::Instant,cancel:&CancellationToken)->ControlResult<AudioPlan> {
+         let next=if self.changed {Some(super::control_metadata::reserve_cold_ticket(&self.old.ticket,deadline,cancel,&self.gate.cancel).await?)} else {None};
+-        Ok(AudioPlan {gate:self.gate,old:self.old,next,program:self.program,change:self.change,rules:self.rules})
++        Ok(self.into_plan(next))
+     }
+ 
+     pub(super) fn changed(&self) -> bool { self.changed }
+     pub(super) fn prepare_once(self) -> ControlResult<AudioPlan> {
+         let next = if self.changed { Some(self.old.ticket.stage().ok_or(MediaTransitionError::Capacity)?) } else { None };
+-        Ok(AudioPlan { gate: self.gate, old: self.old, next, program: self.program, change: self.change, rules: self.rules })
++        Ok(self.into_plan(next))
++    }
++
++    fn into_plan(self, next: Option<PeerRouteTicket>) -> AudioPlan {
++        AudioPlan {
++            gate: self.gate,
++            old: self.old,
++            next,
++            program: self.program,
++            change: self.change,
++            rules: self.rules,
++            retain_selection_start: self.retain_selection_start,
++        }
+     }
+ }
+ impl AudioPlan {
+@@ -983,7 +1023,7 @@
+         apply_change: bool,
+         rules: Option<Vec<AudioAudienceRule>>,
+     ) -> ControlResult<Self> {
+-        Self::capture_inner(scene, members, target, state, scope, owner, change, control, prepared, replacement, apply_change, rules)?.prepare_once()
++        Self::capture_inner(scene, members, target, state, scope, owner, change, control, prepared, replacement, apply_change, rules, false)?.prepare_once()
+     }
+     fn capture_inner<M: MemberRead>(
+         scene: &GuardedMediaScene,
+@@ -998,6 +1038,7 @@
+         replacement: Option<&SavedAudioProgram>,
+         apply_change: bool,
+         rules: Option<Vec<AudioAudienceRule>>,
++        replacement_cut: bool,
+     ) -> ControlResult<AudioPlanFacts> {
+         let members = members.iter().map(|(id, member)| (id.clone(), member.view())).collect::<std::collections::HashMap<_, _>>();
+         let target = target.view();
+@@ -1079,9 +1120,21 @@
+             prepared,
+             rules.as_deref(),
+         )?;
+-        let changed = !original_program.same(&program)
+-            || rules.as_ref().is_some_and(|next| !same_rules(&original_rules, next));
+-        Ok(AudioPlanFacts { gate, old, changed, program, change: change.clone(), rules })
++        let program_changed = !original_program.same(&program);
++        let rules_changed = rules.as_ref().is_some_and(|next| !same_rules(&original_rules, next));
++        // Keep the admission floor only for an independently unchanged
++        // selection. The cut still replaces its ticket and its actual rules.
++        let retain_selection_start = replacement_cut && !program_changed && rules_changed
++            && rules.as_ref().is_some_and(|next| program.exact_audience_unchanged(&original_rules, next));
++        Ok(AudioPlanFacts {
++            gate,
++            old,
++            changed: program_changed || rules_changed,
++            program,
++            change: change.clone(),
++            rules,
++            retain_selection_start,
++        })
+     }
+     pub(super) fn audience<M: MemberRead>(
+         scene: &GuardedMediaScene,
+@@ -1198,6 +1251,7 @@
+             Some(replacement),
+             apply_change,
+             Some(rules),
++            preserve_dormant,
+         )
+     }
+     pub(super) fn validate<M: MemberRead>(
+@@ -1309,7 +1363,12 @@
+         if let Some(next)=&plan.next {
+             assert!(tickets.commit_from(next,&plan.old.ticket),"preflighted original audio routing changed");
+             self.0.ticket=next.clone();self.0.program=plan.program.clone();
+-            if let Some(rules)=&plan.rules {self.0.rules=rules.clone();}self.0.started=Instant::now();
++            if let Some(rules) = &plan.rules {
++                self.0.rules = rules.clone();
++            }
++            if !plan.retain_selection_start {
++                self.0.started = Instant::now();
++            }
+         }
+     }
+ 
+@@ -1324,7 +1383,9 @@
+             if let Some(rules) = &plan.rules {
+                 self.0.rules = rules.clone();
+             }
+-            self.0.started = Instant::now();
+-        }
+-    }
+-}
++            if !plan.retain_selection_start {
++                self.0.started = Instant::now();
++            }
++        }
++    }
++}

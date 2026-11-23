@@ -696,9 +696,31 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
         video(connection,timestamp,at,frame,width,height,presentation){
             const owner=bindings.get(connection);if(closed||!owner||routes[owner.index].active!==connection)return;
             try{
-                const context=owner.context;context.drawImage(frame,0,0,8,8);const bytes=context.getImageData(0,0,8,8).data;
-                const gray=Array.from({length:64},(_,i)=>.299*bytes[i*4]+.587*bytes[i*4+1]+.114*bytes[i*4+2]);
-                context.drawImage(frame,0,0,128,72);const pixels=context.getImageData(0,0,128,72).data;
+                const context=owner.context;
+                let pixels,gray;
+                if(rtcSourceFrameWitness){
+                    // Sample the same painted frame and both original nearest-neighbour
+                    // sizes in one readback. Keep the 8×8 identity patch below the
+                    // contiguous 128×72 frame so neither draw overwrites the other.
+                    context.drawImage(frame,0,0,128,72);
+                    context.drawImage(frame,0,72,8,8);
+                    const samples=context.getImageData(0,0,128,80).data;
+                    const frameBytes=128*72*4;
+                    pixels=samples.subarray(0,frameBytes);
+                    gray=[];
+                    for(let y=0;y<8;y++){
+                        for(let x=0;x<8;x++){
+                            const offset=frameBytes+(y*128+x)*4;
+                            gray.push(.299*samples[offset]+.587*samples[offset+1]+.114*samples[offset+2]);
+                        }
+                    }
+                }else{
+                    context.drawImage(frame,0,0,8,8);
+                    const samples=context.getImageData(0,0,8,8).data;
+                    gray=Array.from({length:64},(_,i)=>.299*samples[i*4]+.587*samples[i*4+1]+.114*samples[i*4+2]);
+                    context.drawImage(frame,0,0,128,72);
+                    pixels=context.getImageData(0,0,128,72).data;
+                }
                 (routes[owner.index].rendered??routes[owner.index].measure).videoFrame(connection,timestamp,at,gray,pixels,width,height,null,presentation);
             }catch(error){invalidRtc(connection,String(error.message));}
         },
@@ -732,7 +754,7 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
     return {
         async attach(index,connection,{audio,video,sendVideo,active=false},options){
             check(!closed&&!bindings.has(connection.id)&&bindings.size<10,'Bounded original render owners');
-            const canvas=document.createElement('canvas');canvas.width=128;canvas.height=72;
+            const canvas=document.createElement('canvas');canvas.width=128;canvas.height=rtcSourceFrameWitness?80:72;
             const context=canvas.getContext('2d',{willReadFrequently:true});context.imageSmoothingEnabled=false;
             surfaces.add(canvas);
             const output=document.createElement('canvas');surfaces.add(output);

@@ -1303,8 +1303,16 @@ export class BrowserRtcConnection {
                         }
                         presented = metadata.presentedFrames;
                     }
+                    // Arm the next native presentation before synchronous canvas
+                    // painting. A slow canvas consumer must not delay registration.
+                    output.callback = element.requestVideoFrameCallback(paint);
                     if (!paused && element.readyState >= 2) {
-                        out.drawImage(element, 0, 0, 640, 360);
+                        try {
+                            out.drawImage(element, 0, 0, 640, 360);
+                        } catch {
+                            close(new ConnectError("media", "Video rendering failed"));
+                            return;
+                        }
                         output.publicLoan?.presented(metadata.presentedFrames);
                         count++;
                         firstPainted = true;
@@ -1313,7 +1321,6 @@ export class BrowserRtcConnection {
                         firstResolve = undefined;
                         output.rejectFirst = undefined;
                     }
-                    output.callback = element.requestVideoFrameCallback(paint);
                 };
                 output.callback = element.requestVideoFrameCallback(paint);
                 void element.play().then(

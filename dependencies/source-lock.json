@@ -3061,6 +3061,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-public-successor-original-ingress.patch",
       "sha256": "c0c01dc0d29fc1759eef953211cd3a0cbca22edc3d5af2bb2bf89cfac561716b"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-replacement-audio-selection-continuity.patch",
+      "sha256": "b873c33efceedd785c262720b90ce7ea4858ec9612332d5c120874266778d4b7"
     }
   ]
 }
