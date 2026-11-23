@@ -151,41 +151,56 @@ fn one_private_packet_ignores_only_unrelated_origin_and_rechecks_selected_operat
         }
         let stable = counts(&m);
         let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
-        let result = m.f.store.try_native_replacement_scene_read_under(
-            &m.origin,
-            &subset,
-            &m.sources[2],
-            &held,
-        );
+        let read_scene = |sources: &[Arc<NativeMediaOrigin>]| {
+            m.f.store.try_native_replacement_scene_read_under(
+                &m.origin,
+                sources,
+                &m.sources[2],
+                &held,
+            )
+        };
+        let assert_refused = |sources: &[Arc<NativeMediaOrigin>], expected: &str| {
+            // A refused projection can cross a SQL/policy-clock snapshot
+            // boundary. Keep the original packet custody and require a
+            // stable, definitive refusal within the existing fixture bound.
+            let until = std::time::Instant::now() + Duration::from_secs(1);
+            let expiry = held.expires_at();
+            let admissions = m.f.store.authority.test_admission_attempts();
+            let error = loop {
+                let error = read_scene(sources).err().unwrap_or_else(|| {
+                    panic!("{mutation}: withdrawn authority admitted the scene")
+                });
+                assert_eq!(held.expires_at(), expiry);
+                assert_eq!(m.f.store.authority.test_admission_attempts(), admissions);
+                if error.code != "authority-busy" || std::time::Instant::now() >= until {
+                    break error;
+                }
+                assert_eq!(counts(&m), stable);
+                assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+                std::thread::yield_now();
+            };
+            assert_eq!(
+                error.code, expected,
+                "{mutation}: exact refused observation: {error:?}"
+            );
+        };
         match mutation {
             "unrelated-credential" => {
-                let packet = result.unwrap();
+                let packet = read_scene(&subset).unwrap();
                 assert!(packet.current());
                 assert!(packet.permits_receive(&target, m.sources[2].runtime_connection_id()));
                 // The generic full scene deliberately retains its old strict
                 // semantics; preparation/commit may not adopt this packet subset.
-                assert_eq!(
-                    m.f.store
-                        .try_native_replacement_scene_read_under(
-                            &m.origin,
-                            &m.sources,
-                            &m.sources[2],
-                            &held,
-                        )
-                        .err()
-                        .unwrap()
-                        .code,
-                    "unauthorized"
-                );
+                assert_refused(&m.sources, "unauthorized");
             }
             "target-subscribe" => {
-                let packet = result.unwrap();
+                let packet = read_scene(&subset).unwrap();
                 assert!(!packet.permits_receive(&target, m.sources[2].runtime_connection_id()));
             }
             "selected-credential" | "operator-credential" => {
-                assert_eq!(result.err().unwrap().code, "unauthorized");
+                assert_refused(&subset, "unauthorized");
             }
-            "root-cancel" => assert_eq!(result.err().unwrap().code, "forbidden"),
+            "root-cancel" => assert_refused(&subset, "forbidden"),
             _ => unreachable!(),
         }
         assert_eq!(counts(&m), stable);
