@@ -1,0 +1,686 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs b/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
+@@ -112,15 +112,12 @@
+         if received_at > now || now.duration_since(received_at) >= Duration::from_millis(200) {
+             return Err(StreamControlError::Deadline);
+         }
+-        self.0.validate(&frame)?;
+-        if self
+-            .0
+-            .state
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner())
+-            .messages_only
+-        {
+-            return Err(StreamControlError::Unsupported);
++        {
++            let state = super::control_metadata::try_lock(&self.0.state)?;
++            self.0.validate_with_state(&frame, Some(&state))?;
++            if state.messages_only {
++                return Err(StreamControlError::Unsupported);
++            }
+         }
+         let owner = self
+             .0
+@@ -143,10 +140,7 @@
+                     #[cfg(feature = "test-support")] native_wire: None,
+                 }));
+             }
+-            let probe = owner
+-                .audio_preparation
+-                .lock()
+-                .unwrap_or_else(|p| p.into_inner())
++            let probe = super::control_metadata::try_lock(&owner.audio_preparation)?
+                 .as_ref()
+                 .and_then(Weak::upgrade);
+             if let Some(result) = probe.and_then(|p| p.observe(&owner, &self.0, &frame)) {
+@@ -157,13 +151,7 @@
+         // Never wait for model metadata on the physical packet reader, and never
+         // adopt a port committed after the original receive observation.
+         if owner.shutdown.is_cancelled()
+-            || self
+-                .0
+-                .state
+-                .lock()
+-                .unwrap_or_else(|p| p.into_inner())
+-                .status
+-                != PortStatus::Active
++            || super::control_metadata::try_lock(&self.0.state)?.status != PortStatus::Active
+         {
+             return Err(StreamControlError::NotReady);
+         }
+@@ -340,7 +328,7 @@
+             return Err(StreamControlError::NotReady);
+         }
+         {
+-            let state = self.port.0.state.lock().unwrap_or_else(|p| p.into_inner());
++            let state = super::control_metadata::try_lock(&self.port.0.state)?;
+             if !state.ready || state.status != PortStatus::Active {
+                 return Err(StreamControlError::NotReady);
+             }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/test_support.rs b/crates/foundation/rvoip-core/src/staged_streams/test_support.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/test_support.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/test_support.rs
+@@ -103,3 +103,12 @@
+         Ok(owners)
+     }
+ }
++
++// Synchronous, bounded host interleaving only; the actual private guard never
++// escapes the callback and confers no current media or control permission.
++impl AdapterMediaPort {
++    pub fn with_port_state_exclusion_for_test<T>(&self, call: impl FnOnce() -> T) -> T {
++        let _state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
++        call()
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -699,6 +699,11 @@
+         }
+     }
+     fn validate(&self, frame: &MediaFrame) -> ControlResult<()> {
++        self.validate_with_state(frame, None)
++    }
++    // Original input capture supplies its exact try-only PortState. Other
++    // callers retain the existing locked validation and predicates unchanged.
++    fn validate_with_state(&self, frame: &MediaFrame, state: Option<&PortState>) -> ControlResult<()> {
+         let maximum = match self.kind() {
+             StreamKind::Audio => 16 * 1024,
+             StreamKind::Video => 1180,
+@@ -711,7 +716,14 @@
+         {
+             return Err(StreamControlError::NotReady);
+         }
+-        let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        let owned;
++        let state = match state {
++            Some(state) => state,
++            None => {
++                owned = self.state.lock().unwrap_or_else(|p| p.into_inner());
++                &owned
++            }
++        };
+         if !state.ready || frame.payload_type != state.payload_type {
+             return Err(StreamControlError::NotReady);
+         }
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/port_capture.rs b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/port_capture.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/port_capture.rs
+@@ -0,0 +1,160 @@
++//! Actual CheckedMediaIngress -> Core queue custody. This does not model a
++//! signed peer, full replacement, decoder readiness or a transport wire pass.
++use super::*;
++use crate::substrate::CheckedMediaIngress;
++
++fn wanted(medium: Medium) -> DesiredStream {
++    DesiredStream { logical_id: StreamId::from_string("capture"), medium,
++        direction: StreamDirection::Both }
++}
++fn both_owner(name: &str) -> MediaOwner {
++    let mut value = owner(name);
++    let video = MediaCapability { medium: Medium::Video,
++        formats: vec![MediaFormat::Encoded { name: "vp8".into(), clock_rate_hz: 90000,
++            channels: 0, fmtp: None }] };
++    value.local.send.push(video.clone()); value.local.receive.push(video.clone());
++    value.remote.send.push(video.clone()); value.remote.receive.push(video);
++    value.send_media.insert(Medium::Video); value.receive_media.insert(Medium::Video);
++    value
++}
++#[derive(Default)]
++struct CaptureAdapter(Mutex<Option<AdapterMediaPort>>);
++#[async_trait]
++impl StagedMediaAdapter for CaptureAdapter {
++    async fn prepare(&self, ports: Vec<PortPreparation>, _: tokio::time::Instant, _: CancellationToken) -> ControlResult<()> {
++        for p in ports {
++            if p.is_new { p.port.install_cleanup(Arc::new(Cleanup))?; }
++            let pt = if p.port.binding().negotiated.requested.medium == Medium::Audio { 0 } else { 96 };
++            p.port.observe_ready(&p.port.binding().negotiated.format, true, true, Some(pt))?;
++            *self.0.lock().unwrap() = Some(p.port);
++        }
++        Ok(())
++    }
++}
++struct Held {
++    release: Option<std::sync::mpsc::SyncSender<()>>,
++    thread: Option<std::thread::JoinHandle<bool>>,
++}
++impl Held {
++    fn new(port: AdapterMediaPort) -> Self {
++        let (entered, ready) = std::sync::mpsc::sync_channel(0);
++        let (release, done) = std::sync::mpsc::sync_channel(0);
++        let thread = std::thread::spawn(move || port.with_port_state_exclusion_for_test(|| {
++            entered.send(()).unwrap();
++            done.recv_timeout(Duration::from_secs(1)).is_ok()
++        }));
++        ready.recv_timeout(Duration::from_secs(1)).unwrap();
++        Self { release: Some(release), thread: Some(thread) }
++    }
++    fn release(&mut self) -> bool {
++        if let Some(release) = self.release.take() { let _ = release.send(()); }
++        self.thread.take().is_some_and(|thread| thread.join().unwrap())
++    }
++}
++impl Drop for Held {
++    fn drop(&mut self) { if self.thread.is_some() { let _ = self.release(); } }
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn native_raw_capture_busy_retains_one_original_and_refuses_expiry_or_revocation() {
++    for medium in [Medium::Audio, Medium::Video] {
++        for action in ["resume", "expire", "revoke"] {
++          for phase in ["capture", "publish"] {
++            let policy = Arc::new(Policy {
++                owners: Arc::new(RwLock::new(BTreeMap::from([
++                    ("alice".into(), both_owner("alice")), ("bob".into(), both_owner("bob")),
++                ]))), busy: AtomicUsize::new(0), refused: AtomicUsize::new(0), revoked: AtomicBool::new(false),
++            });
++            let mut controllers = Vec::new();
++            let mut ports = Vec::new();
++            let work = std::panic::AssertUnwindSafe(async {
++                for name in ["alice", "bob"] {
++                    let adapter = Arc::new(CaptureAdapter::default());
++                    let controller = StreamController::new(
++                        ConversationId::from_string("conversation"), SessionId::from_string("session"),
++                        ConnectionId::from_string(name), principal(name), policy.clone(), adapter.clone(),
++                        Arc::new(StreamHandleAllocator::default()), 8,
++                    ).unwrap();
++                    controllers.push(controller.clone());
++                    controller.change(0, &[wanted(medium)], &BTreeSet::new(),
++                        tokio::time::Instant::now() + Duration::from_secs(2), CancellationToken::new()).await.unwrap();
++                    ports.push(adapter.0.lock().unwrap().as_ref().unwrap().clone());
++                }
++                if medium == Medium::Video {
++                    controllers[1].change_direct_subscriptions(controllers[1].revision(),
++                        direct_subscriptions::DirectSubscriptionChange::Subscribe(vec![
++                            direct_subscriptions::DirectSubscription::new(&controllers[0], wanted(medium).logical_id.clone(), wanted(medium).logical_id.clone()),
++                        ]), tokio::time::Instant::now() + Duration::from_secs(2), CancellationToken::new(), None).await.unwrap();
++                }
++                let mut input = controllers[0].take_ingress(&wanted(medium).logical_id).unwrap();
++                let mut output = ports[1].take_egress().unwrap();
++                let group = source_clock::Group::new();
++                let weak = ports[0].downgrade();
++                let clock = group.track(ports[0].binding().stream_local_id,
++                    if medium == Medium::Audio { 8000 } else { 90000 },
++                    Arc::new(move || weak.upgrade().is_some_and(|port| !port.ingress_is_closed()))).unwrap();
++                let counters = Arc::new(StagedRtpCounters::default());
++                let ingress = Arc::new(PortIngress {
++                    #[cfg(feature = "test-support")]
++                    video_diagnostic: None,
++                    feedback: None, clock, flow: None, port: ports[0].downgrade(), counters: counters.clone(),
++                });
++                let payload = if medium == Medium::Audio { Bytes::from(vec![0x80; 160]) } else {
++                    let mut header = rvoip_rtp_core::RtpHeader::new(96, 10, 90000, 777);
++                    header.marker = true;
++                    rvoip_rtp_core::RtpPacket::new(header, Bytes::from_static(&[0x10, 0, 10, 2])).serialize().unwrap()
++                };
++                let frame = MediaFrame { stream_id: ports[0].binding().transport_id.clone(),
++                    kind: if medium == Medium::Audio { StreamKind::Audio } else { StreamKind::Video },
++                    payload: payload.clone(), timestamp_rtp: 90000, captured_at: chrono::Utc::now(),
++                    payload_type: Some(if medium == Medium::Audio { 0 } else { 96 }), source_clock: None };
++                let original_at = std::time::Instant::now();
++                let captured_at = frame.captured_at;
++                let mut held = (phase == "capture").then(|| Held::new(ports[0].clone()));
++                let before = std::time::Instant::now();
++                let mut pending = ingress.clone().retain_rtp_observed_original(frame, 777, payload.len(), 10, original_at, None)
++                    .unwrap().expect("Busy must retain actual native raw custody");
++                assert!(before.elapsed() < Duration::from_millis(80));
++                if phase == "publish" { held = Some(Held::new(ports[0].clone())); }
++                assert_eq!(pending.try_publish(), None);
++                assert!(input.try_recv().is_err());
++                assert_eq!(counters.accepted.load(Ordering::Acquire), 0);
++                tokio::time::sleep(Duration::from_millis(if action == "expire" { 215 } else { 5 })).await;
++                assert!(input.try_recv().is_err());
++                if action == "revoke" { policy.revoked.store(true, Ordering::Release); }
++                assert!(held.as_mut().unwrap().release());
++                let result = pending.try_publish();
++                if action == "resume" {
++                    assert_eq!(result, Some(true));
++                    let packet = input.try_recv().unwrap();
++                    packet.try_forward_to(&controllers[1], &wanted(medium).logical_id).unwrap();
++                    let sent = Arc::new(Mutex::new(None)); let observed = sent.clone();
++                    output.try_recv().unwrap().deliver(move |frame| async move {
++                        *observed.lock().unwrap() = Some(frame); Ok(())
++                    }).await.unwrap();
++                    let delivered = sent.lock().unwrap().take().unwrap();
++                    assert_eq!(delivered.payload, payload);
++                    assert_eq!(delivered.timestamp_rtp, 90000);
++                    assert_eq!(delivered.captured_at, captured_at);
++                    assert_eq!(counters.accepted.load(Ordering::Acquire), 1);
++                    assert_eq!(counters.original_recovered.load(Ordering::Acquire), 1);
++                } else {
++                    assert_eq!(result, Some(false));
++                    assert_eq!(counters.accepted.load(Ordering::Acquire), 0);
++                }
++                drop(pending);
++                assert!(input.try_recv().is_err() && output.try_recv().is_err());
++                assert_eq!(counters.original_abandoned.load(Ordering::Acquire), 0);
++                assert!(counters.original_metadata_deferred.load(Ordering::Acquire)
++                    >= if phase == "capture" { 2 } else { 1 });
++            }).catch_unwind().await;
++            // Exact old holders drop/join on unwind before these actual owners.
++            policy.revoked.store(false, Ordering::Release);
++            for controller in &controllers {
++                assert_eq!(controller.shutdown(tokio::time::Instant::now() + Duration::from_secs(1)).await, 0);
++            }
++            if let Err(error) = work { std::panic::resume_unwind(error); }
++          }
++        }
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests.rs b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests.rs
+@@ -462,3 +462,5 @@
+ }
+ 
+ mod native_video_exposure;
++
++mod port_capture;
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media.rs b/crates/uctp/rvoip-uctp/src/staged_media.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -460,9 +460,19 @@
+         }
+     }
+ }
++enum NativeOriginalCapture {
++    // One already-bounded router original BEFORE Core can inspect current
++    // metadata. This has no policy grant or private decoded readiness.
++    Raw {
++        frame: MediaFrame,
++        received_at: std::time::Instant,
++        point: Option<Arc<OriginalVideoFrame>>,
++    },
++    Ready(original_ingress::OriginalIngress),
++}
+ struct OriginalNativeIngress {
+     ingress: Arc<PortIngress>,
+-    original: original_ingress::OriginalIngress,
++    original: NativeOriginalCapture,
+     ssrc: u32,
+     bytes: usize,
+     sequence: u32,
+@@ -472,11 +482,50 @@
+ }
+ impl crate::substrate::peer_media_router::PendingNativeIngress for OriginalNativeIngress {
+     fn try_publish(&mut self) -> Option<bool> {
++        let capture_error = if let NativeOriginalCapture::Raw { frame, received_at, point } = &self.original {
++            let captured = if received_at.elapsed() >= std::time::Duration::from_millis(200) {
++                Err(StreamControlError::Deadline)
++            } else {
++                self.ingress.port.upgrade().ok_or(StreamControlError::Cancelled)
++                    .and_then(|port| if frame.kind == StreamKind::Video {
++                        port.retain_original_video_ingress(frame.clone(), *received_at, point.clone())
++                    } else {
++                        port.retain_original_ingress(frame.clone(), *received_at)
++                    })
++            };
++            match captured {
++                Ok(Some(original)) => {
++                    #[cfg(feature = "test-support")]
++                    let mut original = original;
++                    #[cfg(feature = "test-support")]
++                    original.note_native_wire_for_test(self.sequence, self.ssrc, self.timestamp);
++                    self.original = NativeOriginalCapture::Ready(original);
++                    None
++                }
++                Ok(None) => {
++                    // The actual preparation consumed this raw input exactly
++                    // once. Do not retry it or report ordinary public output.
++                    self.finished = true;
++                    self.ingress.counters.accepted.fetch_add(1, Ordering::AcqRel);
++                    if let (Some(flow), Some(port)) = (&self.ingress.flow, self.ingress.port.upgrade()) {
++                        flow.record_rtp_io(&port, true, self.bytes);
++                    }
++                    return Some(true);
++                }
++                Err(error) => Some(error),
++            }
++        } else { None };
+         let mut clock = None;
+-        let result = self.original.try_publish_clocked(|current| {
+-            clock = self.ingress.clock.snapshot(self.ssrc, current);
+-            clock.clone()
+-        });
++        let result = match capture_error {
++            Some(error) => Err(error),
++            None => {
++                let NativeOriginalCapture::Ready(original) = &mut self.original else { unreachable!() };
++                original.try_publish_clocked(|current| {
++                    clock = self.ingress.clock.snapshot(self.ssrc, current);
++                    clock.clone()
++                })
++            }
++        };
+         // Both outcomes prove no publication occurred. Keep the same Core
+         // original, generations and earliest deadline for the existing reader's
+         // bounded retry; do not reconstruct or resubmit a new ingress frame.
+@@ -583,8 +632,8 @@
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)
+             .and_then(|port| if frame.kind==StreamKind::Video {
+-                port.retain_original_video_ingress(frame,received_at,original)
+-            } else {port.retain_original_ingress(frame, received_at)});
++                port.retain_original_video_ingress(frame.clone(),received_at,original.clone())
++            } else {port.retain_original_ingress(frame.clone(), received_at)});
+         match result {
+             Ok(Some(original)) => {
+                 #[cfg(feature = "test-support")]
+@@ -593,7 +642,7 @@
+                 original.note_native_wire_for_test(sequence, ssrc, timestamp);
+                 Ok(Some(Box::new(OriginalNativeIngress {
+                 ingress: self,
+-                original,
++                original: NativeOriginalCapture::Ready(original),
+                 ssrc,
+                 bytes: datagram_bytes,
+                 sequence,
+@@ -608,6 +657,17 @@
+                     flow.record_rtp_io(&port, true, datagram_bytes);
+                 }
+                 Ok(None)
++            }
++            Err(StreamControlError::MetadataBusy) => {
++                // Existing router ownership/queue bounds retain this SAME raw
++                // original. No packet is accepted or re-observed during Busy.
++                self.counters.original_metadata_deferred.fetch_add(1, Ordering::AcqRel);
++                Ok(Some(Box::new(OriginalNativeIngress {
++                    ingress: self,
++                    original: NativeOriginalCapture::Raw { frame, received_at, point: original },
++                    ssrc, bytes: datagram_bytes, sequence, timestamp,
++                    finished: false, deferred: true,
++                })))
+             }
+             Err(error) => {
+                 #[cfg(feature = "test-support")]
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests/fanout_port_metadata.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests/fanout_port_metadata.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests/fanout_port_metadata.rs
+@@ -0,0 +1,177 @@
++//! Real Core PortState exclusion and canonical raw fanout/ingress workers.
++//! No private Ready, final-cut authority or browser quality claim is modeled.
++use super::*;
++use futures::FutureExt as _;
++
++struct HeldPort {
++    release: Option<std::sync::mpsc::SyncSender<()>>,
++    holder: Option<std::thread::JoinHandle<bool>>,
++}
++impl HeldPort {
++    fn start(port: AdapterMediaPort) -> Self {
++        let (entered, ready) = std::sync::mpsc::sync_channel(0);
++        let (release, released) = std::sync::mpsc::sync_channel(0);
++        let holder = std::thread::spawn(move || {
++            port.with_port_state_exclusion_for_test(|| {
++                entered.send(()).unwrap();
++                // A failing implementation cannot leave its original holder
++                // alive indefinitely. Normal assertions use explicit release.
++                released.recv_timeout(Duration::from_secs(1)).is_ok()
++            })
++        });
++        ready.recv_timeout(Duration::from_secs(1)).unwrap();
++        Self { release: Some(release), holder: Some(holder) }
++    }
++    fn release(&mut self) -> bool {
++        if let Some(release) = self.release.take() { let _ = release.send(()); }
++        self.holder.take().is_some_and(|holder| holder.join().unwrap())
++    }
++}
++impl Drop for HeldPort {
++    fn drop(&mut self) {
++        if self.holder.is_some() { let _ = self.release(); }
++    }
++}
++
++async fn deliver_exact(f: &mut Fixture) -> (MediaFrame, Option<Arc<OriginalVideoFrame>>) {
++    let packet = tokio::time::timeout(Duration::from_millis(85), f.input.recv())
++        .await.unwrap().unwrap();
++    let capsule = packet.original_video_frame().cloned();
++    packet.try_forward_to(&f.b, &desired(f.medium).logical_id).unwrap();
++    let queued = f.output.try_recv().unwrap();
++    assert!(match (capsule.as_ref(), queued.original_video_frame()) {
++        (None, None) => true,
++        (Some(original), Some(queued)) => Arc::ptr_eq(original, queued),
++        _ => false,
++    });
++    let sent = Arc::new(Mutex::new(None));
++    let observed = sent.clone();
++    queued.deliver(move |frame| async move {
++        *observed.lock().unwrap() = Some(frame);
++        Ok(())
++    }).await.unwrap();
++    let frame = sent.lock().unwrap().take().unwrap();
++    (frame, capsule)
++}
++
++fn publish_exact(
++    f: &Fixture,
++    ports: &Arc<DashMap<StreamId, Arc<PortIo>>>,
++    sequence: u16,
++    timestamp: u32,
++) -> (Bytes, Option<Arc<OriginalVideoFrame>>) {
++    let (ready, _) = watch::channel(None);
++    let at = Instant::now();
++    let received = f.packet(sequence, timestamp);
++    let bytes = if f.medium == Medium::Audio {
++        received.packet.payload.clone()
++    } else {
++        received.packet.marshal().unwrap().freeze()
++    };
++    let capsule = if f.medium == Medium::Audio {
++        publish_source(received.packet, at, &f.source, ports, &ready);
++        None
++    } else {
++        let mut output = crate::media::video_reorder::ReorderOutput::default();
++        output.packets.push(original_video_packet(f, sequence, timestamp, at, false));
++        let mut mapper = original_video_mapper(&f.source, None);
++        publish_video(output, &mut mapper, &f.source, ports, &ready, &CancellationToken::new());
++        mapper.original_frame().cloned()
++    };
++    (bytes, capsule)
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn rtc_held_port_state_keeps_shared_original_fanout_live_and_releases_once() {
++    for medium in [Medium::Audio, Medium::Video] {
++        let mut held = Fixture::new(medium).await;
++        let mut other = Fixture::new(medium).await;
++        other.source = held.source.clone();
++        let ports = Arc::new(DashMap::new());
++        let mut held_owner = BurstPortOwner::new(&held, &ports);
++        let mut other_owner = BurstPortOwner::new(&other, &ports);
++        let mut exclusion = HeldPort::start(held.port.clone());
++        let work = std::panic::AssertUnwindSafe(async {
++            let began = Instant::now();
++            let (bytes, capsule) = publish_exact(&held, &ports, 10, 90000);
++            if medium == Medium::Video { assert!(capsule.is_some()); }
++            assert!(began.elapsed() < Duration::from_millis(80), "shared raw fanout waited on PortState");
++            // This independent worker and actual current Core path must remain
++            // live while the first Port's genuine state is still excluded.
++            let (first, first_capsule) = deliver_exact(&mut other).await;
++            assert_eq!(first.payload, bytes);
++            assert_eq!(first.timestamp_rtp, 90000);
++            assert!(first.source_clock.as_ref().is_some_and(|clock|
++                clock.anchor.is_some_and(|anchor| anchor.ntp_time == 100 << 32) && (clock.is_current)()));
++            assert!(match (capsule.as_ref(), first_capsule.as_ref()) {
++                (None, None) => true,
++                (Some(a), Some(b)) => Arc::ptr_eq(a, b),
++                _ => false,
++            });
++            tokio::time::sleep(Duration::from_millis(5)).await;
++            assert!(held.input.try_recv().is_err(), "held Port admitted original input");
++            assert_eq!(held.policy.original_attempts.load(Ordering::SeqCst), 0,
++                "no source policy grant may be acquired under Port exclusion");
++            assert!(exclusion.release(), "original holder reached its emergency fuse");
++            let (resumed, resumed_capsule) = deliver_exact(&mut held).await;
++            assert_eq!(resumed.payload, bytes);
++            assert_eq!(resumed.timestamp_rtp, 90000);
++            assert!(resumed.source_clock.as_ref().is_some_and(|clock|
++                clock.anchor.is_some_and(|anchor| anchor.ntp_time == 100 << 32) && (clock.is_current)()));
++            assert!(match (capsule.as_ref(), resumed_capsule.as_ref()) {
++                (None, None) => true,
++                (Some(a), Some(b)) => Arc::ptr_eq(a, b),
++                _ => false,
++            });
++            assert!(held.input.try_recv().is_err() && other.input.try_recv().is_err(),
++                "same original was published more than once");
++        }).catch_unwind().await;
++        drop(exclusion); // join actual holder BEFORE cleanup, even on unwind
++        let held_clean = held_owner.close(&held).await;
++        let other_clean = other_owner.close(&other).await;
++        assert!(held_clean && other_clean && ports.is_empty());
++        if let Err(error) = work { std::panic::resume_unwind(error); }
++    }
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn rtc_raw_pending_port_preserves_original_age_and_terminal_refusal() {
++    for medium in [Medium::Audio, Medium::Video] {
++        for terminal in [false, true] {
++            let mut f = Fixture::new(medium).await;
++            let ports = Arc::new(DashMap::new());
++            let mut owner = BurstPortOwner::new(&f, &ports);
++            let mut exclusion = HeldPort::start(f.port.clone());
++            let work = std::panic::AssertUnwindSafe(async {
++                let began = Instant::now();
++                publish_exact(&f, &ports, 10, 90000);
++                assert!(began.elapsed() < Duration::from_millis(80));
++                if !terminal {
++                    // The SAME old input expires while pending; release cannot
++                    // redate it or inherit the first successor's source clock.
++                    tokio::time::sleep(Duration::from_millis(215)).await;
++                }
++                assert!(f.input.try_recv().is_err());
++                assert!(exclusion.release());
++                if terminal {
++                    // current_thread: retire synchronously before the ingress
++                    // task can retry after releasing the actual state holder.
++                    assert!(f.port.report_terminal().unwrap());
++                }
++                tokio::time::sleep(Duration::from_millis(8)).await;
++                assert!(f.input.try_recv().is_err(), "expired/retired raw input became public");
++                if !terminal {
++                    let (bytes, _) = publish_exact(&f, &ports, 20, 180000);
++                    let (fresh, _) = deliver_exact(&mut f).await;
++                    assert_eq!(fresh.timestamp_rtp, 180000);
++                    assert_eq!(fresh.payload, bytes);
++                    assert!(f.input.try_recv().is_err());
++                }
++            }).catch_unwind().await;
++            drop(exclusion);
++            let clean = owner.close(&f).await;
++            assert!(clean && ports.is_empty());
++            if let Err(error) = work { std::panic::resume_unwind(error); }
++        }
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
+@@ -974,7 +974,7 @@
+         .unwrap();
+         let physical = WebRtcPhysicalBinding::new(&owner.peer(), lifetime.child_token());
+         // EXACT same private channel constructor as Backend.prepare_port.
+-        let (input, receive) = input_channel(Medium::Video);
++        let (input, receive) = input_channel(f.medium);
+         let io = Arc::new(PortIo {
+             port: f.port.downgrade(),
+             binding: f.port.binding().clone(),
+@@ -1611,3 +1611,5 @@
+ }
+ 
+ mod backend_owner;
++
++mod fanout_port_metadata;
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -942,6 +942,10 @@
+         Ok(())
+     }
+ }
++// Fanout owns bounded RAW originals, not Core admission or a readiness grant.
++// Never take mutable PortState while retaining a ports-map shard on this shared
++// producer. The per-port worker captures/publishes through the real current
++// gates, preserving each original's source clock and 200ms receipt cutoff.
+ fn publish_source(
+     packet: rtc::rtp::Packet,
+     at: Instant,
+@@ -969,7 +973,7 @@
+             || io
+                 .port
+                 .upgrade()
+-                .is_none_or(|p| p.status() != PortStatus::Active)
++                .is_none_or(|p| p.ingress_is_closed())
+         {
+             continue;
+         }
+@@ -1080,7 +1084,7 @@
+                     || io
+                         .port
+                         .upgrade()
+-                        .is_none_or(|port| port.status() != PortStatus::Active)
++                        .is_none_or(|port| port.ingress_is_closed())
+                 {
+                     continue;
+                 }
+@@ -1310,7 +1314,7 @@
+     source: Arc<Source>,
+ ) -> ControlResult<()> {
+     let refused = AtomicU64::new(0);
+-    loop {
++    'input: loop {
+         let received = tokio::select! {biased;_=stop.cancelled()=>return Ok(()),p=input.recv()=>match p{Some(p)=>p,None=>return Ok(())}};
+         let Some(port) = port.upgrade() else {
+             return Ok(());
+@@ -1362,16 +1366,35 @@
+             );
+             continue;
+         }
+-        let mut original = match port.retain_original_video_ingress(
+-            frame,
+-            received.at,
+-            received.original_video_frame.clone(),
+-        ) {
+-            Ok(Some(original)) => original,
+-            Ok(None) => continue, // Separately authorized preparation consumed it.
+-            Err(error) => {
+-                packet_refusal(&refused, source.medium, "core-original-capture", error);
+-                continue;
++        // Capture may yield BEFORE acquiring an original or consuming private
++        // preparation. Retain exactly this frame/clock/receipt/capsule; never
++        // manufacture a new observation or renew age on metadata contention.
++        let mut original = loop {
++            if stop.is_cancelled() {
++                return Ok(());
++            }
++            if received.at.elapsed() >= Duration::from_millis(200) {
++                packet_refusal(&refused, source.medium, "core-original-capture-age", "original 200ms bound");
++                continue 'input;
++            }
++            match port.retain_original_video_ingress(
++                frame.clone(),
++                received.at,
++                received.original_video_frame.clone(),
++            ) {
++                Ok(Some(original)) => break original,
++                Ok(None) => continue 'input, // Separately authorized preparation consumed it ONCE.
++                Err(StreamControlError::MetadataBusy) => {
++                    tokio::select! { biased;
++                        _ = stop.cancelled() => return Ok(()),
++                        _ = tokio::time::sleep_until(tokio::time::Instant::from_std(received.at + Duration::from_millis(200))) => continue 'input,
++                        _ = tokio::time::sleep(Duration::from_millis(2)) => {},
++                    }
++                }
++                Err(error) => {
++                    packet_refusal(&refused, source.medium, "core-original-capture", error);
++                    continue 'input;
++                }
+             }
+         };
+         loop {

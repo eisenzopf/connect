@@ -86,6 +86,7 @@ impl Runtime {
         let mut invoked = false;
         loop {
             let mut deferred = None;
+            let mut cut_failure = None;
             // Per-turn controller/resource owners are captured BEFORE any
             // purpose Writer. They drop after its lexical frame, before pause.
             let step: Result<Turn> = async {
@@ -389,12 +390,19 @@ impl Runtime {
                             Ok(Turn::Terminal(Error::storage()))
                         }
                         ManagedCutAttempt::Refused {
-                            post: obligation, ..
-                        }
-                        | ManagedCutAttempt::EffectPossible {
-                            post: obligation, ..
+                            error,
+                            post: obligation,
                         } => {
                             post.install(obligation);
+                            cut_failure = Some(("core-cut-refused", error));
+                            Ok(Turn::Terminal(Error::forbidden()))
+                        }
+                        ManagedCutAttempt::EffectPossible {
+                            error,
+                            post: obligation,
+                        } => {
+                            post.install(obligation);
+                            cut_failure = Some(("core-cut-effect-possible", error));
                             Ok(Turn::Terminal(Error::forbidden()))
                         }
                     }
@@ -441,6 +449,11 @@ impl Runtime {
             .await;
             if let Some(failure) = deferred.take() {
                 failure.finish();
+            }
+            if let Some((stage, error)) = cut_failure {
+                tracing::debug!(target: "connect_service::canonical_replacement",
+                    operation_record = root.origin.record_id(), stage, ?error,
+                    "Original managed replacement cut failed");
             }
             let begin_unknown = post.begin_is_unconfirmed();
             let terminal = begin_unknown

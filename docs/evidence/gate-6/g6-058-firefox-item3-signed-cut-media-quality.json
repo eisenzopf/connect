@@ -187,5 +187,27 @@
       "candidate_rolled_back": true,
       "qualified": false
     }
+  },
+  "nonblocking_ingress_controls": {
+    "platform": "macos-arm64",
+    "rust": "1.97.1",
+    "dependency_patches": 580,
+    "patch_sha256": "ce5979a7be138a8634d2315fe69cfb7a12fbea7124c1c258ac8ac9607b3cb7d6",
+    "web_rtc_checks": {
+      "passed": 17,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "2a80f8c23bd13607e58cd9242e27c9d6f040394b52c0331dd99a9e9c99f9d30e"
+    },
+    "uctp_capture_control": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "5a10e0bc27c0201443d4e319d146d8ef2d61e5cae1b90aec0737d19c273d21d3"
+    },
+    "actual_held_port_sibling_progress": true,
+    "original_payload_rtp_clock_and_age_preserved": true,
+    "existing_expiry_and_terminal_refusal_preserved": true,
+    "strict_firefox_rerun": "Pending"
   }
 }

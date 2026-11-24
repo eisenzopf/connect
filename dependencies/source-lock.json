@@ -3081,6 +3081,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-rtc-signed-candidate-keyframe-history.patch",
       "sha256": "f88754393a02aa689c54e273d029f16fa1c7d5e009289ca62d4b1a7afc041adc"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-native-original-input-nonblocking.patch",
+      "sha256": "ce5979a7be138a8634d2315fe69cfb7a12fbea7124c1c258ac8ac9607b3cb7d6"
     }
   ]
 }
