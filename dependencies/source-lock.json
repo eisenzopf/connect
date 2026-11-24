@@ -3086,6 +3086,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-rtc-native-original-input-nonblocking.patch",
       "sha256": "ce5979a7be138a8634d2315fe69cfb7a12fbea7124c1c258ac8ac9607b3cb7d6"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-core-pre-cut-bridge-test-compile.patch",
+      "sha256": "34b7a7f6049a216fdda4c6ccd45114341652370ebd3f695595157f89d0b375c1"
     }
   ]
 }

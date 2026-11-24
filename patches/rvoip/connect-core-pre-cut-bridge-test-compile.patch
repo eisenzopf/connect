@@ -1,0 +1,84 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/metadata_test_support.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/metadata_test_support.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/metadata_test_support.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/metadata_test_support.rs
+@@ -87,6 +87,13 @@
+     )
+ }
+ 
++/// Observe the original resource lifetime without exposing its cancellation token.
++pub(crate) fn replacement_resource_lifetime_cancelled_for_test(
++    preparation: &DeviceReplacementPreparation,
++) -> bool {
++    preparation.resource_lifetime.is_cancelled()
++}
++
+ /// Borrow the actual root-owned scene for crate unit metadata observations.
+ /// This supplies no policy, grant, mutation, additional owner or public API.
+ #[cfg(test)]
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/bridge_ownership_controls.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/bridge_ownership_controls.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/bridge_ownership_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/bridge_ownership_controls.rs
+@@ -19,7 +19,7 @@
+     for node in room.nodes.values_mut(){node.drain();}
+     room.nodes.get_mut(old).unwrap().publish(800).unwrap();room.nodes.get_mut(source).unwrap().hear(800).await;
+ }
+-fn unsupported(error:ParticipantControlError)->bool {
++fn unsupported(error:&ParticipantControlError)->bool {
+     matches!(error,ParticipantControlError::Media(StreamControlError::Unsupported))
+ }
+ 
+@@ -42,9 +42,9 @@
+         for plan in [&ready.plan,&sibling] {
+             let held=Command::Audience {root:ready.grant.clone(),plan:plan.media().audience().clone()};
+             let refusal=room.orch.freeze_staged_device_replacement_video_with_held(plan,&held).await;
+-            assert!(matches!(refusal,Err(error) if unsupported(error)));
++            assert!(matches!(refusal,Err(error) if unsupported(&error)));
+             let refusal=room.orch.commit_staged_device_replacement_with_held(plan.clone(),&held).await;
+-            assert!(matches!(refusal,Err(error) if unsupported(error)));
++            assert!(matches!(refusal,Err(error) if unsupported(&error)));
+             assert!(warm(&room,plan,&ready.grant).await.is_err());
+         }
+         assert!(!ready.root.is_committed());assert_eq!(room.nodes[&old].controller.revision(),old_revision);
+@@ -129,7 +129,7 @@
+         let held=Command::Audience {root:ready.grant.clone(),plan:ready.plan.media().audience().clone()};let cancel=CancellationToken::new();
+         match room.orch.try_commit_prepared_managed_cut(cold,witness.grant(&authority,&held,&cancel)) {
+             ManagedCutAttempt::Refused {error,post}=> {
+-                let refused=unsupported(error);
++                let refused=unsupported(&error);
+                 drop(held);room.orch.finish_managed_cut_publication(post).await.unwrap();assert!(refused);
+             }
+             ManagedCutAttempt::EffectPossible {post,..}=> {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/pre_cut_bridge_controls.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/pre_cut_bridge_controls.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/pre_cut_bridge_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/pre_cut_bridge_controls.rs
+@@ -2,6 +2,7 @@
+ //! Cold physical families and final native callbacks are fixture metadata;
+ //! no actual transport/decoder overlap, signed phase or public release claim.
+ use super::*;
++use crate::orchestrator::participant_control::replacement::metadata_test_support::replacement_resource_lifetime_cancelled_for_test;
+ use crate::staged_streams::direct_subscriptions::PreCutPublicVideoBridgeScope;
+ use crate::staged_streams::public_video_reservation::PreCutPublicVideoBridgeOwnership;
+ 
+@@ -60,7 +61,7 @@
+         assert!(Arc::ptr_eq(pending.original_video_frame().unwrap(),&next_point));
+         scope.close();scope.close();assert!(!scope.is_current());assert!(owner.validate_current().is_err());
+         assert!(scope.target_port().is_err()&&scope.cancellation().is_cancelled());
+-        assert!(!ready.root.resource_lifetime().is_cancelled(),"closing B scope does not cancel original Root/OLD authority");
++        assert!(!replacement_resource_lifetime_cancelled_for_test(&ready.root),"closing B scope does not cancel original Root/OLD authority");
+         assert!(pending.deliver(|_|async {writes.fetch_add(1,Ordering::AcqRel);Ok(())}).await.is_err());
+         assert!(repair.repair(|_,_|async {writes.fetch_add(1,Ordering::AcqRel);Ok(())}).await.is_err());
+         assert_eq!(writes.load(Ordering::Acquire),2,"retained Arc must not keep closed route permission alive");
+@@ -83,11 +84,8 @@
+         owner.validate_current().unwrap();
+         room.world.warm_allowed.store(true,Ordering::Release);
+         let target=room.nodes[&ready.grant.intent.replacement].controller.clone();
+-        {
+-            let routing=target.direct_subscriptions.routing.lock().unwrap();
+-            let attempt=route(&room,&ready,&owner);
+-            assert!(matches!(attempt,Err(ParticipantControlError::Media(StreamControlError::MetadataBusy))));drop(routing);
+-        }
++        let attempt=target.direct_subscriptions.with_routing_exclusion_for_test(|| route(&room,&ready,&owner));
++        assert!(matches!(attempt,Err(ParticipantControlError::Media(StreamControlError::MetadataBusy))));
+         owner.validate_current().unwrap();
+         let scope=route(&room,&ready,&owner).unwrap();assert!(scope.is_current());
+         assert!(route(&room,&ready,&owner).is_err(),"one installed route is never reminted");
