@@ -715,7 +715,7 @@ fn prepare_armed_routes<T>(
     routes: Vec<T>,
     until: tokio::time::Instant,
     current: impl Fn() -> bool,
-    is_unary: impl Fn(&T) -> bool,
+    retry_until_deadline: impl Fn(&T) -> bool,
     mut prepare: impl FnMut(&T) -> connect_protocol::Result<()>,
     first_error: &mut Option<connect_protocol::Error>,
 ) -> connect_protocol::Result<(usize, usize)> {
@@ -725,10 +725,12 @@ fn prepare_armed_routes<T>(
         if !current() {
             return Err(connect_protocol::Error::forbidden());
         }
-        let unary = is_unary(&route);
-        match retry_dormant_unary(unary, until, &current, || prepare(&route)) {
+        let retry_for_full_window = retry_until_deadline(&route);
+        match retry_dormant_unary(retry_for_full_window, until, &current, || prepare(&route)) {
             Ok(()) => prepared += 1,
-            Err(error) if !unary && error.code == "authority-busy" => deferred.push(route),
+            Err(error) if !retry_for_full_window && error.code == "authority-busy" => {
+                deferred.push(route)
+            }
             Err(error) => {
                 first_error.get_or_insert(error);
             }
@@ -988,16 +990,23 @@ impl ReplacementAdoption {
             }
             Ok((entry, phase))
         };
+        let until = until.min(root.deadline);
+        let current = || {
+            !stop.is_cancelled()
+                && !root.handle.cancellation().is_cancelled()
+                && root.handle.is_committed()
+                && tokio::time::Instant::now() < until
+        };
         let mut first_error = None;
-        for (target, source) in routes {
-            if stop.is_cancelled()
-                || root.handle.cancellation().is_cancelled()
-                || !root.handle.is_committed()
-                || tokio::time::Instant::now() >= until.min(root.deadline)
-            {
-                return Err(connect_protocol::Error::forbidden());
-            }
-            let result = (|| {
+        // The post-cut pass can lose its first Store attempt to retirement.
+        // Reuse the same one-retry sweep without delaying every other route for
+        // one busy entry. All work remains off the packet path.
+        prepare_armed_routes(
+            routes.iter().collect(),
+            until,
+            current,
+            |_| false,
+            |(target, source)| {
                 let (target, target_phase) = resolve(target)?;
                 let source = source.as_ref().map(&resolve).transpose()?;
                 target.prepare_snapshot_route_current(
@@ -1006,11 +1015,9 @@ impl ReplacementAdoption {
                     target_phase.as_ref(),
                     source.as_ref().and_then(|(_, phase)| phase.as_ref()),
                 )
-            })();
-            if let Err(error) = result {
-                first_error.get_or_insert(error);
-            }
-        }
+            },
+            &mut first_error,
+        )?;
         first_error.map_or(Ok(()), Err)
     }
 

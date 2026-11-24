@@ -149,6 +149,132 @@ async fn original_av(
     )
     .await;
 }
+async fn decode_original_public_video(
+    target: &mut Peer,
+    replacement: &Arc<RvoipPeerConnection>,
+    received: &mut Received,
+    allocation: &Value,
+    intent: &connect_protocol::webrtc_video_receive_reservation::Intent,
+    blue: &[u8],
+    directory: &Path,
+    cutoff: tokio::time::Instant,
+) -> Value {
+    use connect_protocol::webrtc_public_video_phase::{Phase, DECODER_STARTUP, READY_PROFILE};
+    use rtc::rtp_transceiver::RTCRtpTransceiverDirection;
+
+    let cid = allocation["cid"].as_str().unwrap();
+    let operation = allocation["operation_id"].as_str().unwrap();
+    let record = allocation["payload"]["replacement_preparation"]["operation_record_id"]
+        .as_str()
+        .unwrap();
+    let (binding, cut, readiness, port, receiver) =
+        private_marker::until_phase(Some(cutoff), "original-public-B-receiver", async {
+            let (binding, cut, readiness) = loop {
+                let status =
+                    super::super::replacement::signed_original_status(target, cid, operation).await;
+                assert_eq!(status["record_id"], record);
+                assert_eq!(status["state"], "preparing");
+                match serde_json::from_value::<Phase>(status["webrtc_public_video_phase"].clone())
+                    .unwrap()
+                {
+                    Phase::NegotiatedNeverFed { .. } => {
+                        tokio::time::sleep(Duration::from_millis(10)).await;
+                    }
+                    Phase::CutBoundPostF {
+                        reservation_id,
+                        operation_record_id,
+                        operation_id,
+                        target_connection_id,
+                        target_generation,
+                        binding,
+                        source_cut_id,
+                        public_readiness,
+                        ..
+                    } => {
+                        assert_eq!(reservation_id, intent.reservation_id);
+                        assert_eq!(operation_record_id, record);
+                        assert_eq!(operation_id, operation);
+                        assert_eq!(allocation["connid"], target_connection_id);
+                        assert_eq!(target_generation, 2);
+                        binding.validate(intent).unwrap();
+                        break (binding, source_cut_id, public_readiness);
+                    }
+                    _ => panic!("original public receiver was not cut-bound"),
+                }
+            };
+
+            let pc = replacement.peer_connection().unwrap();
+            let mut ports = pc.get_transceivers().await;
+            assert_eq!(ports.len(), 3);
+            let mut public_port = None;
+            for port in ports.drain(..) {
+                if port.mid().await.unwrap().as_deref() == Some(binding.mid.as_str()) {
+                    assert!(public_port.replace(port).is_none());
+                }
+            }
+            let port = public_port.expect("original B MID owns a native receiver");
+            assert_eq!(
+                port.current_direction().await.unwrap(),
+                RTCRtpTransceiverDirection::Recvonly
+            );
+            // A negotiated MID exists before the native peer receives the first RTP packet
+            // and creates its receiver. The original readiness phase bounds this wait.
+            let receiver = loop {
+                if let Some(receiver) = port.receiver().await.unwrap() {
+                    break receiver;
+                }
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            };
+            (binding, cut, readiness, port, receiver)
+        })
+        .await;
+    let track = receiver.track().clone();
+    let stream = from_tracks(
+        StreamId::from_string(&binding.stream_id),
+        CodecInfo::from_name_with_defaults("vp8"),
+        replacement.local_video_track().unwrap(),
+        replacement.local_video_ssrc().unwrap(),
+        binding.payload_type,
+        Some(track.clone()),
+    );
+    let mut video = stream.try_frames_in().unwrap();
+    private_marker::picture_once_before(
+        &mut video,
+        blue,
+        "original-public-B-first-decoded-keyframe",
+        directory,
+        false,
+        cutoff,
+    )
+    .await;
+    private_marker::until_phase(Some(cutoff), "original-public-B-track", async {
+        assert!(track.ssrcs().await.contains(&binding.primary_ssrc));
+        assert!(Arc::ptr_eq(
+            &track,
+            port.receiver().await.unwrap().unwrap().track()
+        ));
+    })
+    .await;
+    received.video = video;
+    received.streams.push(stream);
+
+    let mut ready = renew(allocation.clone());
+    ready["payload"]["replacement_preparation"] = json!({
+        "profile":READY_PROFILE,
+        "operation_record_id":record,
+        "public_video_readiness":{
+            "reservation_id":intent.reservation_id,
+            "source_cut_id":cut,
+            "nonce":readiness.nonce,
+            "binding":binding,
+            "decoded_frames":1,
+            "decoded_keyframes":1,
+            "decoder_startup":DECODER_STARTUP
+        }
+    });
+    ready
+}
+
 fn public_problem(value: &Value) -> connect_protocol::canonical_http::Problem {
     assert_eq!(
         value.as_object().unwrap().len(),
@@ -367,10 +493,30 @@ async fn ready_shape_refused(ws: &mut Peer, value: Value, internal_code: &str) {
     let expected = connect_protocol::canonical_http::Problem::from_error(
         &connect_protocol::Error::new(internal_code, "fixture class only"),
     );
+    // Invalid wire shapes are refused before the parser can retain a request
+    // envelope. A well-formed but unauthorized Ready must still correlate.
+    let invalid_envelope = Envelope::from_value(value.clone()).is_err();
+    assert!(!invalid_envelope || internal_code == "invalid-request");
     let id = ws.send(value, true).await;
     tokio::time::timeout(Duration::from_secs(5), async {
         for _ in 0..128 {
             let event = ws.read().await;
+            if invalid_envelope {
+                assert_eq!(event.kind(), "error");
+                for key in ["in_reply_to", "operation_id", "cid", "sid", "connid"] {
+                    assert!(event.original().get(key).is_none());
+                }
+                let problem = public_problem(&event.original()["payload"]);
+                assert_eq!(
+                    (
+                        problem.code,
+                        problem.category.as_str(),
+                        problem.reason.as_str()
+                    ),
+                    (400, "auth", "invalid_envelope")
+                );
+                return;
+            }
             assert_eq!(event.original()["in_reply_to"], id);
             match event.kind() {
                 "error" => {
@@ -595,17 +741,42 @@ async fn full_replacement_case(
         .unwrap();
     replacement.add_local_audio_track().await.unwrap();
     replacement.add_local_video_track().await.unwrap();
+    use rtc::rtp_transceiver::{
+        rtp_sender::RtpCodecKind, RTCRtpTransceiverDirection, RTCRtpTransceiverInit,
+    };
+    replacement
+        .peer_connection()
+        .unwrap()
+        .add_transceiver_from_kind(
+            RtpCodecKind::Video,
+            Some(RTCRtpTransceiverInit {
+                direction: RTCRtpTransceiverDirection::Recvonly,
+                ..Default::default()
+            }),
+        )
+        .await
+        .unwrap();
     let sdp = replacement.create_offer_and_gather().await.unwrap();
     let mut target_peer = Peer::open_config(&f, &target_config).await;
+    let status =
+        super::super::replacement::signed_original_status(&mut target_peer, &cid, operation).await;
+    assert_eq!(status["record_id"], prepared.record_id);
+    assert_eq!(status["state"], "preparing");
+    let public_intent: connect_protocol::webrtc_video_receive_reservation::Intent =
+        serde_json::from_value(status["webrtc_video_receive_reservation"].clone()).unwrap();
+    public_intent
+        .validate_mapping("replacement-video-send", "replacement-video-receive")
+        .unwrap();
     let mut allocation = scoped(
         &cid,
         2,
         "connection.offer",
         operation,
         0,
-        json!({"substrate":"websocket+webrtc","capabilities":{"audio_codecs":[{"name":"opus","params":{"sample_rate":48000,"channels":1}}],"video_codecs":[{"name":"vp8","params":{"sample_rate":90000,"channels":0}}],"max_streams_per_connection":3,"identity_assurance_offered":"identified"},"streams_offered":[{"id":"replacement-audio","kind":"audio","direction":"sendrecv","codec_preferences":["opus"]},{"id":"replacement-video-send","kind":"video","direction":"sendonly","codec_preferences":["vp8"]},{"id":"replacement-video-receive","kind":"video","direction":"recvonly","codec_preferences":["vp8"]}],"substrate_setup":{"kind":"websocket+webrtc","sdp":sdp},"replacement_preparation":{"profile":"connect-replacement-preparation-v1","operation_record_id":prepared.record_id}}),
+        json!({"substrate":"websocket+webrtc","capabilities":{"audio_codecs":[{"name":"opus","params":{"sample_rate":48000,"channels":1}}],"video_codecs":[{"name":"vp8","params":{"sample_rate":90000,"channels":0}}],"max_streams_per_connection":3,"identity_assurance_offered":"identified"},"streams_offered":[{"id":"replacement-audio","kind":"audio","direction":"sendrecv","codec_preferences":["opus"]},{"id":"replacement-video-send","kind":"video","direction":"sendrecv","codec_preferences":["vp8"]},{"id":"replacement-video-receive","kind":"video","direction":"recvonly","codec_preferences":["vp8"]}],"substrate_setup":{"kind":"websocket+webrtc","sdp":sdp},"replacement_preparation":{"profile":"connect-replacement-preparation-v1","operation_record_id":prepared.record_id}}),
     );
     allocation["connid"] = json!(candidate);
+    allocation["payload"]["webrtc_video_receive_reservation"] = json!(public_intent);
     command(&mut target_peer, allocation.clone()).await;
     let status =
         super::super::replacement::signed_original_status(&mut target_peer, &cid, operation).await;
@@ -617,7 +788,7 @@ async fn full_replacement_case(
     assert_eq!(host.available_slots(), 0);
     assert!(host.adapter().is_connection_live(&old_runtime));
     assert!(host.adapter().is_connection_live(&retained_runtime));
-    let mut media = renew(allocation);
+    let mut media = renew(allocation.clone());
     media["payload"]["replacement_preparation"]["profile"] = json!("connect-replacement-media-v1");
     // Core's replacement intent uses the immutable Store record ID. These
     // hooks must match that exact original; signed commands/status continue
@@ -705,7 +876,7 @@ async fn full_replacement_case(
     assert_eq!(challenge["source_generation"], 1);
     assert_eq!(challenge["target_generation"], 2);
     assert_eq!(challenge["stream_revision"], 2);
-    assert_eq!(payload["streams_answered"][1]["direction"], "recvonly");
+    assert_eq!(payload["streams_answered"][1]["direction"], "sendrecv");
     assert_eq!(payload["streams_answered"][2]["direction"], "sendonly");
     // Every negative uses the actual original route, socket, peer and Store
     // record, then joins those exact owners. No substitute decoder/connection.
@@ -988,7 +1159,7 @@ async fn full_replacement_case(
         json!({"stream_id":"replacement-audio","decoded_samples":decoded_samples});
     // The preceding independent VP8 decode consumed exactly one actual source
     // keyframe on this new receiver. No RTP-only readiness is substituted.
-    observation["video"] = json!({"stream_id":"replacement-video-receive","decoded_frames":1,"decoded_keyframes":1,"decoder_startup":"fresh-peer-first-decoded-frame"});
+    observation["video"] = json!({"stream_id":public_intent.preview_stream_id,"decoded_frames":1,"decoded_keyframes":1,"decoder_startup":"fresh-peer-first-decoded-frame"});
     let mut ready = renew(media);
     ready["payload"]["replacement_preparation"]["profile"] = json!("connect-replacement-ready-v1");
     ready["payload"]["replacement_preparation"]["readiness"] = observation;
@@ -1256,15 +1427,47 @@ async fn full_replacement_case(
             .unwrap()
     });
     let original_ready = async {
-        let uncertain = submit_original_ready(
-            &mut target_peer,
-            renew(ready.clone()),
-            &cid,
-            operation,
-            &prepared.record_id,
+        let uncertain = private_marker::until_phase(
+            Some(ready_until),
+            "original-private-ready",
+            submit_original_ready(
+                &mut target_peer,
+                renew(ready.clone()),
+                &cid,
+                operation,
+                &prepared.record_id,
+            ),
         )
         .await;
-        let done = completed(&f, &target_config, operation).await;
+        let public_ready = decode_original_public_video(
+            &mut target_peer,
+            &replacement,
+            &mut c,
+            &allocation,
+            &public_intent,
+            &blue,
+            &directory,
+            ready_until,
+        )
+        .await;
+        private_marker::until_phase(
+            Some(ready_until),
+            "original-public-ready",
+            submit_original_ready(
+                &mut target_peer,
+                public_ready,
+                &cid,
+                operation,
+                &prepared.record_id,
+            ),
+        )
+        .await;
+        let done = private_marker::until_phase(
+            Some(ready_until),
+            "original-ready-completion",
+            completed(&f, &target_config, operation),
+        )
+        .await;
         if let Some(problem) = uncertain {
             assert!(ready_response_is_uncertain(&problem));
             assert_eq!(done.record_id, prepared.record_id);
@@ -1275,11 +1478,6 @@ async fn full_replacement_case(
         }
         done
     };
-    let original_ready = private_marker::until_phase(
-        Some(ready_until),
-        "original-ready-and-status",
-        original_ready,
-    );
     #[cfg(feature = "test-support")]
     let done = if let Some(probe) = ready_probe {
         // Both original futures join even if the signed caller panics. The

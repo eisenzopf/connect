@@ -96,46 +96,30 @@ impl Service {
     ) -> Result<OperationObservation> {
         let store = self.store.clone();
         let result = tokio::task::spawn_blocking(move || {
-            let get = matches!(&claim.action, OperationAction::Get { .. });
-            let record = match &authority {
-                Some(authority) => store.execute_operation_action_with_peer(
-                    &credential,
-                    claim.action.clone(),
-                    authority.peer_guard().ok_or_else(Error::forbidden)?,
-                ),
-                None => store.execute_operation_action_claim(&credential, claim.clone()),
-            }?;
-            if !get || record.command_type != "connection.replace" {
+            let peer = authority
+                .as_ref()
+                .map(|authority| authority.peer_guard().ok_or_else(Error::forbidden))
+                .transpose()?;
+            if matches!(&claim.action, OperationAction::Get { .. }) {
+                let snapshot = store.observe_operation_get(&credential, &claim, peer)?;
                 return Ok(OperationObservation {
-                    record,
-                    intent: None,
-                    phase: None,
-                    bridge: None,
+                    record: snapshot.operation,
+                    intent: snapshot.intent,
+                    phase: snapshot.phase,
+                    bridge: snapshot.bridge,
                 });
             }
-            // This is a control-plane projection only. Under signed dispatch,
-            // reuse the SAME original operation.get Read; do not nest another
-            // Reader behind a queued Writer or query phases on the packet path.
-            let snapshot = match &authority {
-                Some(authority) => store.native_replacement_public_video_snapshot_with_peer(
-                    &credential,
-                    &claim,
-                    authority.peer_guard().ok_or_else(Error::forbidden)?,
-                ),
-                None => store.native_replacement_public_video_snapshot(&credential, claim),
+            let record = match peer {
+                Some(peer) => {
+                    store.execute_operation_action_with_peer(&credential, claim.action, peer)
+                }
+                None => store.execute_operation_action_claim(&credential, claim),
             }?;
-            if snapshot.operation.record_id != record.record_id
-                || snapshot.operation.operation_id != record.operation_id
-            {
-                return Err(Error::forbidden());
-            }
-            // A standalone call may have observed a newer state between reads.
-            // Return the record from the SAME snapshot as its phase metadata.
             Ok(OperationObservation {
-                record: snapshot.operation,
-                intent: snapshot.intent,
-                phase: snapshot.phase,
-                bridge: snapshot.bridge,
+                record,
+                intent: None,
+                phase: None,
+                bridge: None,
             })
         })
         .await

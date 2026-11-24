@@ -1,0 +1,73 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -1188,6 +1188,19 @@
+ }
+ impl PreparedAudienceCut {
+ 
++    fn require_current_bridge_adoption(&self) -> ControlResult<()> {
++        // A cold cut captured before bridge ownership cannot borrow a later
++        // conversion flag. It must itself own the original post-freeze adoption.
++        let Some(intent) = self.plan.replacement.as_ref() else { return Ok(()); };
++        if intent.public_video_bridge_owned.load(Ordering::Acquire)
++            && (!intent.public_video_bridge_converted.load(Ordering::Acquire)
++                || self.public_adoptions.len() != 1)
++        {
++            return Err(StreamControlError::Unsupported);
++        }
++        Ok(())
++    }
++
+     pub(crate) fn try_final_resource_requirements(&self)->ControlResult<crate::orchestrator::participant_control::ManagedCutResourceRequirements> {
+         use crate::orchestrator::participant_control::{ManagedCutResourceRequirements,ManagedReceiveResourceRequirement};
+         // New metadata each caller turn; no authority/IO or live grant is
+@@ -1390,14 +1403,7 @@
+         // the SAME prepared one-shot token, or actual cleanup, may escape.
+         let caught=std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| -> ControlResult<(AudioAudienceOutcome,AudioAudienceCommit,Instant)> {
+             let plan=&prepared.plan;
+-            if let Some(intent)=plan.replacement.as_ref().filter(|intent|intent.public_video_bridge_owned.load(Ordering::Acquire)) {
+-                // A cold legacy cut staged before the bridge claim cannot
+-                // borrow a later conversion flag. It must itself own the one
+-                // exact same-intent post-F B adoption captured by W3.
+-                if !intent.public_video_bridge_converted.load(Ordering::Acquire)||prepared.public_adoptions.len()!=1 {
+-                    return Err(StreamControlError::Unsupported);
+-                }
+-            }
++            prepared.require_current_bridge_adoption()?;
+             let members=super::control_metadata::try_lock(&self.members)?;
+             let mut registry=super::control_metadata::try_lock(&self.audiences)?;
+             let mut disclosure=super::control_metadata::try_lock(&self.disclosure_changed_at)?;
+@@ -1410,14 +1416,7 @@
+                 .collect::<ControlResult<Vec<_>>>()?;
+             // The bridge transfer takes the SAME target control flight. Recheck
+             // after all flights, before any Port/consumer/ticket cut resources.
+-            if let Some(intent)=plan.replacement.as_ref().filter(|intent|intent.public_video_bridge_owned.load(Ordering::Acquire)) {
+-                // A cold legacy cut staged before the bridge claim cannot
+-                // borrow a later conversion flag. It must itself own the one
+-                // exact same-intent post-F B adoption captured by W3.
+-                if !intent.public_video_bridge_converted.load(Ordering::Acquire)||prepared.public_adoptions.len()!=1 {
+-                    return Err(StreamControlError::Unsupported);
+-                }
+-            }
++            prepared.require_current_bridge_adoption()?;
+             let mut states=prepared.targets.iter().map(|target|super::control_metadata::try_lock(&target.controller.state)).collect::<ControlResult<Vec<_>>>()?;
+             for (target,state) in prepared.targets.iter().zip(&states) {
+                 let member=turn.members.get(&target.controller.connection).ok_or(StreamControlError::Authority)?;
+@@ -1771,6 +1770,7 @@
+         }
+         let mut deadline = prepared.deadline.min(grant.deadline());
+         if tokio::time::Instant::now() >= deadline { return Err(StreamControlError::Deadline); }
++        prepared.require_current_bridge_adoption()?;
+         // Capture only TRY metadata, then release all registry/state guards
+         // before the first actual external current_control/receive callback.
+         let members = self.capture_control_members_matching(&prepared.members)?;
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/bridge_conversion_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/bridge_conversion_controls.rs
+@@ -39,7 +39,7 @@
+         let witness=ReplacementCutCurrent::capture(&room,&ready.grant,&ready.plan,"bridge-stale-cut","bridge-stale-effect");
+         let auth=ReplacementLease(ready.grant.clone()).current(&ParticipantReplacementScope {conversation:ready.grant.domain.member.conversation(),session:&ready.grant.domain.session,principal:&ready.grant.domain.principal,intent:&ready.grant.intent,phase:ReplacementPhase::Commit,plan:Some(ready.plan.media())}).unwrap();let cancel=CancellationToken::new();
+         match room.orch.try_commit_prepared_managed_cut(cold,witness.grant(&auth,&held,&cancel)) {
+-            ManagedCutAttempt::Refused {error,post}=>{let denied=matches!(error,ParticipantControlError::Media(StreamControlError::Unsupported));room.orch.finish_managed_cut_publication(post).await.unwrap();assert!(denied);},
++            ManagedCutAttempt::Refused {error,post}=>{let denied=matches!(error,ParticipantControlError::Media(StreamControlError::Unsupported));room.orch.finish_managed_cut_publication(post).await.unwrap();assert!(denied,"unexpected stale cut refusal: {error:?}");},
+             ManagedCutAttempt::EffectPossible {post,..}=>{room.orch.finish_managed_cut_publication(post).await.unwrap();panic!("stale legacy cut acquired effect");},
+             _=>panic!("legacy cut cannot borrow converted B"),
+         }

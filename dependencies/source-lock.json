@@ -3091,6 +3091,16 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-core-pre-cut-bridge-test-compile.patch",
       "sha256": "34b7a7f6049a216fdda4c6ccd45114341652370ebd3f695595157f89d0b375c1"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-public-video-reservation-lifetime.patch",
+      "sha256": "02b34c57cf3e4b5f865aa25a8f89fab26edcd3a68581ce51035969b39d811fb1"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-reject-stale-video-cut-before-metadata.patch",
+      "sha256": "528e3efe13dc2ec19d48bb3c9a9a7b9432b6d609dc0a0cb2996f3e63c9fc0bd0"
     }
   ]
 }

@@ -62,6 +62,7 @@ pub(super) mod candidate;
 pub use candidate::{NativeReplacementCandidate, NativeReplacementCandidateRetirement};
 mod allocation;
 mod public_video;
+pub(super) use public_video::project_operation_status;
 pub use public_video::{
     NativeReplacementPublicVideoBridgeExpected, NativeReplacementPublicVideoBridgeGuard,
     NativeReplacementPublicVideoBridgeMetadata, NativeReplacementPublicVideoBridgeObservation,

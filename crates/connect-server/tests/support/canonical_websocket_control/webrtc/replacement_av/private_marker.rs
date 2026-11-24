@@ -269,6 +269,16 @@ pub(super) async fn picture_once(
     red: bool,
 ) {
     let cutoff = tokio::time::Instant::now() + Duration::from_secs(5);
+    picture_once_before(rx, expected, label, dir, red, cutoff).await;
+}
+pub(super) async fn picture_once_before(
+    rx: &mut mpsc::Receiver<MediaFrame>,
+    expected: &[u8],
+    label: &str,
+    dir: &Path,
+    red: bool,
+    cutoff: tokio::time::Instant,
+) {
     let frame = until_phase(Some(cutoff), label, rx.recv())
         .await
         .expect("original RTC video owner");

@@ -7,18 +7,12 @@ impl Store {
         credential: &str,
         claim: crate::PeerOperationClaim,
     ) -> Result<OperationRecord> {
-        let authority = self.stable_authority(
-            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-            || {
-                let c = self.connection()?;
-                let actor = actor_from_connection(&c, credential)?;
-                peer::operation_source_scopes(&c, &actor, &claim, true)
-            },
-        )?;
+        let authority = self.operation_claim_authority(credential, &claim)?;
         let result = self.execute_operation_action_inner(
             credential,
             claim.action.clone(),
             Some(&authority),
+            None,
             None,
         )?;
         let c = self.connection()?;
@@ -29,12 +23,55 @@ impl Store {
         }
         Ok(result)
     }
+    fn operation_claim_authority(
+        &self,
+        credential: &str,
+        claim: &crate::PeerOperationClaim,
+    ) -> Result<std::sync::Arc<crate::AuthorityGuardSet>> {
+        self.stable_authority(
+            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
+            || {
+                let c = self.connection()?;
+                let actor = actor_from_connection(&c, credential)?;
+                peer::operation_source_scopes(&c, &actor, claim, true)
+            },
+        )
+    }
+
+    /// Current canonical Get and its optional replacement projection share
+    /// the same SQL transaction and the original admitted authority.
+    pub fn observe_operation_get(
+        &self,
+        credential: &str,
+        claim: &crate::PeerOperationClaim,
+        peer: Option<&crate::PeerAuthorityGuard>,
+    ) -> Result<crate::PublicVideoOperationSnapshot> {
+        if !matches!(claim.action, OperationAction::Get { .. }) {
+            return Err(invalid());
+        }
+        let owned = if peer.is_none() {
+            Some(self.operation_claim_authority(credential, claim)?)
+        } else {
+            None
+        };
+        let held = peer.map(Self::peer_scopes).or(owned.as_ref());
+        let mut projected = None;
+        self.execute_operation_action_inner(
+            credential,
+            claim.action.clone(),
+            held,
+            peer,
+            Some((claim, &mut projected)),
+        )?;
+        projected.ok_or_else(Error::storage)
+    }
+
     pub fn execute_operation_action(
         &self,
         credential: &str,
         action: OperationAction,
     ) -> Result<OperationRecord> {
-        self.execute_operation_action_inner(credential, action, None, None)
+        self.execute_operation_action_inner(credential, action, None, None, None)
     }
     /// Protected composition retains an already owned sufficient write proof.
     /// Current principal, target, replay and decision checks still run in the transaction.
@@ -44,7 +81,7 @@ impl Store {
         action: OperationAction,
         authority: &std::sync::Arc<crate::AuthorityGuardSet>,
     ) -> Result<OperationRecord> {
-        self.execute_operation_action_inner(credential, action, Some(authority), None)
+        self.execute_operation_action_inner(credential, action, Some(authority), None, None)
     }
     /// Signed canonical composition reuses its exact admitted write/read set.
     pub fn execute_operation_action_with_peer(
@@ -58,6 +95,7 @@ impl Store {
             action,
             Some(Self::peer_scopes(peer)),
             Some(peer),
+            None,
         )
     }
     fn execute_operation_action_inner(
@@ -66,6 +104,10 @@ impl Store {
         action: OperationAction,
         held: Option<&std::sync::Arc<crate::AuthorityGuardSet>>,
         peer: Option<&crate::PeerAuthorityGuard>,
+        projection: Option<(
+            &crate::PeerOperationClaim,
+            &mut Option<crate::PublicVideoOperationSnapshot>,
+        )>,
     ) -> Result<OperationRecord> {
         let (own, target, scope) = match &action {
             OperationAction::Get { operation_id } => (None, operation_id, "operation.get"),
@@ -138,6 +180,16 @@ impl Store {
             workers::recover_one(&tx, &row, &self.transition_runtime, self, &authority)?;
             row = rows::by_record(&tx, &row.record.record_id)?;
             let result = rows::view(&tx, &actor, row)?;
+            if let Some((claim, projection)) = projection {
+                let sources = peer::operation_source_scopes(&tx, &actor, claim, true)?;
+                if !self.authority_covers(&authority, &sources) {
+                    return Err(Error::forbidden());
+                }
+                *projection = Some(native_replacements::project_operation_status(
+                    &tx,
+                    result.clone(),
+                )?);
+            }
             actor_from_connection(&tx, credential)?;
             if let Some(peer) = peer {
                 self.require_peer_source(&tx, peer, credential)?;

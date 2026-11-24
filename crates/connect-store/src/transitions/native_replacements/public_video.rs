@@ -369,10 +369,23 @@ fn snapshot(
     if row.tombstoned || row.record.command_type != "connection.replace" {
         return Err(Error::forbidden());
     }
-    let (intent, phase) = project(c, &row.record)?;
     let operation = rows::view(c, &actor, row)?;
+    let status = project_operation_status(c, operation)?;
     actor_from_connection(c, credential)?;
-    let bridge = bridge::project(c, &operation)?;
+    Ok(status)
+}
+
+/// The caller holds the current operation's transaction and authority.
+pub(in crate::transitions) fn project_operation_status(
+    c: &Connection,
+    operation: OperationRecord,
+) -> Result<PublicVideoOperationSnapshot> {
+    let (intent, phase, bridge) = if operation.command_type == "connection.replace" {
+        let (intent, phase) = project(c, &operation)?;
+        (intent, phase, bridge::project(c, &operation)?)
+    } else {
+        (None, None, None)
+    };
     Ok(PublicVideoOperationSnapshot {
         operation,
         intent,
@@ -424,7 +437,15 @@ pub(super) fn check_offer(
                 Err(conflict())
             }
         }
-        _ => Err(conflict()),
+        (reservation, echo) => {
+            tracing::debug!(
+                target: "connect_store::native_replacement_allocation",
+                reservation_present = reservation.is_some(),
+                echo_present = echo.is_some(),
+                "Replacement allocation did not echo the original video reservation"
+            );
+            Err(conflict())
+        }
     }
 }
 fn never_public_candidate(

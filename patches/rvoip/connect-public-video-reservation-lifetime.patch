@@ -1,0 +1,128 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/public_video_reservation.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/public_video_reservation.rs
+@@ -36,8 +36,13 @@
+         let target=self.adapter_for(&p.intent.replacement)?.staged_controller(&p.intent.replacement)
+             .ok_or(ParticipantControlError::Unsupported)?;
+         let realm=p.runtime.frame_realm.as_ref().and_then(|realm|realm.handle().incarnation()).ok_or(ParticipantControlError::Unsupported)?;
+-        let owner=target.reserve_public_video(p,p.preparation_identity(),realm,public_stream,
+-            deadline_for(&p.principal,p.deadline.min(control.deadline)),p.cancellation.clone(),held)?;
++        // This original resource carries no audience grant. Only its
++        // installation uses this phase's current control capture.
++        let lifetime = deadline_for(&p.principal, p.deadline);
++        let owner = target.reserve_public_video(
++            p, realm, public_stream, lifetime, control.deadline,
++            p.cancellation.clone(), held,
++        )?;
+         self.owns_replacement(p)?;p.check()?;
+         check_authority(&request,&control.current(&request)?)?;
+         p.public_video_reservation.install(&owner)?;
+--- a/crates/foundation/rvoip-core/src/staged_streams/public_video_reservation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/public_video_reservation.rs
+@@ -176,16 +176,27 @@
+ }
+ impl StreamController {
+     pub(crate) fn reserve_public_video(
+-        self:&Arc<Self>,preparation:&Arc<DeviceReplacementPreparation>,identity:ReplacementPreparationIdentity,
+-        realm:u128,logical:&StreamId,deadline:tokio::time::Instant,cancellation:CancellationToken,
+-        held:&(dyn Any+Send+Sync),
++        self: &Arc<Self>,
++        preparation: &Arc<DeviceReplacementPreparation>,
++        realm: u128,
++        logical: &StreamId,
++        deadline: tokio::time::Instant,
++        installation_deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        held: &(dyn Any + Send + Sync),
+     )->ControlResult<PublicVideoReservationPreparation> {
+         let original=preparation.intent();
++        let identity = preparation.preparation_identity();
+         if self.connection!=original.replacement || realm==0 || !identity.matches_scope(&self.conversation,&self.session,realm) {
+             return Err(StreamControlError::Authority);
+         }
+         let _flight=self.inflight.clone().try_acquire_owned().map_err(|_|MediaTransitionError::Conflict)?;
+         let credential=self.credential_snapshot();
++        let deadline = Self::command_deadline(&credential.principal, deadline);
++        let installation_deadline = installation_deadline.min(deadline);
++        if tokio::time::Instant::now() >= installation_deadline {
++            return Err(StreamControlError::Deadline);
++        }
+         let state=self.state.try_lock().map_err(metadata_lock_error)?;
+         if state.closed || cancellation.is_cancelled() || self.shutdown.is_cancelled() {return Err(StreamControlError::Cancelled);}
+         let port=Self::direct_port(&state,logical)?;
+@@ -201,7 +212,6 @@
+         let physical=AdapterMediaPort(port.clone()).physical_video_exposure_sealed(&seal).ok_or(StreamControlError::Unsupported)?;
+         if !physical.coverage_complete || physical.realm_incarnation!=Some(realm)
+             || physical.maximum_potential_ordinal!=0 || physical.inherited_potential_ordinal!=0 {return Err(StreamControlError::Unsupported);}
+-        let deadline=deadline.min(Self::command_deadline(&credential.principal,deadline));
+         let value=PublicVideoReservationPreparation {owner:Arc::new(ReservationOwner {
+             preparation:Arc::downgrade(preparation),identity,original:original.clone(),controller:Arc::downgrade(self),port:Arc::downgrade(port),
+             credential:credential.clone(),ticket,target:PublicVideoWarmTarget {logical_id:logical.clone(),transport_id:binding.transport_id.clone(),
+@@ -213,12 +223,14 @@
+         Self::check(&scope,lease.authority())?;
+         state.model.authorize_preparation(&lease.authority().current())?;
+         if !lease.authority().may_control {return Err(StreamControlError::Authority);}
+-        let until=Self::media_deadline(&credential.principal,lease.as_ref(),deadline)?;
+-        // The reservation's structural lifetime never outlives its original
+-        // control capture. No lease or Reader survives this synchronous method.
+-        let mut value=value;
+-        Arc::get_mut(&mut value.owner).ok_or(StreamControlError::Authority)?.deadline=until;
+-        value.validate_locked(self,&state)?;
++        let until = Self::media_deadline(&credential.principal, lease.as_ref(), installation_deadline)?;
++        value.validate_locked(self, &state)?;
++        if tokio::time::Instant::now() >= until {
++            return Err(StreamControlError::Deadline);
++        }
++        // The installed owner carries only structural lifetime. Freeze and
++        // warm still need their own current authority, and the original
++        // preparation, credential, port and physical seal must remain current.
+         Ok(value)
+     }
+ }
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/definite_setup_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/definite_setup_controls.rs
+@@ -30,6 +30,45 @@
+     }).await;
+     let cleanup=room.close_originals().await;
+     assert!(cleanup.into_iter().all(|done|done));if let Err(error)=result {resume_unwind(error)}
++}
++
++#[tokio::test]
++async fn public_video_reservation_keeps_its_original_lifetime_after_installation_control_expires() {
++    let mut room = ManagedRoom::with_video(true).await;
++    let result = catch_original(async {
++        let (alice, old, source) = actors(&mut room).await;
++        let mut next = domain(&room.conversation, &room.session, "reserve-lifetime-next", "alice");
++        let value = Arc::get_mut(&mut next).unwrap();
++        value.principal = alice.principal.clone();
++        value.member = alice.member.clone();
++        let (root, grant, _signal, _context, _probe) =
++            room.prepare_move(&old, &source, next).await;
++
++        let mut capture = grant.clone();
++        capture.until = tokio::time::Instant::now();
++        assert!(room.orch.prepare_staged_public_video_reservation_with_held(
++            &root, &b_id(), &capture,
++        ).is_err());
++
++        capture.until += Duration::from_millis(100);
++        let reservation = room.orch.prepare_staged_public_video_reservation_with_held(
++            &root, &b_id(), &capture,
++        ).unwrap();
++        tokio::time::sleep_until(capture.until).await;
++        assert!(tokio::time::Instant::now() < grant.until);
++        assert!(reservation.is_current() && reservation.matches_original_preparation(&root));
++        assert!(room.nodes[&old].backend.port(Medium::Video).0.ticket(TicketSide::Egress).is_active());
++
++        root.cancellation().cancel();
++        assert!(reservation.is_current(), "a consumer's child token cannot cancel the original");
++        assert!(root.cancel());
++        assert!(!reservation.is_current());
++    }).await;
++    let cleanup = room.close_originals().await;
++    assert!(cleanup.into_iter().all(|done| done));
++    if let Err(error) = result {
++        resume_unwind(error);
++    }
+ }
+ 
+ #[tokio::test]
