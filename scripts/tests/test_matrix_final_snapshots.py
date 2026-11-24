@@ -3,8 +3,10 @@ import copy
 import json
 from pathlib import Path
 import sys
+import tempfile
+from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from lib import transport_matrix_coordinator as coordinator
@@ -20,6 +22,43 @@ class Worker:
 
 
 class FinalSnapshots(unittest.TestCase):
+    def test_full_matrix_joins_mac_worker_before_starting_linux(self):
+        events = []
+        storage = Mock(environment={}, remote_environment={}, failures=[])
+        storage.receipt.return_value = {}
+        worker = {}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / ".local" / "run"
+
+            def launch(command, **_):
+                host = ("ubuntu24-arm64" if command[0] == "colima" else "macos-arm64")
+                events.append(("launch", host))
+                process = Mock(pid=100 + len(worker))
+
+                def join():
+                    events.append(("join", host))
+                    return 1
+
+                process.wait.side_effect = join
+                process.poll.return_value = 1
+                worker[host] = process
+                return process
+
+            with patch.object(coordinator.platform, "system", return_value="Darwin"), \
+                    patch.object(coordinator.platform, "machine", return_value="arm64"), \
+                    patch.object(coordinator.subprocess, "check_output", side_effect=["", "a" * 40]), \
+                    patch.object(coordinator.subprocess, "Popen", side_effect=launch), \
+                    patch.object(coordinator, "inventory", return_value={"cells": []}), \
+                    patch.object(coordinator, "CoordinatorStorage", return_value=storage), \
+                    patch.object(coordinator, "refresh_reports", return_value=True), \
+                    patch.object(coordinator, "merge_hosts", return_value={"summary": {}, "matrix_qualified": False}), \
+                    patch.object(coordinator, "render"), patch.object(coordinator, "write"):
+                self.assertEqual(coordinator.run(root, SimpleNamespace(output=output, browser_image=None, chrome=None, firefox=None)), 1)
+
+        self.assertEqual(events[:4], [("launch", "macos-arm64"), ("join", "macos-arm64"),
+                                      ("launch", "ubuntu24-arm64"), ("join", "ubuntu24-arm64")])
+
     def test_worker_exiting_after_snapshot_is_read_gets_a_new_final_read(self):
         workers = {"macos-arm64": Worker(True), "ubuntu24-arm64": Worker()}
         reports = {}

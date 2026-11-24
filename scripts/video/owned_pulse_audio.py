@@ -9,6 +9,7 @@ import platform
 import shutil
 import signal
 import subprocess
+import tempfile
 import time
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -24,7 +25,10 @@ home = output / 'home'
 home.mkdir(mode=0o700)
 (home / '.config').mkdir(mode=0o700)
 binary = Path(shutil.which('pulseaudio')).resolve(strict=True)
-socket = output / 'native'
+# The private container /tmp mount is removed even when the wrapper is killed.
+# Keep the live socket there so the evidence mount contains ordinary files.
+runtime = tempfile.TemporaryDirectory(prefix='connect-pulse-', dir='/tmp')
+socket = Path(runtime.name) / 'native'
 cookie = output / 'cookie'
 config = output / 'fixture.pa'
 # Native protocol auth-cookie and client PULSE_COOKIE select only this private
@@ -34,7 +38,7 @@ config.write_text(f'load-module module-native-protocol-unix socket={socket} auth
     'set-default-sink connect_fixture\n')
 config.chmod(0o600)
 environment = dict(os.environ, HOME=str(home), PULSE_SERVER='unix:' + str(socket),
-    PULSE_COOKIE=str(cookie), PULSE_RUNTIME_PATH=str(output))
+    PULSE_COOKIE=str(cookie), PULSE_RUNTIME_PATH=runtime.name)
 for name in ('XDG_CONFIG_HOME', 'XDG_CACHE_HOME', 'XDG_DATA_HOME', 'XDG_RUNTIME_DIR', 'DBUS_SESSION_BUS_ADDRESS'):
     environment.pop(name, None)
 report = dict(scope='Owned anonymous container software output; no physical audio or personal daemon.', passed=False,
@@ -76,4 +80,5 @@ with (output / 'pulse.log').open('xb') as log:
             ('read-only-filesystem', 'Read-only file system')) if pattern in text]
         report['passed'] = report['passed'] and pulse.returncode == 0 and not report.get('forced_kill') and report['private_cookie_created']
         (output / 'summary.json').write_text(json.dumps(report, indent=2) + '\n')
+runtime.cleanup()
 assert report['passed']

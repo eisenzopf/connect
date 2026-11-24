@@ -1,4 +1,4 @@
-"""One local run owns both ARM hosts and all 32 original cell attempts."""
+"""One local run owns both ARM hosts and schedules their workers serially."""
 import copy
 import datetime
 import html
@@ -114,7 +114,9 @@ def run(root, args):
     base = inventory(root, revision)
     run_id = "g6-058-" + uuid.uuid4().hex
     remote_output = Path("/workspace/.local") / run_id
+    hosts = ("macos-arm64", "ubuntu24-arm64")
     state = dict(format="connect/g6-058-full-run/1", run_id=run_id, stage="running",
+        host_scheduling="serial", host_executions={host: {"stage": "queued"} for host in hosts},
         source_revision=revision, controller_pid=os.getpid(), selected_cells=[c["id"] for c in base["cells"]],
         source_guard_active=True, started_at=datetime.datetime.now(datetime.timezone.utc).isoformat())
     storage = CoordinatorStorage(root, output, remote_output, revision)
@@ -134,8 +136,14 @@ def run(root, args):
     linux_command = ["colima", "--profile", "connect-gate6", "ssh", "--", "env",
         *(key + "=" + value for key, value in dict(VM_ENV, **storage.remote_environment).items()), "python3", "/workspace/scripts/run-gate6-transport-matrix.py",
         *worker, "--output", str(remote_output), "--browser-image", args.browser_image or IMAGE]
+    def read_report(host):
+        if host == "macos-arm64":
+            return json.loads((output / host / "matrix.json").read_text())
+        return storage.remote_snapshot()
+
     try:
-        for host, command in (("macos-arm64", mac_command), ("ubuntu24-arm64", linux_command)):
+        last = None
+        for host, command in zip(hosts, (mac_command, linux_command), strict=True):
             log = (output / (host + ".log")).open("xb")
             logs.append(log)
             worker_env = dict(os.environ, **storage.environment)
@@ -143,31 +151,31 @@ def run(root, args):
                 worker_env["CARGO_BUILD_JOBS"] = "8"
                 # Share the normal prebuild cache with the standalone peer.
                 worker_env.setdefault("CARGO_TARGET_DIR", str(root / "target"))
-            workers[host] = subprocess.Popen(command, cwd=root, env=worker_env, stdout=log, stderr=subprocess.STDOUT,
-                                              stdin=subprocess.DEVNULL, start_new_session=True)
-        def read_report(host):
-            if host == "macos-arm64":
-                return json.loads((output / host / "matrix.json").read_text())
-            return storage.remote_snapshot()
-
-        last = None
-        while True:
-            storage.service()
-            workers_done = refresh_reports(root, revision, workers, reports, read_report)
-            merged = merge_hosts(base, list(reports.values()))
-            merged.update(run_id=run_id, execution_phase="run", storage=storage.receipt())
-            if storage.failures:
-                merged["matrix_qualified"] = False
-                merged["task_complete"] = False
-            write(output / "matrix.json", merged)
-            render(merged, output / "status.html")
-            current = json.dumps(merged["summary"], sort_keys=True)
-            if current != last:
-                print(current, flush=True)
-                last = current
-            if workers_done:
-                break
-            time.sleep(2)
+            process = subprocess.Popen(command, cwd=root, env=worker_env, stdout=log, stderr=subprocess.STDOUT,
+                                       stdin=subprocess.DEVNULL, start_new_session=True)
+            workers[host] = process
+            execution = state["host_executions"][host]
+            execution.update(stage="running", pid=process.pid, started_at=datetime.datetime.now(datetime.timezone.utc).isoformat())
+            write(output / "state.json", state)
+            while True:
+                storage.service()
+                worker_done = refresh_reports(root, revision, {host: process}, reports, read_report)
+                merged = merge_hosts(base, list(reports.values()))
+                merged.update(run_id=run_id, execution_phase="run", storage=storage.receipt())
+                if storage.failures:
+                    merged["matrix_qualified"] = False
+                    merged["task_complete"] = False
+                write(output / "matrix.json", merged)
+                render(merged, output / "status.html")
+                current = json.dumps(merged["summary"], sort_keys=True)
+                if current != last:
+                    print(current, flush=True)
+                    last = current
+                if worker_done:
+                    break
+                time.sleep(2)
+            execution.update(stage="joined", exit_code=process.wait(), joined_at=datetime.datetime.now(datetime.timezone.utc).isoformat())
+            write(output / "state.json", state)
         storage.service()
         merged["storage"] = storage.receipt()
         if storage.failures:
