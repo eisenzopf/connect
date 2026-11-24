@@ -208,6 +208,67 @@
     "actual_held_port_sibling_progress": true,
     "original_payload_rtp_clock_and_age_preserved": true,
     "existing_expiry_and_terminal_refusal_preserved": true,
-    "strict_firefox_rerun": "Pending"
+    "strict_firefox_rerun": {
+      "source_revision": "d5be6e690b8a32a2a787861e16480cfeebd447d5",
+      "component_sha256": "5b94d1d5a2f9a7dbc0084c09dd0da979355d106a39fccb793deba287de1f70ab",
+      "original_exit_code": 1,
+      "signed_handoffs_complete": 12,
+      "idle_cleanup_passed_cycles": 3,
+      "fps_failed_windows": 0,
+      "sync_failed_routes": 0,
+      "audio_unidentified_blocks": 1,
+      "source_frame_pair_pending_adjudication": 1,
+      "wire_audit": {
+        "source_revision": "d5be6e690b8a32a2a787861e16480cfeebd447d5",
+        "capture_integrity_verified": true,
+        "original_packet_records": 299425,
+        "observations": [
+          {
+            "cycle": "cycle-3",
+            "receiver": 1,
+            "source": 0,
+            "failed_pcm_callback_seconds": 42.759,
+            "paths": [
+              {
+                "route": 0,
+                "interval": 1,
+                "direction": "outbound-rtp",
+                "observed_packets": 23,
+                "deviations": []
+              },
+              {
+                "route": 0,
+                "interval": 2,
+                "direction": "outbound-rtp",
+                "observed_packets": 30,
+                "deviations": []
+              },
+              {
+                "route": 1,
+                "interval": 0,
+                "direction": "inbound-rtp",
+                "observed_packets": 30,
+                "deviations": [
+                  {
+                    "at_seconds": 42.642169,
+                    "elapsed_ms": 40.34,
+                    "sequence_delta": 1,
+                    "timestamp_delta": 1920
+                  },
+                  {
+                    "at_seconds": 42.642237,
+                    "elapsed_ms": 0.07,
+                    "sequence_delta": 1,
+                    "timestamp_delta": 1920
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "qualified": false,
+      "residual_observation": "At the failed sender cut, three dormant snapshots armed and two initially prepared. The unchanged receiver was refused current packet authority transiently. The original sender audio packet clocks stayed regular."
+    }
   }
 }
