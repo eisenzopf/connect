@@ -171,6 +171,21 @@
     "current_source_packet_epoch_survived_core_cut_admission": true,
     "racing_endpoint_writer_refused_during_same_cut_proof": true,
     "actual_endpoint_writer_still_invalidates_old_epoch": true,
-    "strict_live_media_result": "Pending"
+    "strict_live_media_result": {
+      "source_revision": "2718cb57024c446b2d892b3cef8a70bd27b5c3c9",
+      "component_sha256": "75e5a69021119227533dc48fa9ba3c80cb9c7223e9f40089a97d7cec7a440d2d",
+      "original_exit_code": 1,
+      "first_cycle_completed_moves": 3,
+      "first_cycle_expected_moves": 4,
+      "failed_move": "return of logical source route 4",
+      "successful_private_decoder_ready": true,
+      "durable_commit_started_without_final_observation": true,
+      "durable_operation_state": "unknown",
+      "core_committed": false,
+      "old_route_restoration_reported": "forbidden",
+      "followup_cycle_resource_baseline_failure": "owned_tasks",
+      "candidate_rolled_back": true,
+      "qualified": false
+    }
   }
 }

@@ -1,4 +1,4 @@
-//! Pure currentness of the exact Store scene proof and physical resource bank.
+//! Mandatory pure currentness of this actual purpose Writer and resource bank.
 use super::super::continuation::{Invocation, Phase};
 use super::*;
 use rvoip_core::orchestrator::participant_control::{

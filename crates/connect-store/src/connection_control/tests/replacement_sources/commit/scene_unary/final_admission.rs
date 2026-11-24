@@ -1067,32 +1067,6 @@ fn prepared_commit_keeps_current_media_through_journal_and_fences_at_cut() {
         "a cut with no primary SQL capacity must preserve active source media"
     );
     drop(primary);
-    let shared_cut = loop {
-        match store.try_native_replacement_commit_attempt_scene_cut(
-            &attempt.admission(),
-            &sources,
-            &final_wait,
-        ) {
-            Ok(read) => break read,
-            Err(error) if error.code == "authority-busy" => {
-                assert!(final_wait.check().is_ok());
-                std::thread::yield_now();
-            }
-            Err(error) => panic!("current Core cut proof refused: {error:?}"),
-        }
-    };
-    assert!(shared_cut.current() && io.current() && epoch.current());
-    assert!(snapshot.admit_original(stamp).is_ok());
-    // The external proof excludes a real racing endpoint mutation while the
-    // Core turn is active, even though live original media can keep flowing.
-    let scope =
-        crate::AuthorityScope::connection(affected.connection_id(), crate::AuthorityMode::Write)
-            .unwrap();
-    match store.try_acquire_authority(&[scope]) {
-        Err(error) => assert_eq!(error.code, "authority-busy"),
-        Ok(_) => panic!("concurrent endpoint mutation crossed the live Core cut proof"),
-    }
-    drop(shared_cut);
     drop(io);
     let read = loop {
         match store.try_native_replacement_commit_attempt_scene_write(

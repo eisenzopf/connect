@@ -192,7 +192,7 @@ impl Runtime {
                 let read = if let Some(original) = attempt.as_ref() {
                     let admission = original.admission();
                     let read = store_call(move || {
-                        store.try_native_replacement_commit_attempt_scene_cut(
+                        store.try_native_replacement_commit_attempt_scene_write(
                             &admission, &sources, &wait,
                         )
                     })
@@ -432,8 +432,8 @@ impl Runtime {
                 } else {
                     enter(&i, None)
                 };
-                // Drops ALL returned callback leases through synchronous Core return,
-                // then the Invocation, Store proof and role before controller owners.
+                // Drops ALL returned callback leases through sync Core return,
+                // then actual Invocation/Writer/role before bank/controller Arcs.
                 drop(i);
                 drop(roles);
                 result
