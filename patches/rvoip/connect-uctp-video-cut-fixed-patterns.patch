@@ -1,0 +1,120 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/validation.rs b/crates/uctp/rvoip-uctp/src/v2/validation.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/validation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/validation.rs
+@@ -147,8 +147,14 @@
+             }
+         }
+         if let Some(child) = schema.get("contains") {
+-            let count = items.iter().filter(|item| matches_schema(child, item)).count() as u64;
+-            let minimum = schema.get("minContains").and_then(Value::as_u64).unwrap_or(1);
++            let count = items
++                .iter()
++                .filter(|item| matches_schema(child, item))
++                .count() as u64;
++            let minimum = schema
++                .get("minContains")
++                .and_then(Value::as_u64)
++                .unwrap_or(1);
+             if count < minimum || above(schema, "maxContains", count) {
+                 return false;
+             }
+@@ -167,11 +173,27 @@
+         }
+         if let Some(pattern) = schema.get("pattern").and_then(Value::as_str) {
+             let valid = match pattern {
+-                "^[A-Za-z0-9._~-]+$" => !text.is_empty()
+-                    && text.bytes().all(|b| b.is_ascii_alphanumeric() || b"._~-".contains(&b)),
++                "^[A-Za-z0-9._~-]+$" => {
++                    !text.is_empty()
++                        && text
++                            .bytes()
++                            .all(|b| b.is_ascii_alphanumeric() || b"._~-".contains(&b))
++                }
+                 "^[!-~]+$" => !text.is_empty() && text.bytes().all(|b| (b'!'..=b'~').contains(&b)),
+                 "^(sip|sips|tel):[!-~]+$" => super::session_target::gateway_syntax(text),
+-                _ => panic!("unrecognized fixed schema pattern"),
++                "^[0-9a-f]{32}$" => {
++                    text.len() == 32
++                        && text
++                            .bytes()
++                            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
++                }
++                "^(0|[1-9][0-9]{0,19})$" => {
++                    text == "0"
++                        || ((1..=20).contains(&text.len())
++                            && text.as_bytes()[0] != b'0'
++                            && text.bytes().all(|b| b.is_ascii_digit()))
++                }
++                _ => false,
+             };
+             if !valid {
+                 return false;
+@@ -313,6 +335,68 @@
+     }
+ 
+     #[test]
++    fn actual_receiver_cut_and_release_schemas_accept_only_the_declared_coordinates() {
++        use super::SCHEMA;
++
++        let mut value = json!({
++            "operation_record_id": "record",
++            "operation_id": "move",
++            "reservation_id": "reservation",
++            "source_connection_id": "old",
++            "target_connection_id": "candidate",
++            "stream_id": "receiver-b",
++            "source_cut_id": "cut",
++            "stream_generation": 1,
++            "connection_generation": 2,
++            "target_generation": 2,
++            "original_frame": {
++                "realm": "0000000000000000000000000000000a",
++                "last_old_ordinal": "0",
++                "ordinal": "18446744073709551615",
++            },
++            "floor": {
++                "carrier": "webrtc-rtp",
++                "physical_writer_incarnation": "0123456789abcdef0123456789abcdef",
++                "primary_ssrc": 7,
++                "first_public_rtp_timestamp": 4294967295_u32,
++            },
++        });
++        for (definition, profile) in [
++            (
++                "WebRtcReceiverVideoPostCut",
++                "connect-receiver-video-post-cut-v1",
++            ),
++            (
++                "WebRtcReceiverVideoRelease",
++                "connect-receiver-video-release-v1",
++            ),
++        ] {
++            let schema = &SCHEMA["$defs"][definition];
++            value["profile"] = json!(profile);
++            assert!(matches_schema(schema, &value));
++            for malformed in ["", "01", "-1", "1\n", "1٢", "184467440737095516150"] {
++                let mut refused = value.clone();
++                refused["original_frame"]["ordinal"] = json!(malformed);
++                assert!(!matches_schema(schema, &refused), "{malformed:?}");
++            }
++            for malformed in [
++                "0123456789ABCDEF0123456789abcdef",
++                "0123456789abcdef0123456789abcde",
++                "0123456789abcdef0123456789abcdef0",
++            ] {
++                let mut refused = value.clone();
++                refused["floor"]["physical_writer_incarnation"] = json!(malformed);
++                assert!(!matches_schema(schema, &refused), "{malformed:?}");
++            }
++        }
++    }
++
++    #[test]
++    fn unknown_fixed_pattern_refuses_without_panicking() {
++        assert!(!matches_schema(&json!({"pattern":"^[X]$"}), &json!("X")));
++    }
++
++    #[test]
+     fn printable_ascii_mid_is_not_a_sip_uri_and_refuses_whitespace_controls_and_unicode() {
+         let schema = json!({"type":"string","pattern":"^[!-~]+$"});
+         for value in ["0", "B!~", "audio-2"] {

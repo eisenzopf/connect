@@ -1,0 +1,25 @@
+{
+  "format": "connect/g6-058-local-firefox-cut-validation-failure/1",
+  "source_revision": "65a8b02c886d40c9bc72d248796d3d668787d982",
+  "requested_resource_cycles": 3,
+  "completed_media_programme_cycles": 1,
+  "completed_handoffs": 0,
+  "candidate_decoded_before_withdrawal": 2,
+  "original_freeze_returned": 2,
+  "post_cut_whole_keyframe_written": 1,
+  "server_panicked": true,
+  "server_panic_site": "rvoip-uctp/src/v2/validation.rs:174",
+  "server_panic_message": "unrecognized fixed schema pattern",
+  "failed_browser_cutover_outcomes": [
+    "transport-uncertain",
+    "transport-uncertain"
+  ],
+  "blocked_return_handoffs": 2,
+  "later_resource_observations": "cycle 2 refused baseline after original server stopped; cycle 3 did not run",
+  "component_sha256": "a152df3cd45c269efe3bb9ee6f3328dc2507edd6b5b749f1f500affa366db115",
+  "packet_capture_naturally_joined": true,
+  "packet_capture_packets": 30657,
+  "packet_capture_kernel_drops": 0,
+  "component_passed": false,
+  "matrix_cell_qualified": false
+}
