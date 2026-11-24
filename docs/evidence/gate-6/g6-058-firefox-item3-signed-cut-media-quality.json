@@ -129,6 +129,48 @@
     "affected_epoch_survives_journal_and_primary_sql_exclusion": true,
     "actual_endpoint_writer_invalidates_affected_epoch": true,
     "same_durable_attempt_count": 1,
-    "live_media_verification": "Pending"
+    "live_media_verification": "Strict local rerun completed. All video and cleanup passed. Audio still failed at actual Core cut."
+  },
+  "journal_only_three_cycle": {
+    "source_revision": "3191486c089ac7fff797a32c256fe1146587f61d",
+    "component_sha256": "5b78fe2780f35ae40d52c7e82bbc2db22e5f4984bef352da63a183ed90516468",
+    "original_exit_code": 1,
+    "signed_handoffs_complete": 12,
+    "retirement_passes": 3,
+    "fps_failed_windows": 0,
+    "sync_failed_routes": 0,
+    "audio_failed_routes": 1,
+    "audio_unidentified_blocks": 2,
+    "audio_unidentified_callback_seconds": [
+      17.857,
+      43.073
+    ],
+    "qualified": false
+  },
+  "three_cycle_audio_facts": {
+    "source_revision": "3191486c089ac7fff797a32c256fe1146587f61d",
+    "component_sha256": "4c9a1af98509d0dad9fdbecde5225aa04542327fcd9d8d4965df1c193de110f5",
+    "original_exit_code": 1,
+    "signed_handoffs_complete": 12,
+    "audio_failed_routes": 1,
+    "audio_unidentified_blocks": 1,
+    "audio_unidentified_callback_seconds": [
+      42.372
+    ],
+    "joined_original_receiver_socket_facts": 3139,
+    "outgoing_rtp_nominal_delta_samples": 960,
+    "failed_boundary_outgoing_rtp_delta_samples": 1920,
+    "failed_boundary_sequence_delta": 1,
+    "failed_boundary_socket_interval_ms": 19.89,
+    "network_send_result": "FullClockApplied",
+    "qualified": false
+  },
+  "core_cut_scene_control": {
+    "local_store_serial_passed": 34,
+    "failed": 0,
+    "current_source_packet_epoch_survived_core_cut_admission": true,
+    "racing_endpoint_writer_refused_during_same_cut_proof": true,
+    "actual_endpoint_writer_still_invalidates_old_epoch": true,
+    "strict_live_media_result": "Pending"
   }
 }

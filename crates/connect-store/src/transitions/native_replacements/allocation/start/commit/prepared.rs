@@ -358,12 +358,55 @@ impl Store {
         sources: &[Arc<crate::NativeMediaOrigin>],
         wait: &crate::AuthorityWait,
     ) -> Result<NativeReplacementSceneRead> {
+        self.try_native_replacement_commit_attempt_scene(attempt, sources, wait, false)
+    }
+
+    /// Revalidate the same durable attempt for an in-memory managed cut.
+    /// Ordinary public native replacement retains external authority Readers
+    /// through Core's exact port and route fences. Core quiesces affected IO
+    /// before switching the route tickets and retiring the old controller.
+    /// Actual Store lifecycle mutations still acquire their full write scopes.
+    pub fn try_native_replacement_commit_attempt_scene_cut(
+        &self,
+        attempt: &NativeReplacementCommitAdmission,
+        sources: &[Arc<crate::NativeMediaOrigin>],
+        wait: &crate::AuthorityWait,
+    ) -> Result<NativeReplacementSceneRead> {
+        self.try_native_replacement_commit_attempt_scene(attempt, sources, wait, true)
+    }
+
+    fn try_native_replacement_commit_attempt_scene(
+        &self,
+        attempt: &NativeReplacementCommitAdmission,
+        sources: &[Arc<crate::NativeMediaOrigin>],
+        wait: &crate::AuthorityWait,
+        managed_cut: bool,
+    ) -> Result<NativeReplacementSceneRead> {
         wait.check()?;
         let provisional = self.try_native_replacement_scene_read(&attempt.origin, sources)?;
         if scene_stamp(&provisional)? != attempt.original_scene {
             return Err(Error::forbidden());
         }
-        let scopes = provisional.scoped_commit_scopes()?;
+        let cut_scopes = |scene: &NativeReplacementSceneRead| {
+            if managed_cut && scene.supports_scoped_commit() {
+                let mut scopes = scene.media.interval.read_scopes();
+                scopes.push(AuthorityScope::record(
+                    &attempt
+                        .origin
+                        .started
+                        .attempt
+                        .allocated
+                        .attempt
+                        .prepared
+                        .record,
+                    crate::AuthorityMode::Read,
+                )?);
+                AuthorityScope::merged(&scopes)
+            } else {
+                scene.scoped_commit_scopes()
+            }
+        };
+        let scopes = cut_scopes(&provisional)?;
         let until = provisional.expires_at().min(attempt.original_until);
         drop(provisional);
         let wait = wait.bounded(std::time::Duration::from_secs(
@@ -374,15 +417,15 @@ impl Store {
         let connection = self.try_connection()?;
         wait.check()?;
         self.require_unpublished_native_commit_attempt(&connection, attempt)?;
-        let writer = self.try_acquire_authority(&scopes)?;
+        let proof = self.try_acquire_authority(&scopes)?;
         let read = self.native_replacement_scene_with_interval(
             &attempt.origin,
             sources,
             None,
-            Some((&writer, until)),
+            Some((&proof, until)),
         )?;
         if !read.current()
-            || !self.authority_covers(&writer, &read.scoped_commit_scopes()?)
+            || !self.authority_covers(&proof, &cut_scopes(&read)?)
             || scene_stamp(&read)? != attempt.original_scene
             || target_stamp(&read.media.target) != target_stamp(&attempt.target)
         {
