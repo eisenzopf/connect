@@ -888,19 +888,25 @@ impl State {
             &plan.key.record,
             AuthorityMode::Write,
         )?);
-        required.push(AuthorityScope::connection(
-            &plan.source,
-            AuthorityMode::Write,
-        )?);
+        // CommitBegin's typed plan only writes operation bookkeeping.
+        // Actual endpoint Writers belong to the separately re-admitted cut.
+        let journal_only = matches!(
+            (&plan.witness, plan.purpose),
+            (Witness::Begin { .. }, Purpose::CommitBegin)
+        );
+        let source_mode = if journal_only {
+            AuthorityMode::Read
+        } else {
+            AuthorityMode::Write
+        };
+        required.push(AuthorityScope::connection(&plan.source, source_mode)?);
         if let Some(candidate) = &plan.candidate {
-            // witness_facts above independently derives the exact current
-            // continuation for FinalReady. Its closed typed SQL plan only
-            // projects that same installed binding; every other phase keeps
-            // the existing candidate Writer. Plan omission cannot select this.
-            let candidate_mode = if matches!(
-                (&plan.witness, plan.purpose),
-                (Witness::Ready(_), Purpose::FinalReady)
-            ) {
+            // FinalReady independently derives the exact installed continuation.
+            let candidate_mode = if journal_only
+                || matches!(
+                    (&plan.witness, plan.purpose),
+                    (Witness::Ready(_), Purpose::FinalReady)
+                ) {
                 AuthorityMode::Read
             } else {
                 AuthorityMode::Write

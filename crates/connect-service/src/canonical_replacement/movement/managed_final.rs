@@ -36,6 +36,7 @@ pub(super) enum Outcome {
     },
 }
 enum Turn {
+    JournalBegun,
     BeforeEntryBusy,
     Still(rvoip_core::orchestrator::participant_control::PreparedManagedCut),
     Published {
@@ -206,23 +207,16 @@ impl Runtime {
                     let dispatch = post.begin_dispatch();
                     #[cfg(feature = "test-support")]
                     let store_probe = control_probe.clone();
-                    // Primary SQL is reserved before any actual WriterNotice.
-                    // Scene revalidation and original begin share that SAME
-                    // blocking-thread unit; no reacquire gap can revoke media
-                    // only to discover primary SQL Busy afterward.
+                    // Reserve primary SQL before taking any Writer. Ordinary
+                    // native moves write the journal Record while the current
+                    // media owners keep their original packet snapshots.
                     let result = store_call(move || {
                         let begin = || {
                             store.try_admit_and_begin_prepared_native_replacement_commit(
                                 &facts,
                                 &sources,
                                 &wait,
-                                || {
-                                    #[cfg(feature = "test-support")]
-                                    if let Some(probe) = &store_probe {
-                                        probe.note_final_writer_returned();
-                                    }
-                                    dispatch.issue()
-                                },
+                                || dispatch.issue(),
                             )
                         };
                         #[cfg(feature = "test-support")]
@@ -249,6 +243,14 @@ impl Runtime {
                         return Ok(Turn::BeforeEntryBusy);
                     };
                     attempt = Some(original);
+                    let Some(read) = read else {
+                        drop(roles);
+                        return Ok(Turn::JournalBegun);
+                    };
+                    #[cfg(feature = "test-support")]
+                    if let Some(probe) = &control_probe {
+                        probe.note_final_writer_returned();
+                    }
                     read
                 };
                 let mut i = Invocation {
@@ -448,6 +450,7 @@ impl Runtime {
                 drop(turn_resources.take());
             }
             match step {
+                Ok(Turn::JournalBegun) => continue,
                 Ok(Turn::Still(same)) => {
                     prepared = Some(same);
                     after_unpublished = true;

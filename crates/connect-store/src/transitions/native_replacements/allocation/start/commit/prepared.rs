@@ -358,10 +358,7 @@ impl Store {
         sources: &[Arc<crate::NativeMediaOrigin>],
         wait: &crate::AuthorityWait,
     ) -> Result<NativeReplacementSceneRead> {
-        {
-            let c = self.try_connection_with_wait(wait)?;
-            self.require_unpublished_native_commit_attempt(&c, attempt)?;
-        }
+        wait.check()?;
         let provisional = self.try_native_replacement_scene_read(&attempt.origin, sources)?;
         if scene_stamp(&provisional)? != attempt.original_scene {
             return Err(Error::forbidden());
@@ -372,11 +369,12 @@ impl Store {
         let wait = wait.bounded(std::time::Duration::from_secs(
             (until - crate::now()).max(0) as u64,
         ));
+        // Reserve the primary reader first. Missing SQL capacity must not
+        // revoke packet snapshots before the original Core cut can enter.
+        let connection = self.try_connection()?;
+        wait.check()?;
+        self.require_unpublished_native_commit_attempt(&connection, attempt)?;
         let writer = self.try_acquire_authority(&scopes)?;
-        {
-            let c = self.try_connection()?;
-            self.require_unpublished_native_commit_attempt(&c, attempt)?;
-        }
         let read = self.native_replacement_scene_with_interval(
             &attempt.origin,
             sources,
@@ -390,16 +388,14 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let facts = {
-            let connection = self.try_connection()?;
-            self.native_commit_preparation_facts(
-                &connection,
-                &attempt.origin,
-                &read,
-                false,
-                Some(attempt),
-            )?
-        };
+        let facts = self.native_commit_preparation_facts(
+            &connection,
+            &attempt.origin,
+            &read,
+            false,
+            Some(attempt),
+        )?;
+        drop(connection);
         if facts.expected != attempt.expected
             || facts.resources != attempt.resources
             || facts.source_expires_at != attempt.source_expires_at

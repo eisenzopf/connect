@@ -59,7 +59,13 @@
       "receiver_concealment_events_after": 4,
       "cause": "Under investigation"
     },
-    "qualified": false
+    "qualified": false,
+    "closed_capture_video_marker_spans": [
+      30,
+      30,
+      30,
+      27
+    ]
   },
   "one_cycle_audio_diagnostic": {
     "source_revision": "733b128156ba1ffdb003094c5851347163057ba3",
@@ -76,5 +82,53 @@
     "passed": 62,
     "failed": 0
   },
-  "full_matrix_rerun": false
+  "full_matrix_rerun": false,
+  "shared_clock_three_cycle": {
+    "source_revision": "1af772f26b3b1d3f75b77bf4969c99cda687f210",
+    "component_sha256": "0a3357d096626e596ea5e15fdf9aca6f3155987f3b4c24589d117c67520c0fda",
+    "original_exit_code": 1,
+    "signed_handoffs_complete": 12,
+    "retirement_passes": 3,
+    "fps_failed_windows": 0,
+    "sync_failed_routes": 0,
+    "audio": {
+      "cycle": 3,
+      "receiver_route": 5,
+      "moving_source_route": 4,
+      "unidentified_blocks": 1,
+      "callback_at_seconds": 17.915,
+      "outgoing_rtp_timestamp_deltas_samples": [
+        1920,
+        1920,
+        1920,
+        6720
+      ],
+      "nominal_delta_samples": 960,
+      "wire_sequence_deltas": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "observed_original_publisher_cadence_samples": 960
+    },
+    "qualified": false
+  },
+  "journal_scope_controls": {
+    "scope": "Mac-local Store scene admission and authority",
+    "serial": {
+      "passed": 34,
+      "failed": 0,
+      "ignored": 0
+    },
+    "parallel_first_attempt": {
+      "passed": 9,
+      "failed": 25,
+      "refusal": "authority-busy"
+    },
+    "affected_epoch_survives_journal_and_primary_sql_exclusion": true,
+    "actual_endpoint_writer_invalidates_affected_epoch": true,
+    "same_durable_attempt_count": 1,
+    "live_media_verification": "Pending"
+  }
 }

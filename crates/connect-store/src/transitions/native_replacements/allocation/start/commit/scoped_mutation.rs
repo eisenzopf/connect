@@ -109,7 +109,7 @@ pub(super) fn begin_plan<'a>(
         purpose: Purpose::CommitBegin,
         source: context.source_connection_id.clone(),
         candidate: Some(read.media.target.connection.connection_id.clone()),
-        required: read.scoped_commit_scopes()?,
+        required: read.journal_begin_scopes()?,
         until: Some(until.min(read.media.source.expires_at())),
         transitions: all,
     })

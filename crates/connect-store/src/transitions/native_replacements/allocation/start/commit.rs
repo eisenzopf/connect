@@ -476,6 +476,18 @@ impl NativeReplacementSceneRead {
             && target.connection.state == "preparing"
             && target.connection.revision == 0
     }
+    fn journal_begin_scopes(&self) -> Result<Vec<AuthorityScope>> {
+        if !self.supports_scoped_commit() {
+            return self.scoped_commit_scopes();
+        }
+        let mut scopes = self.media.interval.read_scopes();
+        scopes.push(AuthorityScope::record(
+            &self.media.source.context().operation_record_id,
+            crate::AuthorityMode::Write,
+        )?);
+        AuthorityScope::merged(&scopes)
+    }
+
     fn scoped_commit_scopes(&self) -> Result<Vec<AuthorityScope>> {
         if !self.supports_scoped_commit() {
             // Unsupported private/claimed/telephone cases retain the original
@@ -608,10 +620,10 @@ impl Store {
             Some(wait),
         )
     }
-    /// One final admission and original journal begin on the SAME primary SQL
-    /// unit. No provisional reader crosses acquisition of the Writer, and all
-    /// file admission is immediate. Independent packet observers rederive the
-    /// complete current scene while this primary unit is reserved.
+    /// Record the original journal begin on one reserved primary SQL unit.
+    /// Ordinary native moves write only the operation Record. They retain scene
+    /// Readers during BEGIN, and reacquire the exact endpoint Writers at the
+    /// actual Core cut. Other moves may return their original final Writer.
     ///
     /// `issue_begin` only records the caller's existing submission uncertainty;
     /// it must perform no IO, waits, SQL, or authority acquisition. It runs once
@@ -625,7 +637,12 @@ impl Store {
         sources: &[Arc<crate::NativeMediaOrigin>],
         wait: &crate::AuthorityWait,
         issue_begin: impl FnOnce() -> Result<()>,
-    ) -> Result<Option<(NativeReplacementSceneRead, NativeReplacementCommitAttempt)>> {
+    ) -> Result<
+        Option<(
+            Option<NativeReplacementSceneRead>,
+            NativeReplacementCommitAttempt,
+        )>,
+    > {
         #[cfg(any(test, feature = "test-support"))]
         crate::native_prepared_begin_observation_for_test::entry(preparation.attempt_binding());
         wait.check()?;
@@ -633,7 +650,8 @@ impl Store {
             return Err(Error::forbidden());
         }
         let provisional = self.try_native_replacement_scene_read(&preparation.origin, sources)?;
-        let scopes = provisional.scoped_commit_scopes()?;
+        let journal_only = provisional.supports_scoped_commit();
+        let scopes = provisional.journal_begin_scopes()?;
         let expiry = provisional.expires_at().min(preparation.original_until);
         drop(provisional);
         #[cfg(test)]
@@ -675,9 +693,9 @@ impl Store {
             Some(wait),
             &mut c,
         )?;
-        // The shared body performs no post-COMMIT wait check: a late successful
-        // commit still returns the SAME owned attempt and its actual Writer.
-        Ok(attempt.map(|attempt| (read, attempt)))
+        // A late successful commit still returns the same owned attempt.
+        // Release every journal-only Reader before control admits the cut.
+        Ok(attempt.map(|attempt| ((!journal_only).then_some(read), attempt)))
     }
 
     fn begin_native_commit_prepared(
@@ -729,7 +747,7 @@ impl Store {
         let p = &origin.started.attempt.allocated.attempt.prepared;
         if !read.current()
             || read.media.source.selection().origin.record != p.record
-            || !self.authority_covers(&read.media.interval, &read.scoped_commit_scopes()?)
+            || !self.authority_covers(&read.media.interval, &read.journal_begin_scopes()?)
         {
             return Err(Error::forbidden());
         }
@@ -1831,7 +1849,7 @@ impl NativeReplacementMediaOrigin {
             runtime: p.runtime.clone(),
             source: ctx.source_connection_id.clone(),
             candidate: Some(read.media.target.connection.connection_id.clone()),
-            required: read.scoped_commit_scopes()?,
+            required: read.journal_begin_scopes()?,
             until: Some(until.min(read.media.source.expires_at())),
             attempt: None,
             effect: None,

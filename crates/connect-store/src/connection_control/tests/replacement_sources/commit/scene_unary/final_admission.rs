@@ -878,7 +878,7 @@ fn native_cold_commit_metadata_sql_fault_and_changed_or_expired_facts_stay_termi
 }
 
 #[test]
-fn prepared_commit_reserves_primary_before_writer_and_reuses_same_unit_for_one_begin() {
+fn prepared_commit_keeps_current_media_through_journal_and_fences_at_cut() {
     use crate::native_prepared_begin_observation_for_test::NativePreparedBeginObservationForTest;
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     let m = scene();
@@ -980,12 +980,12 @@ fn prepared_commit_reserves_primary_before_writer_and_reuses_same_unit_for_one_b
     assert_eq!(issued.load(Ordering::Acquire), 0);
     assert!(epoch.current());
     assert_eq!(Store::inspect_snapshot(store.path()).unwrap(), before);
-    drop(io); // The actual affected IO drains before its one real Writer.
     let sql_owned = Arc::new(AtomicBool::new(false));
     let packet_observer_current = Arc::new(AtomicBool::new(false));
     let inspect_store = store.clone();
     let seen_owned = sql_owned.clone();
     let seen_packet = packet_observer_current.clone();
+    let affected_snapshot = snapshot.clone();
     let successful = Store::with_native_replacement_commit_entry_probe_for_test(
         "prepared-begin-before-dml",
         move || {
@@ -1002,7 +1002,10 @@ fn prepared_commit_reserves_primary_before_writer_and_reuses_same_unit_for_one_b
             seen_packet.store(
                 inspect_store
                     .try_native_media_read(&healthy, None)
-                    .is_ok_and(|read| read.current()),
+                    .is_ok_and(|read| read.current())
+                    && affected_snapshot
+                        .admit_original(stamp)
+                        .is_ok_and(|read| read.current()),
                 Ordering::Release,
             );
         },
@@ -1039,9 +1042,50 @@ fn prepared_commit_reserves_primary_before_writer_and_reuses_same_unit_for_one_b
     .unwrap()
     .unwrap();
     let (read, attempt) = successful;
-    assert!(read.current());
+    assert!(
+        read.is_none(),
+        "journal-only admission cannot yield a Core Writer"
+    );
     assert_eq!(attempt.attempt_binding(), preparation.attempt_binding());
     assert!(Arc::ptr_eq(attempt.activation(), preparation.activation()));
+    assert!(
+        io.current() && epoch.current(),
+        "operation bookkeeping must preserve active source media"
+    );
+    let final_wait = crate::AuthorityWait::new(std::time::Duration::from_secs(1));
+    let primary = store.connection().unwrap();
+    let unavailable = store
+        .try_native_replacement_commit_attempt_scene_write(
+            &attempt.admission(),
+            &sources,
+            &final_wait,
+        )
+        .unwrap_err();
+    assert_eq!(unavailable.code, "authority-busy");
+    assert!(
+        io.current() && epoch.current(),
+        "a cut with no primary SQL capacity must preserve active source media"
+    );
+    drop(primary);
+    drop(io);
+    let read = loop {
+        match store.try_native_replacement_commit_attempt_scene_write(
+            &attempt.admission(),
+            &sources,
+            &final_wait,
+        ) {
+            Ok(read) => break read,
+            Err(error) if error.code == "authority-busy" => {
+                assert!(
+                    final_wait.check().is_ok(),
+                    "the original Core cut did not acquire its Writers"
+                );
+                std::thread::yield_now();
+            }
+            Err(error) => panic!("original Core cut refused: {error:?}"),
+        }
+    };
+    assert!(read.current());
     drop(read);
     watcher.shutdown().unwrap();
     assert!(sql_owned.load(Ordering::Acquire) && packet_observer_current.load(Ordering::Acquire));
