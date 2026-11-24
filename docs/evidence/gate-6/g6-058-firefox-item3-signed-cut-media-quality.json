@@ -282,6 +282,39 @@
     "packet_entry_refusal": "authority-busy",
     "original_deadline_and_cancellation_retained": true,
     "focused_service_tests": {"passed": 2, "failed": 0},
-    "strict_firefox_rerun": "pending"
+    "strict_firefox_rerun": {
+      "source_revision": "fd9a7190a35766201462af939467d4933f1b7fd5",
+      "component_sha256": "f5a7626386fb34e9fc811822b47c8fbfe45391f6583966485bd284893a0e33c4",
+      "binary_sha256": "793d15281c17a59a957a5c67a1abe3dca2ff07a809db8f8146848b55ae418001",
+      "original_exit_code": 0,
+      "original_owner_wait_completed": true,
+      "source_sdk_and_executable_unchanged": true,
+      "capture_original_joined": true,
+      "capture_packets": 299664,
+      "capture_kernel_drops": 0,
+      "pcap_sha256": "648da14c63cd6825791cd69f4fc3d43369497926045d66e63275e5b7351cdfc5",
+      "signed_handoffs_complete": 12,
+      "decoded_route_checks_passed": 18,
+      "idle_cleanup_passed_cycles": 3,
+      "frame_pairs_verified": 1,
+      "frame_association_controls": 3,
+      "route_preparation_summaries_matched": 12,
+      "unchanged_receiver_pairs_prepared": 12,
+      "unchanged_receiver_busy_after_arm_in_trace_window": 0,
+      "route_retry_attempts": 16,
+      "component_passed": true,
+      "matrix_cell_qualified": false
+    },
+    "prior_video_pair_diagnostic": {
+      "cycle": 1,
+      "route": 5,
+      "pair": 0,
+      "callback_seconds": [
+        36.108,
+        36.124
+      ],
+      "matched_packets": 7,
+      "exact_original_pair_proved": true
+    }
   }
 }
