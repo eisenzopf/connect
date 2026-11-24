@@ -52,14 +52,14 @@ export async function browserMatrixSources() {
     const sources=[];
     const bindings=new Map(),starts=new Set();
     let retiredSnapshot,referenceRetirement;
-    let stopped=false,closing,programme,terminalTimer,terminal=false,cleanupFailures=0;
+    let stopped=false,closing,programme,programmeTimer,terminalTimer,terminal=false,cleanupFailures=0;
     const retireConnection=connectionId=>{
         const binding=bindings.get(connectionId);if(!binding)return;
         bindings.delete(connectionId);binding.retired=true;
         try{binding.capture?.close();}catch{cleanupFailures++;}
     };
     const stopSources=()=>{
-        if(terminal)return;terminal=true;clearTimeout(terminalTimer);
+        if(terminal)return;terminal=true;clearTimeout(terminalTimer);clearInterval(programmeTimer);programmeTimer=undefined;
         for(const connectionId of [...bindings.keys()])retireConnection(connectionId);
         for(const source of sources){
             clearInterval(source.timer);source.timer=undefined;
@@ -92,17 +92,15 @@ export async function browserMatrixSources() {
                     maximumDrawGapMs:0,lastDrawMs:null,pulseOrdinals:[],lastPulseOrdinal:null};
                 oscillator.onended=()=>{record.oscillatorEnded=true;};
                 record.ownerLive=()=>!stopped&&!terminal&&!record.retired&&!record.oscillatorEnded
-                    &&audio.state==='running'&&record.timer!==undefined
+                    &&audio.state==='running'&&(record.timer!==undefined||programmeTimer!==undefined)
                     &&record.canvas.width===640&&record.canvas.height===360;
                 sources.push(record);
-                const draw=()=>{
+                const draw=(now,programmeFrame)=>{
                     if(stopped||terminal)return;
-                    const now=performance.now();
-                    if(programme&&now>=programme.deadlineMs){stopSources();return;}
-                    const elapsed=programme?(audio.currentTime-programme.audioOriginSeconds)*1000:null;
-                    const coordinate=elapsed===null||elapsed<0?{frame:record.draws,pulse:false,ordinal:null}:matrixSourceFrame(elapsed);
+                    const coordinate=programmeFrame??{frame:record.draws,pulse:false,ordinal:null};
+                    const inProgramme=programmeFrame!==null;
                     if(!coordinate)return;
-                    if(elapsed!==null&&elapsed>=0){
+                    if(inProgramme){
                         if(coordinate.frame===record.lastProgrammeFrame)return;
                         record.skippedProgrammeFrames+=record.lastProgrammeFrame===null?coordinate.frame:
                             Math.max(0,coordinate.frame-record.lastProgrammeFrame-1);
@@ -114,11 +112,13 @@ export async function browserMatrixSources() {
                     // Reserved existing11-bit value identifies PREprogramme pixels.
                     // Public programme0..1859 stimulus is byte-for-byte unchanged.
                     paintMatrixVideoFrame(paint, {...coordinate,
-                        footerFrame:elapsed===null||elapsed<0?2047:frame}, role);
+                        footerFrame:inProgramme?frame:2047}, role);
                     if(pulse&&record.lastPulseOrdinal!==ordinal){record.lastPulseOrdinal=ordinal;record.pulseOrdinals.push(ordinal);}
                     record.draws++;
                 };
-                record.draw=draw;draw();record.timer=setInterval(draw,1000/30);
+                record.draw=draw;
+                const drawBeforeProgramme=()=>draw(performance.now(),null);
+                drawBeforeProgramme();record.timer=setInterval(drawBeforeProgramme,1000/30);
             }
             const publicContext=typeof connection.conversationId==='string'&&typeof connection.sessionId==='string'?
                 Object.freeze({conversation_id:connection.conversationId,session_id:connection.sessionId}):null;
@@ -146,16 +146,26 @@ export async function browserMatrixSources() {
             programme=Object.freeze({audioOriginSeconds,originMs,deadlineMs:originMs+durationMs,durationMs,
                 markerProgram,sourcePulseMs:100,audioCaptureMode:'caller-owned-audio-node',videoCaptureMode:'caller-owned-canvas',audioPeakLow:matrixAudioProfile.lowPeak,audioPeakHigh:matrixAudioProfile.highPeak});
             for(const source of sources){
-                // AudioContext advances in quanta. Poll the unchanged 30fps
-                // source coordinate frequently enough to observe each frame;
-                // draw still emits only the current frame once, never catch-up.
-                clearInterval(source.timer);source.timer=setInterval(source.draw,5);
+                clearInterval(source.timer);source.timer=undefined;
                 source.gain.gain.setValueAtTime(matrixAudioProfile.lowPeak,audioOriginSeconds);
                 for(const frame of pulses){
                     source.gain.gain.setValueAtTime(matrixAudioProfile.highPeak,audioOriginSeconds+frame/30);
                     source.gain.gain.setValueAtTime(matrixAudioProfile.lowPeak,audioOriginSeconds+frame/30+.1);
                 }
             }
+            // All six sources share one original AudioContext coordinate.
+            // Use one poll and paint only when that coordinate advances.
+            let lastFrame=null;
+            programmeTimer=setInterval(()=>{
+                if(stopped||terminal)return;
+                const now=performance.now();
+                if(now>=programme.deadlineMs){stopSources();return;}
+                const elapsed=(audio.currentTime-programme.audioOriginSeconds)*1000;
+                const coordinate=matrixSourceFrame(elapsed);
+                if(coordinate===null||coordinate.frame===lastFrame)return;
+                lastFrame=coordinate.frame;
+                for(const source of sources)source.draw(now,coordinate);
+            },5);
             const stopAtOriginalDeadline=()=>{
                 if(stopped||terminal)return;
                 const remaining=programme.deadlineMs-performance.now();
@@ -194,7 +204,7 @@ export async function browserMatrixSources() {
                 capture_started:Boolean(source.capture),programme_draws:source.programmeDraws,
                 skipped_programme_frames:source.skippedProgrammeFrames,maximum_draw_gap_ms:source.maximumDrawGapMs,
                 pulse_ordinals:[...source.pulseOrdinals],last_programme_frame:source.lastProgrammeFrame,
-                original_source_owner_live:source.ownerLive(),original_source_timer_active:source.timer!==undefined,
+                original_source_owner_live:source.ownerLive(),original_source_timer_active:source.timer!==undefined||programmeTimer!==undefined,
                 original_source_retired:source.retired,original_oscillator_ended:source.oscillatorEnded,
                 original_canvas_backing_released:source.canvas.width===0&&source.canvas.height===0,
                 attachments:source.attachments.map(binding=>({connection_id:binding.connectionId,retired:binding.retired,

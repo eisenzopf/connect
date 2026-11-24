@@ -1,0 +1,80 @@
+{
+  "scope": "Local macOS arm64 Firefox G6-058 item 3 only",
+  "three_cycle": {
+    "source_revision": "733b128156ba1ffdb003094c5851347163057ba3",
+    "component_sha256": "04065237caf9098ab3411b6a662d611733078ca8d2b226a1b4a36dbfc2a380b9",
+    "original_exit_code": 1,
+    "workloads_complete": 3,
+    "signed_handoffs_complete": 12,
+    "retirement_passes": 3,
+    "decoded_collection_pass_cycles": [
+      3
+    ],
+    "failed_video_bins": [
+      {
+        "cycle": 1,
+        "route": 5,
+        "seconds_since_start": 21,
+        "observed": 22,
+        "required": 24
+      },
+      {
+        "cycle": 1,
+        "route": 5,
+        "seconds_since_start": 45,
+        "observed": 22,
+        "required": 24
+      },
+      {
+        "cycle": 2,
+        "route": 1,
+        "seconds_since_start": 21,
+        "observed": 23,
+        "required": 24
+      },
+      {
+        "cycle": 2,
+        "route": 1,
+        "seconds_since_start": 22,
+        "observed": 23,
+        "required": 24
+      }
+    ],
+    "draw_clock_skipped_programme_frames": 0,
+    "audio": {
+      "cycle": 2,
+      "route": 5,
+      "unidentified_blocks": 1,
+      "callback_at_seconds": 42.721,
+      "wire_timestamp_deltas_samples": [
+        1920,
+        1920
+      ],
+      "nominal_delta_samples": 960,
+      "wire_sequence_deltas": [
+        1,
+        1
+      ],
+      "receiver_concealment_events_before": 2,
+      "receiver_concealment_events_after": 4,
+      "cause": "Under investigation"
+    },
+    "qualified": false
+  },
+  "one_cycle_audio_diagnostic": {
+    "source_revision": "733b128156ba1ffdb003094c5851347163057ba3",
+    "component_sha256": "f4c49e5c128f30029d1646e5a6f87aca0bac310eaca8c942e77aa72828733dab",
+    "original_exit_code": 1,
+    "signed_handoffs_complete": 4,
+    "decoded_routes_passed": 6,
+    "original_local_owners_joined": true,
+    "idle_resource_observation_passed": false,
+    "qualified": false
+  },
+  "focused_fixture_checks": {
+    "tests": 62,
+    "passed": 62,
+    "failed": 0
+  },
+  "full_matrix_rerun": false
+}

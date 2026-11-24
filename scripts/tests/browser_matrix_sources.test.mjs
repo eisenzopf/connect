@@ -221,7 +221,7 @@ test('early source terminal timer wakes keep all six original captures live unti
         assert.strictEqual(f.owner.observation().programme,original,'Never rebase the original clock');
         assert.ok(f.owner.sources.every(source=>source.ownerLive()));
         assert.ok(f.captures.every(capture=>!capture.closed));assert.ok(f.tracks.every(track=>track.readyState==='live'));
-        assert.deepEqual(f.timers(),{intervals:6,timeouts:1},'Rearm only the same original terminal wait');
+        assert.deepEqual(f.timers(),{intervals:1,timeouts:1},'Keep one original programme clock and rearm the same terminal wait');
     }
     f.setClock(original.deadlineMs);f.takeTimeout()();
     assert.equal(f.owner.observation().source_terminal,true);
