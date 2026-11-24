@@ -177,9 +177,8 @@ class OriginalVideoObservation implements WebRtcPreCutPublicVideo {
                 const rtpTimestamp = (metadata as VideoFrameCallbackMetadata & {rtpTimestamp?: number}).rtpTimestamp;
                 this.rtpOutput = Number.isSafeInteger(rtpTimestamp) && Number(rtpTimestamp) >= 0 && Number(rtpTimestamp) <= 0xffffffff
                     ? Object.freeze({rtpTimestamp: rtpTimestamp!, presentedFrames: this.presented}) : undefined;
-                if(this.preCut) {
-                    if(!this.rtpOutput)throw unsupported();
-                    this.firstRtp??=this.rtpOutput;
+                if (this.preCut && this.rtpOutput) {
+                    this.firstRtp ??= this.rtpOutput;
                 }
                 if (!this.marker) this.frameCount++;
             } else if (this.presented > 0) throw new ConnectError("media", "Original B presentation counter became unavailable");
@@ -190,15 +189,27 @@ class OriginalVideoObservation implements WebRtcPreCutPublicVideo {
         }
     };
     private decoded(report: RTCStatsReport): {frames: number; keys: number | null} | undefined {
+        // A newly negotiated receiver can publish an inbound stats row before
+        // it has decoded anything or attached the selected codec report.
+        if (!this.frameCount) return undefined;
         const expected = this.phase.binding, original = this.original!;
         const rows: RTCInboundRtpStreamStats[] = [];
+        let pendingCodec = false;
         if (typeof report.forEach !== "function" || typeof report.get !== "function") throw unsupported();
         report.forEach((value) => {
             if (value.type !== "inbound-rtp" || value.isRemote === true || (value.kind ?? value.mediaType) !== "video") return;
             if ((value.trackIdentifier !== undefined && value.trackIdentifier !== original.track.id) || (value.mid !== undefined && value.mid !== original.mid) || !nonnegative(value.ssrc) || value.ssrc > 0xffffffff) throw changed();
-            if (typeof value.codecId !== "string" || !value.codecId) throw unsupported();
+            if (value.codecId === undefined || value.codecId === "") {
+                pendingCodec = true;
+                return;
+            }
+            if (typeof value.codecId !== "string") throw changed();
             const codec = report.get(value.codecId);
-            if (!codec || codec.type !== "codec" || typeof codec.mimeType !== "string") throw unsupported();
+            if (!codec) {
+                pendingCodec = true;
+                return;
+            }
+            if (codec.type !== "codec" || typeof codec.mimeType !== "string") throw changed();
             if (codec.id !== undefined && codec.id !== value.codecId) throw changed();
             if (value.ssrc !== expected.primary_ssrc) {
                 if (codec.mimeType.toLowerCase() !== "video/rtx") throw changed();
@@ -207,7 +218,7 @@ class OriginalVideoObservation implements WebRtcPreCutPublicVideo {
             if (rows.length || codec.mimeType.toLowerCase() !== "video/vp8" || codec.clockRate !== expected.clock_rate_hz || codec.payloadType !== expected.payload_type) throw changed();
             rows.push(value);
         });
-        if (!rows.length || !this.frameCount) return undefined;
+        if (!rows.length || pendingCodec) return undefined;
         const row = rows[0];
         if (row.framesDecoded !== undefined && !nonnegative(row.framesDecoded)) throw changed();
         if (row.keyFramesDecoded !== undefined && !nonnegative(row.keyFramesDecoded)) throw changed();
@@ -247,11 +258,15 @@ class OriginalVideoObservation implements WebRtcPreCutPublicVideo {
             if(!this.preCut||!this.owner?.acceptsBridgeFeeding(feeding))throw changed();
             for(;;){
                 this.check();if(Date.now()>=feeding.bridge_readiness.expires_at*1000)throw new ConnectError("timeout","Original B bridge challenge expired");
+                if (!this.firstRtp) {
+                    await this.run(() => new Promise<void>(yes => setTimeout(yes, Math.min(20, this.budget.remaining()))));
+                    continue;
+                }
                 const report=await this.run(()=>this.original!.receiver.getStats());this.check();const output=this.decoded(report);
-                if(output&&this.firstRtp) {
-                    // Freeze the FIRST actual fresh-B callback coordinate. A
-                    // later callback, stats counter or mediaTime cannot replace
-                    // it; the server matches its actual same-writer keyframe.
+                if(output) {
+                    // Freeze the first actual fresh-B callback carrying an RTP
+                    // coordinate. The server still matches it to a complete
+                    // keyframe on this exact candidate writer.
                     const marker:Readonly<WebRtcBridgeReadyMarker>=Object.freeze({profile:"connect-replacement-public-video-bridge-ready-v1",operation_record_id:feeding.operation_record_id,
                         bridge_readiness:Object.freeze({reservation_id:feeding.reservation_id,nonce:feeding.bridge_readiness.nonce,binding:feeding.binding,decoded_rtp_timestamp:this.firstRtp.rtpTimestamp,decoded_frames:output.frames,decoder_startup:"fresh-b-receiver-precut-keyframe"})});
                     this.owner!.expectBridgeMarker(marker);return marker;

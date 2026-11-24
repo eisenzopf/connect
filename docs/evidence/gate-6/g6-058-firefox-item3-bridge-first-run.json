@@ -1,0 +1,55 @@
+{
+  "format": "connect/g6-058-local-firefox-signed-bridge-evidence/1",
+  "source_revision": "3047b7a4bf0b50fb3c6a82fa30e7625297b8faf1",
+  "component_passed": false,
+  "full_matrix_cell_qualified": false,
+  "cycles": [
+    {
+      "index": 1,
+      "passed": false,
+      "collection_passed": false,
+      "completed_handoffs": 0,
+      "failed_outbound_handoffs": 2,
+      "blocked_returns": 2,
+      "target_error_kinds": [
+        "unsupported",
+        "unsupported"
+      ]
+    },
+    {
+      "index": 2,
+      "passed": false,
+      "collection_passed": false,
+      "completed_handoffs": 0,
+      "failed_outbound_handoffs": 2,
+      "blocked_returns": 2,
+      "target_error_kinds": [
+        "unsupported",
+        "unsupported"
+      ]
+    },
+    {
+      "index": 3,
+      "passed": false,
+      "collection_passed": false,
+      "completed_handoffs": 0,
+      "failed_outbound_handoffs": 2,
+      "blocked_returns": 2,
+      "target_error_kinds": [
+        "unsupported",
+        "unsupported"
+      ]
+    }
+  ],
+  "verified_boundary_counts": {
+    "feeding-recorded": 6,
+    "candidate-writer-started": 6,
+    "candidate-decoded-before-withdrawal": 0,
+    "core-freeze-returned": 0
+  },
+  "original_close_and_source_ownership_verified": true,
+  "original_captured_packets": 291107,
+  "closed_component_sha256": "09240d1b2190bee3ce7e5b0f81c5d4168805b9a89cca8062a4007ac31b9ec108",
+  "closed_root_receipt_sha256": "d513840cca77d7cc79407a0a4cb39437fcf3824f6b1716f4969db63678a0ac49",
+  "finding": "The original B writer started in all six attempts. The target browser returned local unsupported before verified private decode or old-route withdrawal. The original evidence did not retain the exact private callback or codec metadata that triggered the refusal."
+}

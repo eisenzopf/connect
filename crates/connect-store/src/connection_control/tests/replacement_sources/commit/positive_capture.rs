@@ -903,7 +903,10 @@ fn committed_successor_projection_excludes_only_old_connection_and_keeps_current
                 )
                 .unwrap();
         assert_eq!(
-            read().unwrap_err().code,
+            read()
+                .err()
+                .expect("unpublished packet read must be refused")
+                .code,
             "authority-busy",
             "current selected identity must still fence media"
         );

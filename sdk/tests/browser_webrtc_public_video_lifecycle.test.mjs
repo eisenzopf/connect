@@ -37,9 +37,10 @@ async function scenario(run,options={}){
     const witness=profile=>({profile,operation_record_id:'record',operation_id:'move',reservation_id:'reservation',source_connection_id:'old',target_connection_id:'target',stream_id:'public-b',stream_generation:1,connection_generation:1,target_generation:2,source_cut_id:'cut',original_frame:{realm:'b'.repeat(32),ordinal:'8',last_old_ordinal:'7'},floor:{carrier:'webrtc-rtp',physical_writer_incarnation:selectedBinding.physical_writer_incarnation,primary_ssrc:44,first_public_rtp_timestamp:21000}});
     class Track{constructor(kind,index){this.kind=kind;this.id=`original-${index}`;this.readyState='live';this.stops=0;}stop(){this.stops++;this.readyState='ended';}}
     class Stream{constructor(tracks){this.tracks=tracks;}getTracks(){return this.tracks;}getAudioTracks(){return this.tracks.filter(t=>t.kind==='audio');}getVideoTracks(){return this.tracks.filter(t=>t.kind==='video');}}
+    let codecPending=options.codecPending;
     const receiverReport=()=>new Map([
         ['vp8',{id:'vp8',type:'codec',mimeType:'video/VP8',payloadType:selectedBinding.payload_type,clockRate:90000}],
-        ['b',{id:'b',type:'inbound-rtp',kind:'video',mid:'2',trackIdentifier:'original-2',codecId:'vp8',ssrc:selectedBinding.primary_ssrc,framesDecoded:publicFrames,keyFramesDecoded:options.omitBridgeKeys?undefined:(publicFrames>0?1:0)}],
+        ['b',{id:'b',type:'inbound-rtp',kind:'video',mid:'2',trackIdentifier:'original-2',codecId:codecPending?undefined:'vp8',ssrc:selectedBinding.primary_ssrc,framesDecoded:publicFrames,keyFramesDecoded:options.omitBridgeKeys?undefined:(publicFrames>0?1:0)}],
     ]);
     class Peer extends EventTarget{
         connectionState='new';iceConnectionState='new';iceGatheringState='complete';signalingState='stable';localDescription=null;remoteDescription=null;transceivers=[];closes=0;
@@ -126,6 +127,7 @@ async function scenario(run,options={}){
             bridgeSeen:()=>wait(bridgeSeen.promise),privateSeen:()=>wait(privateSeen.promise),publicAttempt:()=>wait(publicAttempt.promise),publicCaptured:()=>wait(publicCaptured.promise),decodedObserved:()=>wait(decodedObserved.promise),receiverStarted:()=>wait(receiverStarted.promise),
             advance(value){now+=value;},expire(){now=5000;},commit(){committed=true;phaseName='activated';},unknown(){statusState='unknown';},
             phaseChange(fn){phaseChange=fn;},setPrivateFrames(value){privateFrames=value;},setPrivateBFrames(value){privateBFrames=value;},blockReceiver(){blockedStats=deferred();},releaseReceiver(){blockedStats?.resolve(receiverReport());blockedStats=undefined;},
+            completeCodecReport(){codecPending=false;},
             abort(){originalAbort.abort();},closeClient(){client.closed=true;for(const fn of [...closeListeners])fn();},
             canvas:{getContext(){return{drawImage(source){canvasDraws.push(source);}};}},
             counts:()=>({privateCalls,publicCalls,statusCalls,wholeQueries,receiverQueries,bridgeCalls}),
@@ -249,3 +251,19 @@ test('explicit bridge keeps pre-F B hidden and original cancellation closes deco
     assert.equal(f.counts().publicCalls,0);assert.equal(f.canvasDraws.length,0);f.abort();await assert.rejects(f.begun.completed);
     assert.equal(f.canvasDraws.length,0);assert.equal(f.counts().privateCalls,1);assert.equal(f.counts().bridgeCalls,1);assert.equal(picture.srcObject,null);
 },{bridge:true}));
+
+test('pre-cut bridge waits for real B callback and transient initial codec linkage',()=>scenario(async f=>{
+    await f.begun.prepared;
+    const picture=await f.publicElement();
+    await f.privateInput();await f.privateSeen();
+    await tick();
+    assert.equal(f.counts().receiverQueries,0,'no B stats inspection before exact callback');
+    assert.equal(await f.publicInput(),picture);
+    await f.receiverStarted();await tick();
+    assert.equal(f.counts().bridgeCalls,0,'incomplete codec linkage cannot sign Ready or retire B');
+    assert.equal(picture.callbacks.size,1);
+    f.completeCodecReport();await f.bridgeSeen();
+    assert.equal(f.counts().bridgeCalls,1);
+    assert.equal(f.counts().publicCalls,0);
+    f.abort();await assert.rejects(f.begun.completed);
+},{bridge:true,codecPending:true,bridgePlayPending:true}));
