@@ -55,6 +55,20 @@ export function parseWebRtcBridgeSnapshot(value, root, reservationId, expected, 
     }
     return Object.freeze({ opt_in, feeding, decoded_ready });
 }
+/** Original signed writer receipts only; absence means the same poll is pending.
+ * RTP order is modular on this exact writer, including a normal u32 wrap. */
+export function parseWebRtcPreCutKeyframes(value) {
+    if (value === undefined)
+        return undefined;
+    if (!Array.isArray(value) || value.length < 1 || value.length > 16 || !Array.from(value).every(v => uint(v)) || new Set(value).size !== value.length)
+        throw bad();
+    for (let i = 1; i < value.length; i++) {
+        const distance = (value[i] - value[i - 1]) >>> 0;
+        if (!distance || distance >= 0x80000000)
+            throw bad();
+    }
+    return Object.freeze([...value]);
+}
 const scopeFields = ["operation_record_id", "operation_id", "reservation_id", "source_connection_id", "target_connection_id", "stream_id", "stream_generation", "connection_generation", "target_generation", "source_cut_id"];
 export function receiverScope(root, phase) {
     if (!opaque(phase.source_cut_id))

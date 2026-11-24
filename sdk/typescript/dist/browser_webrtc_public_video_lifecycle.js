@@ -1,5 +1,5 @@
 import { ReceiverVideoReleaseOwner } from "./browser_receiver_video_release.js";
-import { bridgeCanonical, parseWebRtcReceiverPostCut, receiverScope } from "./browser_webrtc_public_video_bridge.js";
+import { bridgeCanonical, parseWebRtcReceiverPostCut, parseWebRtcPreCutKeyframes, receiverScope } from "./browser_webrtc_public_video_bridge.js";
 import { ConnectError } from "./errors.js";
 import { jsonObject } from "./uctp_json.js";
 import { recoverableReadinessFailure } from "./browser_webrtc_replacement.js";
@@ -120,7 +120,7 @@ export class BrowserWebRtcPublicVideoLifecycle {
     phase(value, required) {
         const raw = value.webrtc_public_video_phase;
         if (raw === undefined) {
-            if (required || value.state === "completed")
+            if (required || value.state === "completed" || value.receiver_video_pre_cut_keyframes !== undefined)
                 throw invalid();
             return undefined;
         }
@@ -132,6 +132,12 @@ export class BrowserWebRtcPublicVideoLifecycle {
             targetConnectionId: context.root.targetConnectionId, targetGeneration: context.challenge.target_generation, rootCompleted: receipt !== undefined });
         if (this.phaseOwner.bridgeEnabled())
             this.phaseOwner.observeBridge(value.webrtc_public_video_bridge);
+        if (value.receiver_video_pre_cut_keyframes !== undefined) {
+            if (!this.phaseOwner.bridgeEnabled() || value.state !== "preparing" || phase.phase !== "negotiated-never-fed" ||
+                !this.phaseOwner.observeBridge(value.webrtc_public_video_bridge).feeding)
+                throw invalid();
+            parseWebRtcPreCutKeyframes(value.receiver_video_pre_cut_keyframes);
+        }
         if (phase.phase === "discarded")
             throw new ConnectError("refused", "Original reserved public video was discarded");
         return phase;
@@ -222,7 +228,23 @@ export class BrowserWebRtcPublicVideoLifecycle {
                 if (this.prearmed) {
                     const bridge = this.phaseOwner.observeBridge(current.webrtc_public_video_bridge);
                     if (bridge.feeding && !bridgeMarker) {
-                        bridgeMarker = await this.prearmed.bridgeReady(bridge.feeding);
+                        const feeding = bridge.feeding;
+                        bridgeMarker = await this.prearmed.bridgeReady(feeding, async () => {
+                            let status;
+                            try {
+                                status = await this.read();
+                            }
+                            catch (error) {
+                                if (recoverableReadinessFailure(error))
+                                    return undefined;
+                                throw error;
+                            }
+                            const pending = this.phase(status, true);
+                            const same = this.phaseOwner.observeBridge(status.webrtc_public_video_bridge);
+                            if (pending.phase !== "negotiated-never-fed" || !same.feeding || bridgeCanonical(same.feeding) !== bridgeCanonical(feeding))
+                                throw invalid();
+                            return parseWebRtcPreCutKeyframes(status.receiver_video_pre_cut_keyframes);
+                        });
                         await sendBridge();
                     }
                     if (bridgeReplay && bridgeAttempts < 8 && performance.now() >= bridgeNext && current.state === "preparing" && phase.phase === "negotiated-never-fed")

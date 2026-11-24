@@ -1,6 +1,6 @@
 // Source-only authored controls; metadata is not Core/native/browser proof.
 import {test} from 'node:test';import assert from 'node:assert/strict';
-import {WEBRTC_BRIDGE_OPT_IN,parseWebRtcBridgeOptIn,parseWebRtcBridgeSnapshot,parseWebRtcReceiverPostCut,postCutRtpEligible} from '../typescript/dist/browser_webrtc_public_video_bridge.js';
+import {WEBRTC_BRIDGE_OPT_IN,parseWebRtcBridgeOptIn,parseWebRtcPreCutKeyframes,parseWebRtcBridgeSnapshot,parseWebRtcReceiverPostCut,postCutRtpEligible} from '../typescript/dist/browser_webrtc_public_video_bridge.js';
 import {ReceiverVideoReleaseOwner} from '../typescript/dist/browser_receiver_video_release.js';
 import {moveIntent} from '../typescript/dist/browser_sdk_movements.js';
 const root={recordId:'record',operationId:'move',conversationId:'room',sessionId:'session',sourceConnectionId:'old',retainedConnectionId:'retained',targetConnectionId:'target',endpointId:'endpoint',deviceId:'device'};
@@ -17,7 +17,7 @@ test('original move selects bridge only explicitly in signed body and preserves 
 test('provisional exact receiver floor refuses foreign identities delayed pre-F half range and clock substitutions',()=>{
     const w=parseWebRtcReceiverPostCut(witness(),root,phase);assert.equal(postCutRtpEligible(w,{rtpTimestamp:0xfffffff0,presentedFrames:1}),true);assert.equal(postCutRtpEligible(w,{rtpTimestamp:0x10,presentedFrames:2}),true);
     assert.equal(postCutRtpEligible(w,{rtpTimestamp:0xffffffef,presentedFrames:2}),false);assert.equal(postCutRtpEligible(w,{rtpTimestamp:0x7ffffff0,presentedFrames:2}),false);assert.equal(postCutRtpEligible(w,undefined),false);
-    for(const change of [v=>v.target_generation=7,v=>v.connection_generation=9,v=>v.operation_record_id='foreign',v=>v.source_cut_id='other',v=>v.binding={},v=>v.floor.primary_ssrc=1,v=>v.floor.physical_writer_incarnation='c'.repeat(32),v=>v.original_frame.ordinal='11',v=>v.floor.first_public_rtp_timestamp=-1]){const v=witness();change(v);assert.throws(()=>parseWebRtcReceiverPostCut(v,root,phase));}
+    for(const change of [v=>v.target_generation=7,v=>v.connection_generation=9,v=>v.operation_record_id='foreign',v=>v.operation_id=v.operation_record_id,v=>v.source_cut_id='other',v=>v.binding={},v=>v.floor.primary_ssrc=1,v=>v.floor.physical_writer_incarnation='c'.repeat(32),v=>v.original_frame.ordinal='11',v=>v.floor.first_public_rtp_timestamp=-1]){const v=witness();change(v);assert.throws(()=>parseWebRtcReceiverPostCut(v,root,phase));}
 });
 test('final released receiver carries monotonic same-writer coordinates across cumulative natural wrap without repeating a public frame',()=>{
     const w=witness(),{profile,...scope}=w;delete scope.original_frame;delete scope.floor;
@@ -26,4 +26,13 @@ test('final released receiver carries monotonic same-writer coordinates across c
     const loan=owner.borrow();let n=0;
     for(const ts of [0xfffffff0,0x3ffffff0,0x7ffffff0,0xbffffff0,0xfffffff0]){const output={rtpTimestamp:ts,presentedFrames:++n};assert.equal(loan.eligibleRtp(output),true);loan.presentedRtp(output);assert.equal(loan.eligibleRtp(output),false);}
     loan.release();const again=owner.borrow();assert.equal(again.eligibleRtp({rtpTimestamp:0xfffffff0,presentedFrames:n+1}),false);owner.close();assert.equal(again.eligibleRtp({rtpTimestamp:0x20,presentedFrames:n+2}),false);
+});
+
+
+test('retained pre-cut keyframe coordinates use exact bounded ordered u32 including natural RTP wrap',()=>{
+    assert.equal(parseWebRtcPreCutKeyframes(undefined),undefined);
+    const raw=[0xfffffff0,0,3000],parsed=parseWebRtcPreCutKeyframes(raw);
+    assert.deepEqual(parsed,raw);assert.ok(Object.isFrozen(parsed));raw[0]=1;assert.equal(parsed[0],0xfffffff0);
+    for(const bad of [null,[],Array(17).fill(1),[1,1],[-1],[1.1],[0x100000000],['12000'],[3,2],[0,0x80000000],Array(1)])
+        assert.throws(()=>parseWebRtcPreCutKeyframes(bad),{code:'protocol'});
 });

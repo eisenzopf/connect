@@ -2693,6 +2693,17 @@
         "webrtc_public_video_bridge": {
           "$ref": "#/$defs/WebRtcPublicVideoBridgeSnapshot"
         },
+        "receiver_video_pre_cut_keyframes": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true
+        },
         "receiver_video_post_cut": {
           "$ref": "#/$defs/WebRtcReceiverVideoPostCut"
         },
@@ -2837,6 +2848,44 @@
             "properties": {
               "command_type": {
                 "const": "connection.replace"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "receiver_video_pre_cut_keyframes"
+            ]
+          },
+          "then": {
+            "required": [
+              "webrtc_public_video_bridge",
+              "webrtc_public_video_phase"
+            ],
+            "properties": {
+              "state": {
+                "const": "preparing"
+              },
+              "webrtc_public_video_phase": {
+                "required": [
+                  "phase"
+                ],
+                "properties": {
+                  "phase": {
+                    "const": "negotiated-never-fed"
+                  }
+                }
+              },
+              "webrtc_public_video_bridge": {
+                "required": [
+                  "feeding"
+                ],
+                "properties": {
+                  "feeding": {
+                    "type": "object"
+                  }
+                }
               }
             }
           }

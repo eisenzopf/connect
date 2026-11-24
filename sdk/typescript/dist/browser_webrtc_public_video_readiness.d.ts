@@ -28,7 +28,7 @@ export interface WebRtcPreparedPublicVideo {
 }
 export interface WebRtcPreCutPublicVideo extends WebRtcPreparedPublicVideo {
     assertPreCutCurrent(): void;
-    bridgeReady(feeding: Readonly<WebRtcBridgeFeeding>): Promise<Readonly<WebRtcBridgeReadyMarker>>;
+    bridgeReady(feeding: Readonly<WebRtcBridgeFeeding>, readKeyframes: () => Promise<readonly number[] | undefined>): Promise<Readonly<WebRtcBridgeReadyMarker>>;
     postCut(witness: Readonly<WebRtcReceiverPostCut>): Promise<WebRtcPreparedPublicVideo>;
 }
 /** Attach the SAME hidden B before private A/audio Ready. No decode/public

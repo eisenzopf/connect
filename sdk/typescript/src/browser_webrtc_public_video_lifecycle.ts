@@ -1,5 +1,5 @@
 import { ReceiverVideoReleaseOwner, type ReceiverVideoReleaseLoan, type ReceiverVideoRelease } from "./browser_receiver_video_release.js";
-import { bridgeCanonical, parseWebRtcReceiverPostCut, receiverScope, type WebRtcReceiverPostCut, type WebRtcBridgeReadyMarker } from "./browser_webrtc_public_video_bridge.js";
+import { bridgeCanonical, parseWebRtcReceiverPostCut, parseWebRtcPreCutKeyframes, receiverScope, type WebRtcReceiverPostCut, type WebRtcBridgeReadyMarker } from "./browser_webrtc_public_video_bridge.js";
 import { BrowserDeadline } from "./browser_deadline.js";
 import type { BrowserReplacementReceipt } from "./browser_replacement.js";
 import { ConnectError } from "./errors.js";
@@ -99,13 +99,18 @@ export class BrowserWebRtcPublicVideoLifecycle {
     }
     private phase(value:JsonObject,required:boolean):Readonly<WebRtcPublicVideoPhase> | undefined {
         const raw=value.webrtc_public_video_phase;
-        if (raw===undefined) {if(required||value.state==="completed")throw invalid();return undefined;}
+        if (raw===undefined) {if(required||value.state==="completed"||value.receiver_video_pre_cut_keyframes!==undefined)throw invalid();return undefined;}
         if (!jsonObject(raw)) throw invalid();
         const receipt=value.state==="completed"?this.original.reservedCompleted(value):undefined;
         const context=this.original.reservedContext();
         const phase=this.phaseOwner.observe(raw,{recordId:context.root.recordId,operationId:context.root.operationId,
             targetConnectionId:context.root.targetConnectionId,targetGeneration:context.challenge.target_generation,rootCompleted:receipt!==undefined});
         if(this.phaseOwner.bridgeEnabled())this.phaseOwner.observeBridge(value.webrtc_public_video_bridge);
+        if(value.receiver_video_pre_cut_keyframes!==undefined) {
+            if(!this.phaseOwner.bridgeEnabled()||value.state!=="preparing"||phase.phase!=="negotiated-never-fed"||
+                !this.phaseOwner.observeBridge(value.webrtc_public_video_bridge).feeding)throw invalid();
+            parseWebRtcPreCutKeyframes(value.receiver_video_pre_cut_keyframes);
+        }
         if (phase.phase==="discarded") throw new ConnectError("refused","Original reserved public video was discarded");
         return phase;
     }
@@ -147,7 +152,18 @@ export class BrowserWebRtcPublicVideoLifecycle {
                 phase=this.phase(current,true)!;
                 if(this.prearmed) {
                     const bridge=this.phaseOwner.observeBridge(current.webrtc_public_video_bridge);
-                    if(bridge.feeding&&!bridgeMarker){bridgeMarker=await this.prearmed.bridgeReady(bridge.feeding);await sendBridge();}
+                    if(bridge.feeding&&!bridgeMarker){
+                        const feeding=bridge.feeding;
+                        bridgeMarker=await this.prearmed.bridgeReady(feeding,async()=>{
+                            let status:JsonObject;
+                            try{status=await this.read();}catch(error){if(recoverableReadinessFailure(error))return undefined;throw error;}
+                            const pending=this.phase(status,true)!;
+                            const same=this.phaseOwner.observeBridge(status.webrtc_public_video_bridge);
+                            if(pending.phase!=="negotiated-never-fed"||!same.feeding||bridgeCanonical(same.feeding)!==bridgeCanonical(feeding))throw invalid();
+                            return parseWebRtcPreCutKeyframes(status.receiver_video_pre_cut_keyframes);
+                        });
+                        await sendBridge();
+                    }
                     if(bridgeReplay&&bridgeAttempts<8&&performance.now()>=bridgeNext&&current.state==="preparing"&&phase.phase==="negotiated-never-fed")await sendBridge(current);
                     if(phase.phase==="cut-bound-post-f") {
                         if(!bridgeMarker||!bridge.decoded_ready||bridgeCanonical(bridgeMarker)!==bridgeCanonical(bridge.decoded_ready))throw invalid();

@@ -49,6 +49,9 @@ export declare const bridgeCanonical: (value: unknown) => string;
 export declare function bridgeClosed(value: unknown, fields: readonly string[]): Record<string, unknown>;
 export declare function parseWebRtcBridgeOptIn(value: unknown): WebRtcBridgeOptIn;
 export declare function parseWebRtcBridgeSnapshot(value: unknown, root: BrowserReplacementRoot, reservationId: string, expected: WebRtcPublicVideoBinding, privateNonce: string, reservationNonce: string, targetGeneration: number): Readonly<WebRtcBridgeSnapshot>;
+/** Original signed writer receipts only; absence means the same poll is pending.
+ * RTP order is modular on this exact writer, including a normal u32 wrap. */
+export declare function parseWebRtcPreCutKeyframes(value: unknown): readonly number[] | undefined;
 export declare function receiverScope(root: BrowserReplacementRoot, phase: WebRtcPublicVideoPhase): Readonly<ReceiverVideoReleaseScope>;
 export declare function parseWebRtcReceiverPostCut(value: unknown, root: BrowserReplacementRoot, phase: WebRtcPublicVideoPhase): Readonly<WebRtcReceiverPostCut>;
 /** SAME physical writer only. Half-range/absence/negative/fraction never

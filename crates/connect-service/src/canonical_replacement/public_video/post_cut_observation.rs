@@ -9,10 +9,10 @@ use connect_protocol::{
 };
 
 impl Runtime {
-    pub(crate) fn receiver_video_post_cut(
+    fn receiver_video_original(
         &self,
         record: &OperationRecord,
-    ) -> Option<ReceiverVideoRelease> {
+    ) -> Option<Arc<PreparedReplacement>> {
         if record.state != OperationState::Preparing || record.cancel_requested {
             return None;
         }
@@ -31,7 +31,33 @@ impl Runtime {
         {
             return None;
         }
+        Some(root)
+    }
+
+    pub(crate) fn receiver_video_post_cut(
+        &self,
+        record: &OperationRecord,
+    ) -> Option<ReceiverVideoRelease> {
+        let root = self.receiver_video_original(record)?;
         root.public_video.receiver_video_boundary(&root, false)
+    }
+
+    pub(crate) fn receiver_video_pre_cut_keyframes(
+        &self,
+        record: &OperationRecord,
+    ) -> Option<Vec<u32>> {
+        let root = self.receiver_video_original(record)?;
+        let preparation = &root.public_video;
+        let scope = preparation.bridge_scope.get()?;
+        let output = preparation.bridge.output.get()?;
+        if !scope.is_current()
+            || preparation.bridge_decoded_recorded()
+            || preparation.cut.get().is_some()
+            || output.target() != scope.target()
+        {
+            return None;
+        }
+        output.pre_cut_keyframe_timestamps()
     }
 }
 
@@ -70,7 +96,6 @@ impl Preparation {
         }
         let frame = output.first_complete()?;
         let original = frame.original_point();
-        let intent = root.handle.intent();
         let observation = ReceiverVideoRelease {
             profile: if published {
                 connect_protocol::replacement_receiver_video_release::PROFILE
@@ -79,7 +104,9 @@ impl Preparation {
             }
             .to_owned(),
             operation_record_id: root.origin.record_id().into(),
-            operation_id: intent.operation_id.clone(),
+            // Core uses the globally unique record as its mutation key.
+            // The signed wire coordinate carries both original identities.
+            operation_id: root.origin.request().operation_id.clone(),
             reservation_id: reservation.intent().reservation_id.clone(),
             source_connection_id: root.origin.request().connection_id.clone()?,
             target_connection_id: reservation.candidate_connection_id().into(),

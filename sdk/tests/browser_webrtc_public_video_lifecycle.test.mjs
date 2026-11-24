@@ -30,7 +30,8 @@ async function scenario(run,options={}){
         phaseChange=options.phaseChange,publicCalls=0,privateCalls=0,statusCalls=0,wholeQueries=0,receiverQueries=0,blockedStats;
     const requests=[],canvasDraws=[];
     const selectedBinding={...binding,physical_writer_incarnation:options.bridge?'a'.repeat(32):binding.physical_writer_incarnation};
-    const bridgeSeen=deferred();let bridgeFeeding=false,bridgeMarker,bridgeCalls=0;
+    const bridgeSeen=deferred(),keyframesPolled=deferred(),keyframeReads=[];let bridgeFeeding=false,bridgeMarker,bridgeCalls=0;
+    let keyframes=options.noPreCutKeyframes?undefined:[12000];
     const bridgeSnapshot=()=>({opt_in:{...WEBRTC_BRIDGE_OPT_IN},feeding:bridgeFeeding?{profile:WEBRTC_BRIDGE_OPT_IN.profile,phase:'feeding',reservation_id:intent.reservation_id,operation_record_id:root.recordId,operation_id:root.operationId,target_connection_id:root.targetConnectionId,target_generation:2,binding:{...selectedBinding},bridge_readiness:{nonce:'bridge-nonce',expires_at:Math.floor(Date.now()/1000)+5,decoder_startup:'fresh-b-receiver-precut-keyframe'}}:null,decoded_ready:bridgeMarker??null});
     // Immutable original Store challenge, never renewed on a metadata read.
     const bridgeExpiry=Math.floor(Date.now()/1000)+5;
@@ -87,6 +88,8 @@ async function scenario(run,options={}){
         ...(state==='preparing'?{webrtc_video_receive_reservation:{...intent}}:{}),
         ...(observed!==undefined?{webrtc_public_video_phase:observed}:{}),
         ...(options.bridge?{webrtc_public_video_bridge:(()=>{const v=bridgeSnapshot();if(v.feeding)v.feeding.bridge_readiness.expires_at=bridgeExpiry;return v;})()}:{}),
+        ...(options.bridge&&bridgeFeeding&&phaseName==='negotiated-never-fed'&&state==='preparing'&&keyframes!==undefined?{receiver_video_pre_cut_keyframes:options.preCutKeysChange?options.preCutKeysChange(keyframes,phaseName):keyframes}:{}),
+        ...(options.crossPhaseKeys&&phaseName==='cut-bound-post-f'?{receiver_video_pre_cut_keyframes:[12000]}:{}),
         ...(options.bridge&&phaseName==='cut-bound-post-f'?{receiver_video_post_cut:witness('connect-receiver-video-post-cut-v1')}:{ }),
         ...(options.bridge&&phaseName==='decoded-ready'&&options.decodedWitnessChange?{receiver_video_post_cut:options.decodedWitnessChange(witness('connect-receiver-video-post-cut-v1'))}:{ }),
         ...(options.bridge&&state==='completed'?{receiver_video_release:witness('connect-receiver-video-release-v1')}:{ }),
@@ -94,7 +97,7 @@ async function scenario(run,options={}){
     },{cid:'room',sid:'session',connid:connection,operation_id:'move'});};
     const client={closed:false,controlTransport:'websocket',deviceId:'device',onClose(fn){closeListeners.add(fn);return()=>closeListeners.delete(fn);},onEvent(fn){eventListeners.add(fn);return()=>eventListeners.delete(fn);},
         async requestReplacementContinuation(type,body,sentScope){requests.push({type,body:structuredClone(body),scope:structuredClone(sentScope)});
-            if(type==='operation.get'){statusCalls++;if(phaseName==='decoded-ready')decodedObserved.resolve();return[record('old',committed?'completed':statusState??'preparing')];}
+            if(type==='operation.get'){statusCalls++;if(bridgeFeeding&&!bridgeMarker){keyframesPolled.resolve();for(const read of keyframeReads.splice(0))read.resolve();}if(phaseName==='decoded-ready')decodedObserved.resolve();return[record('old',committed?'completed':statusState??'preparing')];}
             assert.equal(type,'connection.offer');const marker=body.replacement_preparation;
             if(marker.profile==='connect-replacement-preparation-v1')return[record('target','preparing')];
             if(marker.profile==='connect-replacement-media-v1'){
@@ -105,7 +108,7 @@ async function scenario(run,options={}){
             if(marker.profile==='connect-replacement-ready-v1'){
                 privateCalls++;assert.equal(marker.readiness.audio.stream_id,'audio');assert.equal(marker.readiness.video.stream_id,'camera-a');
                 if(options.bridge){assert.deepEqual({...body.webrtc_public_video_bridge_opt_in},WEBRTC_BRIDGE_OPT_IN);bridgeFeeding=true;}else phaseName='cut-bound-post-f';privateSeen.resolve();return[record('target','preparing')];}
-            if(marker.profile==='connect-replacement-public-video-bridge-ready-v1'){bridgeCalls++;bridgeMarker=structuredClone(marker);assert.equal(marker.bridge_readiness.decoded_rtp_timestamp,12000);phaseName='cut-bound-post-f';bridgeSeen.resolve();return[record('target','preparing')];}
+            if(marker.profile==='connect-replacement-public-video-bridge-ready-v1'){bridgeCalls++;bridgeMarker=structuredClone(marker);assert.equal(marker.bridge_readiness.decoded_rtp_timestamp,options.expectedBridgeTimestamp??12000);phaseName='cut-bound-post-f';bridgeSeen.resolve();return[record('target','preparing')];}
             assert.equal(marker.profile,'connect-replacement-public-video-ready-v1');publicCalls++;publicAttempt.resolve();
             if(options.public503&&publicCalls===1)throw new ConnectError('refused','controlled preeffect storage refusal',{code:503,category:'storage',reason:'storage_unavailable'});
             phaseName='decoded-ready';publicCaptured.resolve();
@@ -124,6 +127,7 @@ async function scenario(run,options={}){
             async privateInput(beforePump){const element=await wait(privateSink.promise);beforePump?.();worklets[0].port.onmessage({data:{epoch:0,timestampUs:1000,samples:new Float32Array(960)}});frame(element);return element;},
             publicElement:()=>wait(publicSink.promise),
             async publicInput(){const element=await wait(publicSink.promise);publicFrames=1;frame(element);return element;},
+            keyframesPolled:()=>wait(keyframesPolled.promise),setKeyframes(value){keyframes=value;const read=deferred();keyframeReads.push(read);return read.promise;},
             bridgeSeen:()=>wait(bridgeSeen.promise),privateSeen:()=>wait(privateSeen.promise),publicAttempt:()=>wait(publicAttempt.promise),publicCaptured:()=>wait(publicCaptured.promise),decodedObserved:()=>wait(decodedObserved.promise),receiverStarted:()=>wait(receiverStarted.promise),
             advance(value){now+=value;},expire(){now=5000;},commit(){committed=true;phaseName='activated';},unknown(){statusState='unknown';},
             phaseChange(fn){phaseChange=fn;},setPrivateFrames(value){privateFrames=value;},setPrivateBFrames(value){privateBFrames=value;},blockReceiver(){blockedStats=deferred();},releaseReceiver(){blockedStats?.resolve(receiverReport());blockedStats=undefined;},
@@ -269,3 +273,45 @@ test('explicit bridge keeps pre-F B hidden and original cancellation closes deco
     assert.equal(f.counts().publicCalls,0);assert.equal(f.canvasDraws.length,0);f.abort();await assert.rejects(f.begun.completed);
     assert.equal(f.canvasDraws.length,0);assert.equal(f.counts().privateCalls,1);assert.equal(f.counts().bridgeCalls,1);assert.equal(picture.srcObject,null);
 },{bridge:true}));
+
+
+test('bridge first delta callback stays pending until original signed retained keyframe matches a later actual B callback',()=>scenario(async f=>{
+    await f.begun.prepared;const picture=await f.publicElement();const sameStream=picture.srcObject;
+    await f.privateInput();await f.privateSeen();await f.publicInput();await f.keyframesPolled();await tick();
+    assert.equal(f.counts().bridgeCalls,0);assert.equal(f.counts().publicCalls,0);assert.equal(f.canvasDraws.length,0);
+    // Actual callback15000 is retained while server metadata is absent. The
+    // first callback12000 is a delta and must never be guessed to be a keyframe.
+    f.frame(picture);await tick();assert.equal(f.counts().bridgeCalls,0);
+    await f.setKeyframes([9000]);await tick();assert.equal(f.counts().bridgeCalls,0);
+    f.setKeyframes([15000]);await f.bridgeSeen();
+    const ready=f.requests.find(r=>r.body.replacement_preparation?.profile==='connect-replacement-public-video-bridge-ready-v1');
+    assert.equal(ready.body.replacement_preparation.bridge_readiness.decoded_rtp_timestamp,15000);
+    assert.ok(f.requests.filter(r=>r.type==='operation.get').length>2);
+    assert.equal(picture.srcObject,sameStream);assert.equal(f.counts().privateCalls,1);
+    f.frame(picture);f.frame(picture);await f.publicCaptured();f.commit();await f.begun.completed;
+    assert.equal(picture.srcObject,sameStream);assert.equal(f.counts().bridgeCalls,1);assert.equal(f.counts().publicCalls,1);
+    assert.equal(f.elements.filter(e=>e.srcObject?.getVideoTracks()[0]?.id==='original-2').length,1);
+    assert.equal(f.canvasDraws.length,0);
+},{bridge:true,noPreCutKeyframes:true,expectedBridgeTimestamp:15000}));
+
+test('malformed retained keyframe lists and cross-phase projections refuse without counter or private A substitution',async()=>{
+    for(const value of [null,[],[12000,12000],[-1],[0x100000000],[1.5],[15000,12000],Array(17).fill(12000)])
+        await scenario(async f=>{
+            await f.begun.prepared;await f.publicElement();await f.privateInput();await f.privateSeen();
+            await assert.rejects(f.begun.completed,{code:'protocol'});
+            assert.equal(f.counts().bridgeCalls,0);assert.equal(f.counts().publicCalls,0);assert.equal(f.canvasDraws.length,0);
+        },{bridge:true,preCutKeysChange:()=>value});
+    await scenario(async f=>{
+        await f.begun.prepared;await f.publicElement();await f.privateInput();await f.privateSeen();await f.publicInput();
+        await assert.rejects(f.begun.completed,{code:'protocol'});
+        assert.equal(f.counts().bridgeCalls,1);assert.equal(f.counts().publicCalls,0);assert.equal(f.canvasDraws.length,0);
+    },{bridge:true,crossPhaseKeys:true});
+});
+
+test('missing retained keyframe metadata remains cancellable on the same original budget without a Ready marker',()=>scenario(async f=>{
+    await f.begun.prepared;const picture=await f.publicElement();await f.privateInput();await f.privateSeen();
+    await f.publicInput();await f.keyframesPolled();await tick();
+    assert.equal(f.counts().bridgeCalls,0);assert.equal(f.counts().publicCalls,0);f.abort();
+    await assert.rejects(f.begun.completed,{code:'cancelled'});assert.equal(picture.srcObject,null);
+    assert.equal(f.counts().privateCalls,1);assert.equal(f.canvasDraws.length,0);
+},{bridge:true,noPreCutKeyframes:true}));

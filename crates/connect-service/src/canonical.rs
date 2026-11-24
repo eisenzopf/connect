@@ -187,16 +187,24 @@ impl CanonicalHandler {
             let mut payload = json!({"operation_id":record.operation_id,"record_id":record.record_id,"command_type":record.command_type,"expected_revision":record.expected_revision,"state":record.state,"revision":record.revision});
             if matches!(request.payload(), Payload::OperationGet(_)) {
                 observation.project_public_video(&mut payload);
-                if payload.get("webrtc_public_video_bridge").is_some()
-                    && payload["webrtc_public_video_phase"]["phase"] == "cut-bound-post-f"
-                {
-                    if let Some(post_cut) = self
-                        .service
-                        .canonical_runtime
-                        .get()
-                        .and_then(|runtime| runtime.receiver_video_post_cut(record))
-                    {
-                        payload["receiver_video_post_cut"] = json!(post_cut);
+                if let Some(runtime) = self.service.canonical_runtime.get() {
+                    let phase = payload["webrtc_public_video_phase"]["phase"].as_str();
+                    if !payload["webrtc_public_video_bridge"]["feeding"].is_null() {
+                        match phase {
+                            Some("negotiated-never-fed") => {
+                                if let Some(keyframes) =
+                                    runtime.receiver_video_pre_cut_keyframes(record)
+                                {
+                                    payload["receiver_video_pre_cut_keyframes"] = json!(keyframes);
+                                }
+                            }
+                            Some("cut-bound-post-f") => {
+                                if let Some(post_cut) = runtime.receiver_video_post_cut(record) {
+                                    payload["receiver_video_post_cut"] = json!(post_cut);
+                                }
+                            }
+                            _ => {}
+                        }
                     }
                 }
             }

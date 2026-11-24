@@ -1,0 +1,14 @@
+{
+  "format": "connect/g6-058-local-firefox-signed-operation-id-mismatch/1",
+  "source_revision": "42dbccd9640c9a4cf93b38c75f68b8ce07ec1e61",
+  "component_sha256": "05b930d6a37ce1a859df41aca65f8880c0b86d2e8f6d06527809e6cc71bccc24",
+  "component_passed": false,
+  "qualified_matrix_cell": false,
+  "candidate_cut_bound_count": 2,
+  "cross_checked_distinct_signed_operation_ids": 2,
+  "browser_refusal_locations": [
+    "browser_webrtc_public_video_bridge.js:7:19 browser_webrtc_public_video_bridge.js:71:15 browser_webrtc_public_video_lifecycle.js:235:48",
+    "browser_webrtc_public_video_bridge.js:7:19 browser_webrtc_public_video_bridge.js:71:15 browser_webrtc_public_video_lifecycle.js:235:48"
+  ],
+  "finding": "The old receiver coordinate used the Core mutation key. Both original Core plans key the mutation by the record ID, while both signed browser phases carry a different client operation ID. The receiver parser checks that public operation identity before accepting either a cut or release."
+}

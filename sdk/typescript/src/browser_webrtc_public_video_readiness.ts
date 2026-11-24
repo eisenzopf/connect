@@ -30,7 +30,7 @@ export interface WebRtcPreparedPublicVideo {
 }
 export interface WebRtcPreCutPublicVideo extends WebRtcPreparedPublicVideo {
     assertPreCutCurrent():void;
-    bridgeReady(feeding:Readonly<WebRtcBridgeFeeding>):Promise<Readonly<WebRtcBridgeReadyMarker>>;
+    bridgeReady(feeding:Readonly<WebRtcBridgeFeeding>,readKeyframes:()=>Promise<readonly number[]|undefined>):Promise<Readonly<WebRtcBridgeReadyMarker>>;
     postCut(witness:Readonly<WebRtcReceiverPostCut>):Promise<WebRtcPreparedPublicVideo>;
 }
 interface PreCutAttempt {peer:WeakRef<RTCPeerConnection>;roles:WeakRef<WebRtcReceiveRoles>;signal:WeakRef<AbortSignal>;budget:BrowserDeadline;promise:Promise<WebRtcPreCutPublicVideo>;}
@@ -98,7 +98,9 @@ class OriginalVideoObservation implements WebRtcPreCutPublicVideo {
     private callback?: number;
     private original?: Readonly<WebRtcReceiveRoleBinding>;
     private marker?: WebRtcPublicVideoReadyMarker;
-    private firstRtp?:Readonly<ReceiverRtpOutput>;
+    // Numeric metadata only: retain the first callback and bounded recent B
+    // callbacks. No pixels, decoder reset or public presentation is retained.
+    private readonly preCutRtp:Readonly<ReceiverRtpOutput>[]=[];
     private bridgePromise?:Promise<Readonly<WebRtcBridgeReadyMarker>>;
     private postCutPromise?:Promise<WebRtcPreparedPublicVideo>;
     private witness?:Readonly<WebRtcReceiverPostCut>;
@@ -178,7 +180,10 @@ class OriginalVideoObservation implements WebRtcPreCutPublicVideo {
                 this.rtpOutput = Number.isSafeInteger(rtpTimestamp) && Number(rtpTimestamp) >= 0 && Number(rtpTimestamp) <= 0xffffffff
                     ? Object.freeze({rtpTimestamp: rtpTimestamp!, presentedFrames: this.presented}) : undefined;
                 if (this.preCut && this.rtpOutput) {
-                    this.firstRtp ??= this.rtpOutput;
+                    if(!this.preCutRtp.some(value=>value.rtpTimestamp===this.rtpOutput!.rtpTimestamp)) {
+                        if(this.preCutRtp.length===64)this.preCutRtp.splice(1,1);
+                        this.preCutRtp.push(this.rtpOutput);
+                    }
                 }
                 if (!this.marker) this.frameCount++;
             } else if (this.presented > 0) throw new ConnectError("media", "Original B presentation counter became unavailable");
@@ -250,7 +255,7 @@ class OriginalVideoObservation implements WebRtcPreCutPublicVideo {
         try{await this.attach(false);return this;}catch(error){const task=this.trackTask,cleanup=this.release();if(task)void task(cleanup,true).catch(()=>{});else void cleanup.catch(()=>{});throw error;}
     }
     assertPreCutCurrent():void {if(!this.preCut||!this.picture)throw changed();this.check();}
-    bridgeReady(feeding:Readonly<WebRtcBridgeFeeding>):Promise<Readonly<WebRtcBridgeReadyMarker>> {
+    bridgeReady(feeding:Readonly<WebRtcBridgeFeeding>,readKeyframes:()=>Promise<readonly number[]|undefined>):Promise<Readonly<WebRtcBridgeReadyMarker>> {
         if(this.bridgePromise)return this.bridgePromise;
         let resolve!:(v:Readonly<WebRtcBridgeReadyMarker>)=>void,reject!:(e:unknown)=>void;
         const promise=new Promise<Readonly<WebRtcBridgeReadyMarker>>((yes,no)=>{resolve=yes;reject=no;});this.bridgePromise=promise;
@@ -258,17 +263,19 @@ class OriginalVideoObservation implements WebRtcPreCutPublicVideo {
             if(!this.preCut||!this.owner?.acceptsBridgeFeeding(feeding))throw changed();
             for(;;){
                 this.check();if(Date.now()>=feeding.bridge_readiness.expires_at*1000)throw new ConnectError("timeout","Original B bridge challenge expired");
-                if (!this.firstRtp) {
+                // Only the SAME verified original status reader supplies these
+                // complete-keyframe writer receipts. No counters or first delta
+                // callback may stand in for an exact authenticated coordinate.
+                const retained=await this.run(readKeyframes);this.check();
+                const decoded=retained&&this.preCutRtp.find(value=>retained.includes(value.rtpTimestamp));
+                if (!decoded) {
                     await this.run(() => new Promise<void>(yes => setTimeout(yes, Math.min(20, this.budget.remaining()))));
                     continue;
                 }
                 const report=await this.run(()=>this.original!.receiver.getStats());this.check();const output=this.decoded(report);
                 if(output) {
-                    // Freeze the first actual fresh-B callback carrying an RTP
-                    // coordinate. The server still matches it to a complete
-                    // keyframe on this exact candidate writer.
                     const marker:Readonly<WebRtcBridgeReadyMarker>=Object.freeze({profile:"connect-replacement-public-video-bridge-ready-v1",operation_record_id:feeding.operation_record_id,
-                        bridge_readiness:Object.freeze({reservation_id:feeding.reservation_id,nonce:feeding.bridge_readiness.nonce,binding:feeding.binding,decoded_rtp_timestamp:this.firstRtp.rtpTimestamp,decoded_frames:output.frames,decoder_startup:"fresh-b-receiver-precut-keyframe"})});
+                        bridge_readiness:Object.freeze({reservation_id:feeding.reservation_id,nonce:feeding.bridge_readiness.nonce,binding:feeding.binding,decoded_rtp_timestamp:decoded.rtpTimestamp,decoded_frames:output.frames,decoder_startup:"fresh-b-receiver-precut-keyframe"})});
                     this.owner!.expectBridgeMarker(marker);return marker;
                 }
                 await this.run(()=>new Promise<void>(yes=>setTimeout(yes,Math.min(20,this.budget.remaining()))));
@@ -278,7 +285,7 @@ class OriginalVideoObservation implements WebRtcPreCutPublicVideo {
     postCut(witness:Readonly<WebRtcReceiverPostCut>):Promise<WebRtcPreparedPublicVideo> {
         if(this.postCutPromise) {if(this.witness!==witness)throw changed();return this.postCutPromise;}
         if(!this.preCut||!this.bridgePromise||!this.owner)throw changed();
-        this.phase=this.owner.cutBound();this.witness=witness;this.preCut=false;
+        this.phase=this.owner.cutBound();this.witness=witness;this.preCut=false;this.preCutRtp.length=0;
         this.postCutPromise=this.start();return this.postCutPromise;
     }
     async start(): Promise<WebRtcPreparedPublicVideo> {
@@ -334,7 +341,7 @@ class OriginalVideoObservation implements WebRtcPreCutPublicVideo {
             try { element.pause(); } catch (error) { failure ??= error; }
             try { element.srcObject = null; } catch (error) { failure ??= error; }
         }
-        this.peer = undefined;this.roles = undefined;this.original = undefined;this.rtpOutput = undefined;this.firstRtp=undefined;
+        this.peer = undefined;this.roles = undefined;this.original = undefined;this.rtpOutput = undefined;this.preCutRtp.length=0;
         this.owner = undefined;this.signal = undefined;this.trackTask = undefined;
         return failure === undefined ? Promise.resolve() : Promise.reject(failure);
     }

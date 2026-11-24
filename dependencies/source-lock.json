@@ -3076,6 +3076,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-uctp-video-cut-fixed-patterns.patch",
       "sha256": "7892aee864d29a43fe2b21ee6b7c782caa8b8549525505ed9a025fdbe46b4b16"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-signed-candidate-keyframe-history.patch",
+      "sha256": "f88754393a02aa689c54e273d029f16fa1c7d5e009289ca62d4b1a7afc041adc"
     }
   ]
 }

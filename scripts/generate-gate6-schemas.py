@@ -163,6 +163,7 @@ def build():
  wide_ordinal={'type':'string','pattern':'^(0|[1-9][0-9]{0,19})$'}
  gen={'type':'integer','minimum':1,'maximum':SAFE_INTEGER}
  u32={'type':'integer','minimum':0,'maximum':4294967295}
+ definitions['OperationUpdated']['properties']['receiver_video_pre_cut_keyframes']={'type':'array','items':u32,'minItems':1,'maxItems':16,'uniqueItems':True}
  def closed_receiver(fields):return dict(type='object',additionalProperties=False,properties=fields,required=list(fields))
  receiver_boundary={key:ref('Identifier') for key in ('operation_record_id','operation_id','reservation_id','source_connection_id','target_connection_id','stream_id','source_cut_id')}
  receiver_boundary.update({key:gen for key in ('stream_generation','connection_generation','target_generation')})
@@ -190,6 +191,7 @@ def build():
  definitions['OperationUpdated']['allOf'].append({'if':{'anyOf':[{'required':['webrtc_video_receive_reservation']},{'required':['webrtc_public_video_phase']}]},'then':{'required':['command_type','record_id','expected_revision'],'properties':{'command_type':{'const':'connection.replace'}}}})
  definitions['OperationUpdated']['allOf'].append({'if':{'required':['webrtc_public_video_phase']},'then':{'required':['webrtc_video_receive_reservation']}})
  definitions['OperationUpdated']['allOf'].append({'if':{'required':['webrtc_public_video_bridge']},'then':{'required':['webrtc_video_receive_reservation','command_type','record_id','expected_revision'],'properties':{'command_type':{'const':'connection.replace'}}}})
+ definitions['OperationUpdated']['allOf'].append({'if':{'required':['receiver_video_pre_cut_keyframes']},'then':{'required':['webrtc_public_video_bridge','webrtc_public_video_phase'],'properties':{'state':{'const':'preparing'},'webrtc_public_video_phase':{'required':['phase'],'properties':{'phase':{'const':'negotiated-never-fed'}}},'webrtc_public_video_bridge':{'required':['feeding'],'properties':{'feeding':{'type':'object'}}}}}})
  for field,state,phase in [('receiver_video_post_cut','preparing','cut-bound-post-f'),('receiver_video_release','completed','activated')]:
   definitions['OperationUpdated']['allOf'].append({'if':{'required':[field]},'then':{'required':['webrtc_public_video_bridge','webrtc_public_video_phase'],'properties':{'state':{'const':state},'webrtc_public_video_phase':{'required':['phase'],'properties':{'phase':{'const':phase}}}}}})
  definitions['OperationUpdated']['allOf'].append({'if':{'required':['webrtc_public_video_phase'],'properties':{'webrtc_public_video_phase':{'required':['phase'],'properties':{'phase':{'const':'activated'}}}}},'then':{'required':['result'],'properties':{'state':{'const':'completed'},'result':{'type':'object','required':['activation_state'],'properties':{'activation_state':{'const':'ready'}}}}}})

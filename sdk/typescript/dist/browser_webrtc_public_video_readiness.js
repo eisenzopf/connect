@@ -72,7 +72,9 @@ class OriginalVideoObservation {
     callback;
     original;
     marker;
-    firstRtp;
+    // Numeric metadata only: retain the first callback and bounded recent B
+    // callbacks. No pixels, decoder reset or public presentation is retained.
+    preCutRtp = [];
     bridgePromise;
     postCutPromise;
     witness;
@@ -171,7 +173,11 @@ class OriginalVideoObservation {
                 this.rtpOutput = Number.isSafeInteger(rtpTimestamp) && Number(rtpTimestamp) >= 0 && Number(rtpTimestamp) <= 0xffffffff
                     ? Object.freeze({ rtpTimestamp: rtpTimestamp, presentedFrames: this.presented }) : undefined;
                 if (this.preCut && this.rtpOutput) {
-                    this.firstRtp ??= this.rtpOutput;
+                    if (!this.preCutRtp.some(value => value.rtpTimestamp === this.rtpOutput.rtpTimestamp)) {
+                        if (this.preCutRtp.length === 64)
+                            this.preCutRtp.splice(1, 1);
+                        this.preCutRtp.push(this.rtpOutput);
+                    }
                 }
                 if (!this.marker)
                     this.frameCount++;
@@ -279,7 +285,7 @@ class OriginalVideoObservation {
     }
     assertPreCutCurrent() { if (!this.preCut || !this.picture)
         throw changed(); this.check(); }
-    bridgeReady(feeding) {
+    bridgeReady(feeding, readKeyframes) {
         if (this.bridgePromise)
             return this.bridgePromise;
         let resolve, reject;
@@ -292,7 +298,13 @@ class OriginalVideoObservation {
                 this.check();
                 if (Date.now() >= feeding.bridge_readiness.expires_at * 1000)
                     throw new ConnectError("timeout", "Original B bridge challenge expired");
-                if (!this.firstRtp) {
+                // Only the SAME verified original status reader supplies these
+                // complete-keyframe writer receipts. No counters or first delta
+                // callback may stand in for an exact authenticated coordinate.
+                const retained = await this.run(readKeyframes);
+                this.check();
+                const decoded = retained && this.preCutRtp.find(value => retained.includes(value.rtpTimestamp));
+                if (!decoded) {
                     await this.run(() => new Promise(yes => setTimeout(yes, Math.min(20, this.budget.remaining()))));
                     continue;
                 }
@@ -300,11 +312,8 @@ class OriginalVideoObservation {
                 this.check();
                 const output = this.decoded(report);
                 if (output) {
-                    // Freeze the first actual fresh-B callback carrying an RTP
-                    // coordinate. The server still matches it to a complete
-                    // keyframe on this exact candidate writer.
                     const marker = Object.freeze({ profile: "connect-replacement-public-video-bridge-ready-v1", operation_record_id: feeding.operation_record_id,
-                        bridge_readiness: Object.freeze({ reservation_id: feeding.reservation_id, nonce: feeding.bridge_readiness.nonce, binding: feeding.binding, decoded_rtp_timestamp: this.firstRtp.rtpTimestamp, decoded_frames: output.frames, decoder_startup: "fresh-b-receiver-precut-keyframe" }) });
+                        bridge_readiness: Object.freeze({ reservation_id: feeding.reservation_id, nonce: feeding.bridge_readiness.nonce, binding: feeding.binding, decoded_rtp_timestamp: decoded.rtpTimestamp, decoded_frames: output.frames, decoder_startup: "fresh-b-receiver-precut-keyframe" }) });
                     this.owner.expectBridgeMarker(marker);
                     return marker;
                 }
@@ -324,6 +333,7 @@ class OriginalVideoObservation {
         this.phase = this.owner.cutBound();
         this.witness = witness;
         this.preCut = false;
+        this.preCutRtp.length = 0;
         this.postCutPromise = this.start();
         return this.postCutPromise;
     }
@@ -410,7 +420,7 @@ class OriginalVideoObservation {
         this.roles = undefined;
         this.original = undefined;
         this.rtpOutput = undefined;
-        this.firstRtp = undefined;
+        this.preCutRtp.length = 0;
         this.owner = undefined;
         this.signal = undefined;
         this.trackTask = undefined;
