@@ -1,0 +1,50 @@
+{
+  "format": "connect/g6-058-local-firefox-retained-cut-failure/1",
+  "source_revision": "9ec941b0f04921b871a86d041fb8dff0ea3ea856",
+  "component_sha256": "3de057e8ded64cefb5dfcc01e6f62b3074a7a10082c8bfc9c54728010e16313e",
+  "component_passed": false,
+  "matrix_cell_qualified": false,
+  "server_panic": false,
+  "candidate_decoded_before_withdrawal": 5,
+  "post_cut_whole_keyframe_written": 5,
+  "durable_phases": {
+    "cut-bound-post-f": 5,
+    "discarded": 6,
+    "negotiated-never-fed": 6
+  },
+  "cycles": [
+    {
+      "index": 1,
+      "completed": true,
+      "passes": false,
+      "moves": 0,
+      "failed_moves": 2,
+      "blocked_moves": 2,
+      "target_protocol_refusals": 2,
+      "retirement_passed": true
+    },
+    {
+      "index": 2,
+      "completed": true,
+      "passes": false,
+      "moves": 0,
+      "failed_moves": 2,
+      "blocked_moves": 2,
+      "target_protocol_refusals": 1,
+      "retirement_passed": true
+    },
+    {
+      "index": 3,
+      "completed": true,
+      "passes": false,
+      "moves": 0,
+      "failed_moves": 2,
+      "blocked_moves": 2,
+      "target_protocol_refusals": 2,
+      "retirement_passed": true
+    }
+  ],
+  "packet_capture_naturally_joined": true,
+  "packet_capture_packets": 293039,
+  "finding": "The server stayed up. Five operations reached the durable cut, none reached durable post-cut decoded readiness, and all six candidates were discarded. The existing browser artifact does not identify the original protocol exception. A separate deterministic test reproduced a later failure caused by requiring the initial coordinate after the server's decoded-ready phase stops projecting it."
+}

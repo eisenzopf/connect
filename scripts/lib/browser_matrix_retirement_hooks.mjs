@@ -8,7 +8,7 @@ const rtcStates=new Set(['new','connecting','connected','disconnected','failed',
  * retry, reconnect or force collection of the SDK owners here. */
 export function browserMatrixRetirementHooks(Peer,Rtc,{log=(...args)=>console.error(...args)}={}){
     const peers=new Map(),rtcs=new Map(),originalNative=Peer.prototype.shutdown,originalRtc=Rtc.prototype.shutdown,
-        originalBegin=Peer.prototype.beginReplacementConnection;
+        originalBegin=Peer.prototype.beginReplacementConnection,originalRtcBegin=Rtc.beginReplacement;
     let revision=0,closing,foreignOwner=false,registrationFailure=false;
     const text=value=>typeof value==='string'?value.slice(0,64):null;
     const failureDetails=error=>Object.freeze({name:text(error?.name),code:text(error?.code),kind:text(error?.kind),certainty:text(error?.certainty)});
@@ -33,9 +33,21 @@ export function browserMatrixRetirementHooks(Peer,Rtc,{log=(...args)=>console.er
         void original.completed.catch(error=>log('Original replacement rejection',String(error.code??error.name),String(error.message),String(error.stack)));
         return original;
     };
+    const observeRtcBegin=typeof originalRtcBegin==='function';
+    const rtcBeginHook=function(...args){
+        const original=originalRtcBegin.apply(this,args);
+        void original.completed.catch(error=>{
+            // Keep only known SDK script locations, without error bodies,
+            // operation identities, URLs or any change to the original Promise.
+            const locations=Array.from(String(error?.stack??'').matchAll(/\/sdk\/(browser_[a-z0-9_]+\.js:[0-9]+:[0-9]+)/g),match=>match[1]).slice(0,8);
+            log('Original RTC replacement rejection',text(error?.code),locations.join(' '));
+        });
+        return original;
+    };
     Peer.prototype.shutdown=nativeHook;Rtc.prototype.shutdown=rtcHook;Peer.prototype.beginReplacementConnection=beginHook;
+    if(observeRtcBegin)Rtc.beginReplacement=rtcBeginHook;
     const owned=()=>Peer.prototype.shutdown===nativeHook&&Rtc.prototype.shutdown===rtcHook
-        &&Peer.prototype.beginReplacementConnection===beginHook;
+        &&Peer.prototype.beginReplacementConnection===beginHook&&(!observeRtcBegin||Rtc.beginReplacement===rtcBeginHook);
     return {finish(){return closing??=(async()=>{
         const startedRevision=revision,entries=[...peers.values(),...rtcs.values()];
         await Promise.allSettled(entries.flatMap(entry=>[...entry.promises]));
@@ -70,6 +82,7 @@ export function browserMatrixRetirementHooks(Peer,Rtc,{log=(...args)=>console.er
         const joined=failures.length===0;
         if(joined){
             Peer.prototype.shutdown=originalNative;Rtc.prototype.shutdown=originalRtc;Peer.prototype.beginReplacementConnection=originalBegin;
+            if(observeRtcBegin)Rtc.beginReplacement=originalRtcBegin;
             for(const entry of entries){entry.owner=undefined;entry.promises.clear();}
             peers.clear();rtcs.clear();
         }

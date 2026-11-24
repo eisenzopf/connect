@@ -127,3 +127,27 @@ test('a diagnostic-only failed join remains failed unless its original body alre
     assert.equal(await finishBrowserMatrixRetirement({hooks,closed:{},reported:true}),diagnostic);
     assert.equal(await finishBrowserMatrixRetirement({hooks,closed:{},previousFailure:true}),diagnostic);
 });
+
+test('RTC rejection diagnostics keep SDK locations and preserve the original promise', async () => {
+    const logged=[];
+    const pending=deferred();
+    const target={completed:pending.promise};
+    class Peer {
+        shutdown(){return Promise.resolve();}
+        beginReplacementConnection(){throw Error('unexpected native replacement');}
+    }
+    class Rtc {
+        shutdown(){return Promise.resolve();}
+        static beginReplacement(){return target;}
+    }
+    const original=Rtc.beginReplacement;
+    const hooks=browserMatrixRetirementHooks(Peer,Rtc,{log:(...entry)=>logged.push(entry)});
+    assert.equal(Rtc.beginReplacement().completed,pending.promise);
+    const failure=Object.assign(new Error('private-body'),{code:'protocol'});
+    failure.stack='perform@https://127.0.0.1:75/sdk/browser_webrtc_public_video_lifecycle.js:289:17\nprivate-detail';
+    pending.reject(failure);
+    await assert.rejects(pending.promise,{message:'private-body'});
+    assert.deepEqual(logged,[['Original RTC replacement rejection','protocol','browser_webrtc_public_video_lifecycle.js:289:17']]);
+    assert.equal((await hooks.finish()).joined,true);
+    assert.equal(Rtc.beginReplacement,original);
+});

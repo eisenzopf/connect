@@ -176,7 +176,9 @@ export class BrowserWebRtcPublicVideoLifecycle {
                 phase=this.phase(current,true)!;
                 if(this.provisional&&phase.phase!=="activated") {
                     const raw=this.original.reservedReceiverWitness(current,false);
-                    if(raw===undefined||bridgeCanonical(parseWebRtcReceiverPostCut(raw,this.original.reservedContext().root,phase))!==bridgeCanonical(this.provisional))throw invalid();
+                    // Decoded-ready confirms the original cut via the signed
+                    // phase. The initial coordinate may be omitted thereafter.
+                    if(raw!==undefined&&bridgeCanonical(parseWebRtcReceiverPostCut(raw,this.original.reservedContext().root,phase))!==bridgeCanonical(this.provisional))throw invalid();
                 }
                 if(phase.phase==="activated"){
                     if(current.state!=="completed")throw invalid();
