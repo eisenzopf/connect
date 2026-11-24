@@ -251,7 +251,7 @@ impl DormantRoute {
     pub(super) fn activate_and_publish(
         &self,
         store: &Arc<Store>,
-    ) -> connect_protocol::Result<Option<ActiveRoutePreparation>> {
+    ) -> connect_protocol::Result<(ActiveRoutePreparation, bool)> {
         let target = self
             .target
             .upgrade()
@@ -264,12 +264,19 @@ impl DormantRoute {
             std::sync::TryLockError::WouldBlock => busy(),
             std::sync::TryLockError::Poisoned(_) => connect_protocol::Error::forbidden(),
         })?;
-        if routes.get(&self.route).is_some_and(RouteSnapshot::live) {
+        if let Some(existing) = routes.get(&self.route).filter(|route| route.live()) {
+            let registered = existing.clone();
             drop(routes);
             tracing::debug!(target:"connect_service::canonical_replacement",stage="pending-route-existing-live",
                 target=target.origin.runtime_connection_id(),unary=self.registered.source.is_none(),
-                "Existing same-phase registration kept; cold job discarded");
-            return Ok(None);
+                "Existing same-phase registration kept for fresh preparation");
+            return Ok((
+                ActiveRoutePreparation {
+                    target: self.target.clone(),
+                    registered,
+                },
+                true,
+            ));
         }
         if routes.values().filter(|route| route.live()).count() >= MAX_ROUTE_SNAPSHOTS {
             return Err(connect_protocol::Error::new(
@@ -285,10 +292,13 @@ impl DormantRoute {
         tracing::debug!(target:"connect_service::canonical_replacement",stage="pending-route-armed-published",
             target=target.origin.runtime_connection_id(),unary=self.registered.source.is_none(),
             "Armed route descriptor published; fresh authority is still required");
-        Ok(Some(ActiveRoutePreparation {
-            target: self.target.clone(),
-            registered: self.registered.clone(),
-        }))
+        Ok((
+            ActiveRoutePreparation {
+                target: self.target.clone(),
+                registered: self.registered.clone(),
+            },
+            false,
+        ))
     }
 }
 impl ActiveRoutePreparation {

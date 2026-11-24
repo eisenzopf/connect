@@ -270,5 +270,18 @@
       "qualified": false,
       "residual_observation": "At the failed sender cut, three dormant snapshots armed and two initially prepared. The unchanged receiver was refused current packet authority transiently. The original sender audio packet clocks stayed regular."
     }
+  },
+  "post_cut_route_preparation": {
+    "scope": "Local macOS arm64 Firefox item 3 only",
+    "prior_closed_run": "d5be6e690b8a32a2a787861e16480cfeebd447d5",
+    "cycle": 3,
+    "unchanged_receiver": 1,
+    "receiver_epoch": 0,
+    "armed_routes": 3,
+    "initially_prepared_routes": 2,
+    "packet_entry_refusal": "authority-busy",
+    "original_deadline_and_cancellation_retained": true,
+    "focused_service_tests": {"passed": 2, "failed": 0},
+    "strict_firefox_rerun": "pending"
   }
 }

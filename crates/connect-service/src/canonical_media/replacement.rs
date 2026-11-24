@@ -709,6 +709,59 @@ fn retry_dormant_unary<T>(
     Err(connect_protocol::Error::forbidden())
 }
 
+/// Give each pair its first current-authority attempt before retrying any
+/// contended pair. This runs on the existing off-media Store worker.
+fn prepare_armed_routes<T>(
+    routes: Vec<T>,
+    until: tokio::time::Instant,
+    current: impl Fn() -> bool,
+    is_unary: impl Fn(&T) -> bool,
+    mut prepare: impl FnMut(&T) -> connect_protocol::Result<()>,
+    first_error: &mut Option<connect_protocol::Error>,
+) -> connect_protocol::Result<(usize, usize)> {
+    let mut prepared = 0;
+    let mut deferred = Vec::new();
+    for route in routes {
+        if !current() {
+            return Err(connect_protocol::Error::forbidden());
+        }
+        let unary = is_unary(&route);
+        match retry_dormant_unary(unary, until, &current, || prepare(&route)) {
+            Ok(()) => prepared += 1,
+            Err(error) if !unary && error.code == "authority-busy" => deferred.push(route),
+            Err(error) => {
+                first_error.get_or_insert(error);
+            }
+        }
+    }
+    if deferred.is_empty() {
+        return Ok((prepared, 0));
+    }
+    if !current() {
+        return Err(connect_protocol::Error::forbidden());
+    }
+    // One shared retry delay lets the original Store slot's backoff elapse.
+    // No route lock, authority lease or packet is retained here.
+    std::thread::sleep(
+        until
+            .saturating_duration_since(tokio::time::Instant::now())
+            .min(super::final_control::MANAGED_METADATA_RETRY_DELAY),
+    );
+    let retried = deferred.len();
+    for route in deferred {
+        if !current() {
+            return Err(connect_protocol::Error::forbidden());
+        }
+        match prepare(&route) {
+            Ok(()) => prepared += 1,
+            Err(error) => {
+                first_error.get_or_insert(error);
+            }
+        }
+    }
+    Ok((prepared, retried))
+}
+
 impl ReplacementAdoption {
     pub(crate) fn capture_committed_projection(
         &self,
@@ -864,30 +917,26 @@ impl ReplacementAdoption {
             match retry_dormant_unary(route.is_unary(), until, &current, || {
                 route.activate_and_publish(&self.target.base.store)
             }) {
-                Ok(Some(route)) => active.push(route),
-                Ok(None) => existing += 1,
+                Ok((route, already_registered)) => {
+                    existing += usize::from(already_registered);
+                    active.push(route);
+                }
                 Err(error) => {
                     first_error.get_or_insert(error);
                 }
             }
         }
-        let published = active.len();
-        let mut prepared = 0usize;
-        for route in active {
-            if !current() {
-                return Err(connect_protocol::Error::forbidden());
-            }
-            match retry_dormant_unary(route.is_unary(), until, &current, || {
-                route.prepare_current(&self.target.base.store)
-            }) {
-                Ok(()) => prepared += 1,
-                Err(error) => {
-                    first_error.get_or_insert(error);
-                }
-            }
-        }
+        let published = active.len() - existing;
+        let (prepared, retried) = prepare_armed_routes(
+            active,
+            until,
+            &current,
+            super::native_snapshots::ActiveRoutePreparation::is_unary,
+            |route| route.prepare_current(&self.target.base.store),
+            &mut first_error,
+        )?;
         tracing::debug!(target:"connect_service::canonical_replacement",stage="pending-route-preparation-summary",
-            hinted=count,published,existing,prepared,deferred=first_error.is_some(),
+            hinted=count,published,existing,prepared,retried,deferred=first_error.is_some(),
             "Bounded pending-route metadata pass completed; no readiness credit");
         first_error.map_or(Ok(()), Err)
     }
@@ -1225,5 +1274,63 @@ impl connect_store::NativeReplacementInstallationGuard for InstalledEntry<'_> {
             ),
             _ => connect_protocol::Error::forbidden(),
         })?
+    }
+}
+
+#[cfg(test)]
+mod dormant_route_tests {
+    use super::*;
+
+    #[test]
+    fn contended_pairs_retry_after_other_routes_and_only_once() {
+        let mut calls = Vec::new();
+        let mut first_error = None;
+        let result = prepare_armed_routes(
+            vec![0, 1, 2, 3],
+            tokio::time::Instant::now() + std::time::Duration::from_secs(1),
+            || true,
+            |route| *route == 2,
+            |route| {
+                let attempted = calls.contains(route);
+                calls.push(*route);
+                match (*route, attempted) {
+                    (0, false) | (1, _) => Err(connect_protocol::Error::new(
+                        "authority-busy",
+                        "Fixture route metadata busy",
+                    )),
+                    (3, _) => Err(connect_protocol::Error::forbidden()),
+                    _ => Ok(()),
+                }
+            },
+            &mut first_error,
+        )
+        .unwrap();
+        assert_eq!(calls, [0, 1, 2, 3, 0, 1]);
+        assert_eq!(result, (2, 2));
+        assert_eq!(first_error.unwrap().code, "forbidden");
+    }
+
+    #[test]
+    fn deferred_pair_cannot_retry_after_authority_work_is_cancelled() {
+        let current = std::cell::Cell::new(true);
+        let mut calls = 0;
+        let mut first_error = None;
+        let result = prepare_armed_routes(
+            vec![()],
+            tokio::time::Instant::now() + std::time::Duration::from_secs(1),
+            || current.get(),
+            |_| false,
+            |_| {
+                calls += 1;
+                current.set(false);
+                Err(connect_protocol::Error::new(
+                    "authority-busy",
+                    "Fixture route metadata busy",
+                ))
+            },
+            &mut first_error,
+        );
+        assert_eq!(calls, 1);
+        assert_eq!(result.unwrap_err().code, "forbidden");
     }
 }
