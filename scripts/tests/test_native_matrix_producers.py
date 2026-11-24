@@ -3,16 +3,18 @@ import copy
 import json
 import os
 from pathlib import Path
+import shutil
 import signal
 import sys
 import tempfile
 import time
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from lib.matrix_idle import POLICY
+from lib.matrix_idle import POLICY, resource_monotonic
 from lib.native_matrix_authority import authority_verdict
-from lib.native_matrix_idle import NativeMatrixIdle, NativeMatrixPlateau, native_cycle_retirement_verified, native_idle_verdict, restoration
+from lib.native_matrix_idle import NativeMatrixIdle, NativeMatrixPlateau, native_cycle_retirement_verified, native_idle_verdict, restoration, run_native_matrix
 from lib.native_matrix_process import NativeOwner
 from lib.native_process_owner import live_workers
 from lib.native_programme_profile import PROFILE
@@ -297,6 +299,24 @@ class NativeOriginalOwner(unittest.TestCase):
             if work():return
             time.sleep(.02)
         self.fail("Original owner deadline")
+
+    @unittest.skipUnless(shutil.which("node"), "Node is required for the original programme clock")
+    def test_programme_deadline_uses_the_node_clock_epoch(self):
+        command = ["node", "-e", """
+            const deadline = Number(process.env.CONNECT_NATIVE_PROGRAMME_DEADLINE_MONOTONIC_SECONDS);
+            const remaining = deadline - Number(process.hrtime.bigint()) / 1e9;
+            process.exitCode = remaining > 0 && remaining <= 20 ? 0 : 1;
+        """]
+        # Model a Mac that has slept longer than the programme budget.
+        other_epoch = SimpleNamespace(monotonic=lambda: resource_monotonic() - 1200, sleep=time.sleep)
+        with tempfile.TemporaryDirectory() as temporary, patch("lib.native_matrix_idle.time", other_epoch):
+            directory = Path(temporary)
+            code, profile, _ = run_native_matrix(command, directory / "node.log", os.environ.copy(), 20,
+                server_pid=os.getpid(), directory=directory / "profile", cwd=ROOT,
+                endpoint="http://127.0.0.1:1", credential="unused")
+            self.assertEqual(code, 0)
+            self.assertTrue(profile["original_workers_joined"])
+            self.assertFalse(profile["forced"])
 
     def test_original_supervisor_stays_anchored_after_child_exit_until_explicit_join(self):
         with tempfile.TemporaryDirectory() as temporary:

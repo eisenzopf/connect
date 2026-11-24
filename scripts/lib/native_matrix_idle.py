@@ -15,7 +15,7 @@ import subprocess
 import time
 import urllib.request
 
-from .matrix_idle import POLICY, owned_usage
+from .matrix_idle import POLICY, owned_usage, resource_monotonic
 from .matrix_plateau import POLICY as PLATEAU_POLICY, CYCLE_POLICY, cycle_restoration, cycle_idle_verdict, evaluate, runtime_capacity_configuration
 from .matrix_macos_resources import MacProcessResources
 from .matrix_owner_diagnostics import idle_owner_diagnostics
@@ -106,7 +106,7 @@ def health_reader(endpoint, credential):
 
 
 class NativeMatrixIdle:
-    def __init__(self, directory, sampler, health, *, clock=time.monotonic, prefix="", cycle_baseline=None):
+    def __init__(self, directory, sampler, health, *, clock=resource_monotonic, prefix="", cycle_baseline=None):
         if prefix not in ("", "cycle-1-", "cycle-2-", "cycle-3-"):
             raise ValueError("Explicit original resource cycle required")
         self.prefix, self.cycle_baseline = prefix, cycle_baseline
@@ -265,7 +265,7 @@ def native_cycle_retirement_verified(retirement, owner, terminal):
 
 class NativeMatrixPlateau:
     """Three disjoint boundary files; all raw per-cycle reports remain on disk."""
-    def __init__(self, directory, sampler, health, *, child_class=NativeMatrixIdle, clock=time.monotonic):
+    def __init__(self, directory, sampler, health, *, child_class=NativeMatrixIdle, clock=resource_monotonic):
         self.directory, self.sampler, self.health = Path(directory), sampler, health
         self.clock, self.child_class = clock, child_class
         self.children, self.cycles = [], []
@@ -366,7 +366,8 @@ def run_native_matrix(command, log, env, budget, *, server_pid, directory, cwd, 
         raise ValueError("Bounded native workload and original idle interval required")
     directory = Path(directory)
     directory.mkdir(mode=0o700, exist_ok=True)
-    began, cutoff = time.monotonic(), time.monotonic() + budget
+    began = resource_monotonic()
+    cutoff = began + budget
     owner = idle = sampler = None
     code, failure = None, None
     cleanup = dict(original_supervisor_joined=False, original_workers_joined=False, forced=False)
@@ -377,7 +378,7 @@ def run_native_matrix(command, log, env, budget, *, server_pid, directory, cwd, 
         owned_command = ["env", "CONNECT_NATIVE_PROGRAMME_DEADLINE_MONOTONIC_SECONDS=" + str(cutoff), *command]
         owner = NativeOwner(owned_command, directory / "owner", log, cwd=cwd, env=env, wrap=wrap)
         while owner.identity() is None:
-            if time.monotonic() >= min(cutoff, began + 5) or not owner.alive():
+            if resource_monotonic() >= min(cutoff, began + 5) or not owner.alive():
                 raise ValueError("Original native supervisor did not start")
             time.sleep(.02)
         collector = MacProcessResources if sys.platform == "darwin" else ProcessResources
@@ -399,7 +400,7 @@ def run_native_matrix(command, log, env, budget, *, server_pid, directory, cwd, 
                 break
             if not owner.alive():
                 raise ValueError("Original native owner exited without completion")
-            if time.monotonic() >= cutoff:
+            if resource_monotonic() >= cutoff:
                 code = "timeout"
                 break
             time.sleep(.02)
@@ -415,7 +416,7 @@ def run_native_matrix(command, log, env, budget, *, server_pid, directory, cwd, 
         complete = (failure is None and cleanup["original_supervisor_joined"] and cleanup["original_workers_joined"]
             and not cleanup["forced"] and measured is not None and measured["sample_count"] >= 2
             and all(g["unavailable_samples"] == g["open_resource_unavailable_samples"] == 0 for g in measured["groups"].values()))
-        profile = dict(format="connect/native-workload-process-profile/1", elapsed_seconds=time.monotonic() - began,
+        profile = dict(format="connect/native-workload-process-profile/1", elapsed_seconds=resource_monotonic() - began,
             sample_count=measured["sample_count"] if measured else 0, groups=measured["groups"] if measured else {},
             **cleanup, failure=failure, collection_complete=bool(complete), resource_reclamation_qualified=False,
             fd_observation_diagnostics=(measured.get("fd_observation_diagnostics", dict(reported=False))
