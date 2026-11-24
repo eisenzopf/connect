@@ -127,6 +127,43 @@ fn readiness_rows(m: &ReadyFixture) -> u64 {
     ).unwrap()
 }
 #[test]
+fn signed_bridge_ready_admission_holds_only_the_original_metadata_record_read() {
+    use connect_protocol::webrtc_public_video_bridge as bridge;
+
+    let m = ready_fixture();
+    let mut request = public_request(&m);
+    let crate::PeerCommand::NativeConnectionOffer(intent) = &mut request.command else {
+        panic!()
+    };
+    let record = m.scene.reservation.operation_record_id();
+    let reservation = &m.scene.reservation.intent().reservation_id;
+    intent.offer["webrtc_public_video_bridge_opt_in"] = json!({
+        "profile": bridge::PROFILE, "carrier": "webrtc-rtp",
+        "presentation": "exclusive-public", "feed": "public-programme-private-decode"
+    });
+    intent.offer["replacement_preparation"] = json!({
+        "profile":bridge::READY_PROFILE,"operation_record_id":record,
+        "bridge_readiness":{"reservation_id":reservation,"nonce":"original-bridge-challenge",
+            "binding":{"stream_id":"public-b","preview_stream_id":"camera-a-0","mid":"2",
+                "stream_generation":3,"physical_writer_incarnation":"00000000000000000000000000000001",
+                "connection_generation":7,"primary_ssrc":23,"payload_type":96,"clock_rate_hz":90000,"codec":"vp8"},
+            "decoded_rtp_timestamp":90_000,"decoded_frames":1,"decoder_startup":bridge::DECODER_STARTUP}
+    });
+    let proof = m.scene.f.admit(&request);
+    let actual = Store::peer_scopes(&proof);
+    assert!(proof.current());
+    assert!(actual
+        .covers(&[crate::AuthorityScope::record(record, crate::AuthorityMode::Read).unwrap()]));
+    assert!(!actual
+        .covers(&[crate::AuthorityScope::record(record, crate::AuthorityMode::Write).unwrap()]));
+    assert!(!actual.covers(&[crate::AuthorityScope::record(
+        "foreign-record",
+        crate::AuthorityMode::Read
+    )
+    .unwrap()]));
+}
+
+#[test]
 fn public_ready_peer_uses_same_complete_original_proof_without_nested_reader_record_scope_or_new_phase(
 ) {
     let m = ready_fixture();

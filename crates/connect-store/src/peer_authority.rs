@@ -846,6 +846,14 @@ impl Store {
                     return Err(Error::forbidden());
                 }
                 scopes.extend(self.native_replacement_resource_begin_scopes(c, record)?);
+                if intent.offer["replacement_preparation"]["profile"]
+                    == connect_protocol::webrtc_public_video_bridge::READY_PROFILE
+                {
+                    // This signed continuation records DecodedReady in the
+                    // same transaction. Hold its exact journal Record Read
+                    // alongside the original source/retained media Reads.
+                    scopes.push(AuthorityScope::record(record, AuthorityMode::Read)?);
+                }
                 scopes = AuthorityScope::merged(&scopes)?;
             }
             if mutation {

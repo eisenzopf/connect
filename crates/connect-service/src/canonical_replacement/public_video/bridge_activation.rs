@@ -76,7 +76,16 @@ impl StoreObservation for BridgeObservation {
                 }
                 let original = output
                     .pre_cut_keyframe(ready.bridge_readiness.decoded_rtp_timestamp)
-                    .ok_or_else(Error::forbidden)?;
+                    .ok_or_else(|| {
+                        tracing::debug!(target: "connect_service::canonical_replacement",
+                            boundary = "public-video-bridge",
+                            stage = "candidate-decoder-keyframe-join-refused",
+                            operation = expected.operation_id(),
+                            candidate_ssrc = output.primary_ssrc(),
+                            decoded_rtp_timestamp = ready.bridge_readiness.decoded_rtp_timestamp,
+                            "Signed candidate decode did not match a retained whole writer keyframe");
+                        Error::forbidden()
+                    })?;
                 Some((ready.clone(), original))
             }
         };

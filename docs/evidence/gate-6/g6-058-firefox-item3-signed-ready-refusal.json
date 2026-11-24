@@ -1,0 +1,20 @@
+{
+  "format": "connect/g6-058-local-firefox-signed-ready-diagnostic/1",
+  "source_revision": "1548acec2534b1103e3b33aabb110185e79ed8f4",
+  "cycles": 1,
+  "component_passed": false,
+  "full_matrix_cell_qualified": false,
+  "candidate_writers_started": 2,
+  "wire_packets_joined_to_signed_candidate_bindings": [
+    28,
+    30
+  ],
+  "target_signed_ready_http_style_codes": [
+    403,
+    403
+  ],
+  "refusal_boundary": "pre-cut-bridge-ready",
+  "old_video_withdrawals": 0,
+  "closed_original_component_sha256": "53c2232abc44a139864ff0362b4f9a355d5973c87f47406791ff26dc093c1c9b",
+  "finding": "The Store metadata permit requires an exact original operation Record Read. Signed Ready admission held the original source and retained media scopes but omitted that Record Read. The original trace does not identify which predicate rejected first."
+}
